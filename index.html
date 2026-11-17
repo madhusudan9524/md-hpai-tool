@@ -67,6 +67,15 @@
     <section data-panel="regulator">
       <h2>Infected premises and zones</h2>
       <p class="hint">Full detail: premises locations, Infected Zone (3 km), Buffer Zone (3–10 km), Control Area (10 km), Surveillance Zone (10–20 km). Turn layers on and off below.</p>
+      <div class="legend-box">
+        <div class="lg"><span class="sw pm"></span>Premises perimeter (zones are measured from this edge)</div>
+        <div class="lg"><span class="sw iz"></span>Infected Zone: 0–3 km. Highest risk, tightest controls</div>
+        <div class="lg"><span class="sw bz"></span>Buffer Zone: 3–10 km. With the Infected Zone, forms the Control Area</div>
+        <div class="lg"><span class="sw ca"></span>Control Area: 0–10 km. Movement permits, testing</div>
+        <div class="lg"><span class="sw sz"></span>Surveillance Zone: 10–20 km. Flock testing, no permit</div>
+        <div class="lg"><span class="sw rel"></span>Past control area (fades with time since release)</div>
+        <div class="lg"><span class="dot"></span>Wild bird HPAI, last 4 weeks</div>
+      </div>
       <div id="premList"></div>
       <div id="layerListDiv"></div>
       <p class="hint" id="permitAdmin"></p>

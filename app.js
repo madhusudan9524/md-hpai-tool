@@ -94,6 +94,11 @@ require([
   const regIZ = zoneLayer("Infected Zone (0–3 km)", "zone_type = 'Infected Zone' AND status = 'Active'", { type: "simple", symbol: fill([200, 30, 30, 0.35], [160, 20, 20, 1], 1.5) });
   const regCA = zoneLayer("Control Area outline (10 km)", "zone_type = 'Control Area' AND status = 'Active'", { type: "simple", symbol: fill([0, 0, 0, 0], [140, 20, 20, 1], 0.5) });
   const regReleased = new FeatureLayer({ url: C.zonesUrl, title: "Released control areas (fade with age)", definitionExpression: "zone_type = 'Control Area' AND status = 'Released'", outFields: ["*"], renderer: releasedRenderer, popupTemplate: regPopup("Released control area") });
+  const perim = new FeatureLayer({
+    url: C.perimeterUrl, title: "Premises perimeter (zones are measured from this edge)", outFields: ["*"],
+    renderer: { type: "simple", symbol: fill([20, 20, 20, 0.3], [20, 20, 20, 1], 1.5) },
+    popupTemplate: { title: "{premises_id}: premises perimeter", content: "Status: {status}<br>{note}" }
+  });
   const premises = new FeatureLayer({
     url: C.premisesUrl, title: "Infected premises", outFields: ["*"],
     renderer: { type: "unique-value", field: "status",
@@ -112,7 +117,7 @@ require([
   const marks = new GraphicsLayer({ title: "Selected locations", listMode: "hide" });
   const routeLyr = new GraphicsLayer({ title: "Route", listMode: "hide" });
 
-  const map = new Map({ basemap: "topo-vector", layers: [regSZ, regBZ, pubSZ, pubReleased, regReleased, pubCA, regIZ, regCA, wild, premises, routeLyr, marks] });
+  const map = new Map({ basemap: "topo-vector", layers: [regSZ, regBZ, pubSZ, pubReleased, regReleased, pubCA, regIZ, regCA, wild, perim, premises, routeLyr, marks] });
   const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, popup: { dockEnabled: false } });
   view.ui.add(new Home({ view }), "top-left");
 
@@ -120,9 +125,9 @@ require([
   const TIER_LAYERS = {
     public: [pubSZ, pubCA, pubReleased, wild],
     hauler: [pubSZ, pubCA, pubReleased],
-    regulator: [premises, regIZ, regBZ, regCA, regSZ, regReleased, wild]
+    regulator: [premises, perim, regIZ, regBZ, regCA, regSZ, regReleased, wild]
   };
-  const ALL = [pubSZ, pubCA, pubReleased, wild, premises, regIZ, regBZ, regCA, regSZ, regReleased];
+  const ALL = [pubSZ, pubCA, pubReleased, wild, perim, premises, regIZ, regBZ, regCA, regSZ, regReleased];
   let tier = "public", layerList = null;
   function setTier(t) {
     tier = t; pickMode = null; updatePickButtons();
