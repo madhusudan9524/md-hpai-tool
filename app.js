@@ -166,7 +166,7 @@ require([
       .then((dg) => { maskLyr.add(new Graphic({ geometry: geometryEngine.difference(worldPoly, clearArea(dg)), symbol: { type: "simple-fill", color: [244, 246, 249, 0.78], outline: { color: [0, 0, 0, 0] } } })); });
     // outbreak tint: counties containing an active control area's center (the infected premises; no premises ID is read)
     zonesQ.queryFeatures({ where: "zone_type = 'Control Area' AND status = 'Active'", outFields: ["confirmed_date"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((za) => {
-      const hit = new Map();
+      const hit = new globalThis.Map();   // (esri Map shadows the global)
       za.features.forEach((z) => { const c = z.geometry.extent.center; feats.forEach((f) => { if (geometryEngine.contains(f.geometry, c)) { const o = hit.get(f) || { f, since: z.attributes.confirmed_date, ext: z.geometry.extent.clone() }; o.since = Math.min(o.since, z.attributes.confirmed_date); o.ext = o.ext.union(z.geometry.extent); hit.set(f, o); } }); });
       hit.forEach((o) => tintLyr.add(new Graphic({ geometry: o.f.geometry, symbol: { type: "simple-fill", color: [200, 40, 30, 0.12], outline: { color: [200, 40, 30, 0.4], width: 1 } } })));
       outbreakAreas = [...hit.values()].map((o) => ({ county: o.f.attributes.NAME.replace(" County", ""), since: o.since, ext: o.ext })).sort((a, b) => b.since - a.since);
