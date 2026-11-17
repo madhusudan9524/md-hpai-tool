@@ -126,7 +126,7 @@ require([
 
   // OFFICIALS: known poultry farms (USGS houses mapped from 2016-17 imagery, grouped within 200 m); not an official MDA premises registry
   const farmsLyr = new FeatureLayer({ url: C.farmsUrl, title: "Poultry farms (estimated)", outFields: ["*"],
-    renderer: { type: "simple", symbol: { type: "simple-marker", style: "circle", size: 5, color: [125, 90, 40, 0.85], outline: { color: [255, 255, 255, 0.9], width: 0.6 } } },
+    renderer: { type: "simple", symbol: { type: "simple-marker", style: "circle", size: 4, color: [125, 90, 40, 0.8], outline: { color: [255, 255, 255, 0.9], width: 0.6 } } },
     popupTemplate: { title: "Poultry farm {farm_id}", content: "{houses} poultry house(s)<br><span style='font-size:11px'>{source}. Estimated from aerial imagery; not an official premises record.</span>" } });
 
   // Query-only handle on all zones (never drawn)
