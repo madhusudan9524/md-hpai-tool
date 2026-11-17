@@ -15,6 +15,7 @@ window.HPAI_CONFIG = {
   regulatorGroup: "MD HPAI Regulators",
   haulerGroup: "MD HPAI Haulers",
   // Survey123 form for signed-in users to report a suspected HPAI outbreak
+  accessEmail: "",   // where "Contact MDA" access requests go
   reportFormUrl: "https://survey123.arcgis.com/share/05dfdf8cb14c49e7919d2ba646b7f75d",
   reportResultsUrl: "https://survey123.arcgis.com/surveys/05dfdf8cb14c49e7919d2ba646b7f75d/data",
   permitFormUrl: "https://survey123.arcgis.com/share/dc58d20686754e49a56f072f382121dd",

@@ -123,43 +123,80 @@ require([
   view.ui.add(new Home({ view }), "top-left");
   view.ui.add(new Expand({ view, expandIcon: "measure", expandTooltip: "Measure distance", content: new DistanceMeasurement2D({ view, unit: "kilometers" }) }), "top-left");
 
-  // ---------------- Roles: signing in decides what is shown; the public needs no sign-in ----------------
-  const RANK = { public: 0, member: 1, hauler: 2, regulator: 3 };
-  let role = "public", layerList = null, regAdded = false, signedUser = null;
-  const can = (r) => RANK[role] >= RANK[r];
-  function applyRole(r, user) {
-    role = r; signedUser = user || null;
-    document.getElementById("s-report").hidden = !can("member");
-    document.getElementById("s-hauler").hidden = !can("hauler");
-    document.getElementById("s-reg").hidden = !can("regulator");
-    routeLyr.visible = can("hauler");
-    view.popupEnabled = can("regulator");
-    const who = document.getElementById("who");
-    who.innerHTML = user ? `${esc(user.fullName || user.username)} · ${{ member: "signed in", hauler: "hauler", regulator: "regulator" }[r]} · <a href="#" id="signout">Sign out</a>` : `<a href="#" id="signin">Staff sign in</a>`;
-    const so = document.getElementById("signout");
-    if (so) so.onclick = (e) => { e.preventDefault(); esriId.destroyCredentials(); location.href = location.pathname; };
-    const si = document.getElementById("signin");
-    if (si) si.onclick = (e) => { e.preventDefault(); esriId.getCredential(C.portalUrl + "/sharing"); };
-    if (can("regulator") && !regAdded) {   // private layers are added only for regulators, so the public never hits a sign-in prompt
+  // ---------------- Workspaces: the public needs no sign-in; signing in opens the workspace for your role ----------------
+  const WS_NAME = { regulator: "Animal health officials", hauler: "Transporters", industry: "Poultry industry" };
+  const STAFF_LAYERS = [regBZ, regIZ, regCA, perim, premises];
+  let ws = "public", roles = [], layerList = null, regAdded = false, signedUser = null;
+  const isStaff = () => ws === "regulator";
+  const canHaul = () => ws === "hauler" || ws === "regulator";
+  const $ = (id) => document.getElementById(id);
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 5000); }
+
+  function renderAcct(user) {
+    const a = $("acct");
+    if (!user) {
+      a.innerHTML = `<button class="signin" id="signin">Sign in</button>`;
+      $("signin").onclick = () => ($("modal").hidden = false);
+      return;
+    }
+    const nm = user.fullName || user.username || "Signed in", ini = nm.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+    a.innerHTML = `<button class="me" id="me"><span class="ava">${esc(ini)}</span>${esc(WS_NAME[ws])}</button>
+      <div class="menu" id="menu" hidden><div class="nm">${esc(nm)}</div><div class="em">${esc(user.email || user.username || "")}</div><span class="rl">${esc(WS_NAME[ws])}</span><button id="signout">Sign out</button></div>`;
+    $("me").onclick = (e) => { e.stopPropagation(); $("menu").hidden = !$("menu").hidden; };
+    $("signout").onclick = () => { try { sessionStorage.removeItem("hpaiWs"); } catch (e) {} esriId.destroyCredentials(); location.href = location.pathname; };
+  }
+  document.addEventListener("click", () => { const m = $("menu"); if (m) m.hidden = true; });
+
+  function setWorkspace(w) {
+    ws = w; pickMode = null; updatePickButtons(); marks.removeAll();
+    const signed = w !== "public";
+    $("ws").hidden = !signed;
+    $("wsName").textContent = WS_NAME[w] || "";
+    $("t-report").hidden = !signed;
+    $("t-permit").hidden = w !== "industry";
+    $("t-route").hidden = !canHaul();
+    $("t-off").hidden = !isStaff();
+    document.querySelectorAll(".staffkey").forEach((e) => (e.hidden = !isStaff()));
+    routeLyr.visible = canHaul();
+    view.popupEnabled = isStaff();
+    const sw = $("wsSwitch"); sw.innerHTML = ""; sw.hidden = roles.length < 2;
+    roles.forEach((r) => { const b = document.createElement("button"); b.textContent = { regulator: "Officials", hauler: "Transport", industry: "Industry" }[r]; b.className = r === w ? "on" : ""; b.onclick = () => { setWorkspace(r); renderAcct(signedUser); }; sw.appendChild(b); });
+    if (isStaff() && !regAdded) {   // private layers are added only for officials, so the public never hits a sign-in prompt
       regAdded = true;
-      map.addMany([regBZ, regIZ, regCA, perim, premises]);
+      map.addMany(STAFF_LAYERS);
       map.reorder(routeLyr, map.layers.length - 1); map.reorder(marks, map.layers.length - 1);
       layerList = new LayerList({ view, container: "layerListDiv" }); loadPremisesList();
     }
+    STAFF_LAYERS.forEach((l) => (l.visible = isStaff()));
+    if (signedUser) renderAcct(signedUser);
+    if (lastCheck) checkLocation(lastCheck.pt, lastCheck.name);
   }
+
   async function initRole() {
+    renderAcct(null); setWorkspace("public");
+    $("mclose").onclick = () => ($("modal").hidden = true);
+    $("modal").onclick = (e) => { if (e.target.id === "modal") $("modal").hidden = true; };
+    $("reqAccess").href = "mailto:" + (C.accessEmail || "") + "?subject=" + encodeURIComponent("HPAI map access request");
+    document.querySelectorAll(".role").forEach((b) => (b.onclick = () => {
+      try { sessionStorage.setItem("hpaiWs", b.dataset.ws); } catch (e) {}
+      esriId.getCredential(C.portalUrl + "/sharing");
+    }));
     try {
       await esriId.checkSignInStatus(C.portalUrl + "/sharing");
       const portal = new Portal({ url: C.portalUrl }); await portal.load();
       const user = portal.user, groups = await user.fetchGroups();
       const names = groups.map((g) => g.title.toLowerCase());
-      let r = "member";
-      if (names.includes((C.haulerGroup || "").toLowerCase())) r = "hauler";
-      if (names.includes((C.regulatorGroup || "").toLowerCase())) r = "regulator";
-      const as = new URLSearchParams(location.search).get("as");   // preview a lower role, e.g. ?as=hauler
-      if (as && RANK[as] !== undefined && RANK[as] < RANK[r]) r = as;
-      if (r === "public") applyRole("public"); else applyRole(r, user);
-    } catch (e) { applyRole("public"); }
+      if (names.includes((C.regulatorGroup || "").toLowerCase())) roles = ["regulator", "hauler", "industry"];
+      else if (names.includes((C.haulerGroup || "").toLowerCase())) roles = ["hauler"];
+      else roles = ["industry"];
+      signedUser = user;
+      let want = null; try { want = sessionStorage.getItem("hpaiWs"); sessionStorage.removeItem("hpaiWs"); } catch (e) {}
+      const as = new URLSearchParams(location.search).get("as");   // preview, e.g. ?as=hauler or ?as=public
+      if (as === "public") { signedUser = null; roles = []; renderAcct(null); setWorkspace("public"); return; }
+      let pick = roles.includes(as) ? as : roles.includes(want) ? want : roles[0];
+      if (want && !roles.includes(want)) toast(`Your account doesn't have ${WS_NAME[want]} access. Opened ${WS_NAME[pick]} instead.`);
+      setWorkspace(pick); renderAcct(user);
+    } catch (e) { renderAcct(null); setWorkspace("public"); }
   }
 
   // ---------------- Zone lookup ----------------
@@ -180,14 +217,16 @@ require([
   }
 
   // ---------------- PUBLIC ----------------
+  let lastCheck = null;
   const pubSearch = new Search({ view, container: "pubSearch", popupEnabled: false, resultGraphicEnabled: false, locationEnabled: false });
   pubSearch.on("select-result", (e) => e.result && checkLocation(e.result.feature.geometry, e.result.name));
 
   // radius slider ("show results within N km"), like the Pennsylvania checker
-  const radiusEl = document.getElementById("radius"), radVal = document.getElementById("radVal");
-  let lastCheck = null;
-  radiusEl.oninput = () => { radVal.textContent = radiusEl.value; };
-  radiusEl.onchange = () => { if (lastCheck) checkLocation(lastCheck.pt, lastCheck.name); };
+  let radius = 0;
+  document.querySelectorAll("#radSeg button").forEach((b) => (b.onclick = () => {
+    radius = +b.dataset.r; document.querySelectorAll("#radSeg button").forEach((x) => x.classList.toggle("on", x === b));
+    if (lastCheck) checkLocation(lastCheck.pt, lastCheck.name);
+  }));
 
   const haversineKm = (a, b) => {
     const A = webMercatorUtils.webMercatorToGeographic(a), B = webMercatorUtils.webMercatorToGeographic(b), R = 6371.0088, rad = Math.PI / 180;
@@ -198,9 +237,8 @@ require([
 
   async function checkLocation(pt, name) {
     lastCheck = { pt, name };
-    const box = document.getElementById("pubResult");
-    const radius = +radiusEl.value;
-    box.className = "result show r-info"; box.innerHTML = "Checking…";
+    const box = $("pubResult");
+    box.className = "result"; box.innerHTML = `<div class="res info"><div class="big">Checking…</div></div>`;
     marks.removeAll(); mark(pt, [23, 50, 77, 1]);
     let ring = null;
     if (radius > 0) {
@@ -211,65 +249,66 @@ require([
       const [z, zr, prem] = await Promise.all([
         zonesAt(pt),
         ring ? zonesAt(ring) : Promise.resolve(null),
-        can("hauler") ? premises.queryFeatures({ where: "status = 'Active'", outFields: ["premises_id"], returnGeometry: true, outSpatialReference: view.spatialReference }).catch(() => ({ features: [] })) : Promise.resolve({ features: [] })
+        canHaul() ? premises.queryFeatures({ where: "status = 'Active'", outFields: ["premises_id"], returnGeometry: true, outSpatialReference: view.spatialReference }).catch(() => null) : Promise.resolve(null)
       ]);
       const d = designation(z);
       const act = z.filter((a) => a.status === "Active" && a.zone_type === d);
       const inIZ = z.some((a) => a.status === "Active" && a.zone_type === "Infected Zone");
       const since = act.length ? fmtDate(Math.min(...act.map((a) => a.confirmed_date))) : "";
       const rel = z.filter((a) => a.status === "Released" && a.zone_type === "Control Area").sort((a, b) => b.released_date - a.released_date)[0];
-      const dists = prem.features.map((f) => haversineKm(pt, f.geometry));
+      const dists = prem ? prem.features.map((f) => haversineKm(pt, f.geometry)) : [];
       const nearest = dists.length ? Math.min(...dists) : null;
       const inCA = d === "Control Area", inSZ = z.some((a) => a.status === "Active" && a.zone_type === "Surveillance Zone");
-      let html = `<div class="chips"><span class="chip ${inCA ? "yes" : "no"}">Control Area: ${inCA ? "YES" : "No"}</span><span class="chip ${inSZ ? "ysz" : "no"}">Surveillance Zone: ${inSZ ? "YES" : "No"}</span></div>`;
-      if (d === "Control Area") {
-        box.className = "result show r-ca";
-        html += `<div class="big">Inside an HPAI Control Area</div><p>In place since ${since}.</p><ul>`
-          + (inIZ ? `<li><b>Infected Zone</b> (within 3 km of an infected premises): the strictest limits apply. Call MDA before any movement.</li>` : `<li>Buffer Zone (3–10 km from an infected premises).</li>`)
-          + `<li>Moving poultry, eggs, feed, litter, carcasses or service vehicles onto or off a premises here requires an <b>MDA movement permit</b>.</li><li>Flocks here are under surveillance testing. Follow enhanced biosecurity.</li><li>Haulers: use the <b>Haulers &amp; industry</b> tab to plan a route and request a permit.</li></ul>`;
-      } else if (d === "Surveillance Zone") {
-        box.className = "result show r-sz";
-        html += `<div class="big">Inside an HPAI Surveillance Zone</div><p>10–20 km from an infected premises, outside the control area. Since ${since}.</p><ul><li>No movement permit is required, but commercial flocks may be tested.</li><li>Watch flocks closely and report sick or dead birds to MDA immediately.</li><li>Check with MDA before moving birds; zones can expand.</li></ul><p>Help close the outbreak: tell MDA your birds are healthy or report sick birds at <b>(410) 841-5810</b>.</p>`;
-      } else {
-        box.className = "result show r-free";
-        html += `<div class="big">Not in an active HPAI zone</div><p>No HPAI movement restrictions apply here right now.</p>`;
-      }
-      if (can("hauler")) html += `<p>` + (nearest == null ? "No active infected premises." : `Nearest active infected premises: <b>${nearest.toFixed(1)} km</b> away.`) + `</p>`;
+      const chips = `<div class="chips"><span class="chip ${inCA ? "yes" : ""}">Control Area: ${inCA ? "YES" : "No"}</span><span class="chip ${inSZ ? "ysz" : ""}">Surveillance Zone: ${inSZ ? "YES" : "No"}</span></div>`;
+      let cls, big, text;
+      if (inCA) {
+        cls = "ca"; big = "Control Area";
+        text = `${inIZ ? "Infected Zone: call MDA before any movement." : "Buffer Zone."} A movement permit is required for poultry, eggs, feed, litter and equipment. Since ${since}.`;
+      } else if (inSZ) {
+        cls = "sz"; big = "Surveillance Zone";
+        text = `No movement permit needed. Flocks may be tested. Report sick or dead birds to MDA. Since ${since}.`;
+      } else { cls = "free"; big = "Outside all zones"; text = "No HPAI movement limits here right now."; }
+      let extra = "";
+      if (nearest != null) extra += `<p>Nearest active infected premises: <b>${nearest.toFixed(1)} km</b> (straight line).</p>`;
       if (ring) {
         const n = dists.filter((k) => k <= radius).length;
         const ca = zr.some((a) => a.status === "Active" && a.zone_type === "Control Area");
         const sz = zr.some((a) => a.status === "Active" && a.zone_type === "Surveillance Zone");
-        const relN = zr.filter((a) => a.status === "Released" && a.zone_type === "Control Area").length;
-        html += `<p><b>Within ${radius} km:</b> ${can("hauler") ? n + " active infected premises; " : ""}${ca ? "a control area reaches this area" : "no control area"}${sz ? "; a surveillance zone reaches this area" : ""}${relN ? `; ${relN} released control area${relN > 1 ? "s" : ""}` : ""}.</p>`;
+        extra += `<p><b>Within ${radius} km:</b> ${prem ? n + " infected premises, " : ""}${ca ? "control area reaches here" : "no control area"}${sz ? ", surveillance zone reaches here" : ""}.</p>`;
       }
-      if (rel) html += `<p style="font-size:12px;opacity:.85">History: this location was in a control area released ${fmtDate(rel.released_date)} (${daysAgo(rel.released_date)} days ago).</p>`;
-      html += `<p style="font-size:12px;opacity:.85">Location: ${esc(name || label(pt))}. Checked ${new Date().toLocaleString()}. Sample data.</p>`;
-      box.innerHTML = html;
+      if (rel) extra += `<p>This spot was in a control area released ${fmtDate(rel.released_date)}.</p>`;
+      let cta = "";
+      if (inCA && (ws === "hauler" || ws === "industry") && C.permitFormUrl && !C.permitFormUrl.startsWith("REPLACE")) {
+        const g = webMercatorUtils.webMercatorToGeographic(pt);
+        cta = `<a class="cta red" target="_blank" rel="noopener" href="${C.permitFormUrl}?center=${g.y.toFixed(6)},${g.x.toFixed(6)}&field:origin=${encodeURIComponent(name || label(pt))}">Request a permit</a>`;
+      }
+      box.className = "result";
+      box.innerHTML = `<div class="res ${cls}"><div class="big">${big}</div><p>${text}</p>${chips}${extra}${cta}<div class="meta">${esc(name || label(pt))} · checked ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div></div>`;
     } catch (err) {
-      box.className = "result show r-info"; box.innerHTML = "Could not check this location: " + esc(err.message);
+      box.innerHTML = `<div class="res info"><div class="big">Couldn't check</div><p>${esc(err.message)}</p></div>`;
     }
   }
 
   // use my location (like the Washington "Near Me" tool)
   document.getElementById("locBtn").onclick = () => {
-    const box = document.getElementById("pubResult");
-    if (!navigator.geolocation) { box.className = "result show r-info"; box.innerHTML = "Your browser cannot share its location."; return; }
-    box.className = "result show r-info"; box.innerHTML = "Finding your location…";
+    const box = $("pubResult"); const msg = (t) => (box.innerHTML = `<div class="res info"><p>${t}</p></div>`);
+    if (!navigator.geolocation) return msg("Your browser cannot share its location.");
+    msg("Finding your location…");
     navigator.geolocation.getCurrentPosition((p) => {
       const pt = webMercatorUtils.geographicToWebMercator({ type: "point", x: p.coords.longitude, y: p.coords.latitude, spatialReference: { wkid: 4326 } });
       view.goTo({ target: pt, zoom: 11 }); checkLocation(pt, "My location");
-    }, () => { box.className = "result show r-info"; box.innerHTML = "Could not get your location. Search an address or click the map instead."; }, { timeout: 10000 });
+    }, () => msg("Couldn't get your location. Search an address or tap the map."), { timeout: 10000 });
   };
 
   // data last-updated stamp (like Pennsylvania's "updated daily" note)
   zonesQ.load().then(() => {
     const d = zonesQ.editingInfo && zonesQ.editingInfo.lastEditDate;
-    document.getElementById("updated").textContent = d ? "Zones last updated " + new Date(d).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : "";
+    document.getElementById("updated").textContent = d ? "Updated " + new Date(d).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : "";
   }).catch(() => {});
 
   // wild-bird status line
   wild.when(() => wild.queryFeatureCount().then((n) => {
-    document.getElementById("wildNote").textContent = n ? `${n} wild-bird detection${n > 1 ? "s" : ""} in the last 4 weeks.` : "No wild-bird detections reported in the last 4 weeks.";
+    document.getElementById("wildNote").textContent = n ? `(${n})` : "(none)";
   }).catch(() => {}));
 
   // ---------------- HAULER ----------------
@@ -283,9 +322,19 @@ require([
     document.getElementById("pickOrg").classList.toggle("active", pickMode === "org");
     document.getElementById("pickDst").classList.toggle("active", pickMode === "dst");
     document.getElementById("pickRep").classList.toggle("active", pickMode === "rep");
+    document.getElementById("pickPerm").classList.toggle("active", pickMode === "perm");
   }
   document.getElementById("pickOrg").onclick = () => { pickMode = pickMode === "org" ? null : "org"; updatePickButtons(); };
   document.getElementById("pickDst").onclick = () => { pickMode = pickMode === "dst" ? null : "dst"; updatePickButtons(); };
+  document.getElementById("pickPerm").onclick = () => { pickMode = pickMode === "perm" ? null : "perm"; updatePickButtons(); };
+  function setPermit(pt) {
+    marks.removeAll(); mark(pt, [217, 130, 43, 1]);
+    const g = webMercatorUtils.webMercatorToGeographic(pt);
+    const q = new URLSearchParams({ center: `${g.y.toFixed(6)},${g.x.toFixed(6)}`, "field:origin": label(pt) });
+    $("permLoc").textContent = `Marked: ${label(pt)}`;
+    const a = $("permLink");
+    if (C.permitFormUrl && !C.permitFormUrl.startsWith("REPLACE")) { a.href = `${C.permitFormUrl}?${q}`; a.hidden = false; } else a.hidden = true;
+  }
   document.getElementById("pickRep").onclick = () => { pickMode = pickMode === "rep" ? null : "rep"; updatePickButtons(); };
   function setReport(pt) {
     marks.removeAll(); mark(pt, [180, 35, 24, 1]);
@@ -293,7 +342,7 @@ require([
     const q = new URLSearchParams({ center: `${g.y.toFixed(6)},${g.x.toFixed(6)}` });
     if (signedUser && signedUser.fullName) q.set("field:reporter_name", signedUser.fullName);
     if (signedUser && signedUser.email) q.set("field:email", signedUser.email);
-    document.getElementById("repLoc").textContent = `Location marked: ${label(pt)}`;
+    document.getElementById("repLoc").textContent = `Marked: ${label(pt)}`;
     const a = document.getElementById("repLink");
     if (C.reportFormUrl && !C.reportFormUrl.startsWith("REPLACE")) { a.href = `${C.reportFormUrl}?${q.toString()}`; a.hidden = false; }
     else { a.hidden = true; document.getElementById("repLoc").textContent += ". The report form is not set up yet."; }
@@ -305,7 +354,7 @@ require([
   }
   document.getElementById("clearRoute").onclick = () => {
     stops.org = stops.dst = null; orgSearch.clear(); dstSearch.clear(); marks.removeAll(); routeLyr.removeAll();
-    const b = document.getElementById("routeResult"); b.className = "result"; b.innerHTML = "";
+    const b = document.getElementById("routeResult"); b.innerHTML = "";
   };
 
   let travelModePromise = null;
@@ -350,8 +399,8 @@ require([
 
   document.getElementById("routeBtn").onclick = async () => {
     const box = document.getElementById("routeResult");
-    if (!stops.org || !stops.dst) { box.className = "result show r-info"; box.innerHTML = "Set both an origin and a destination."; return; }
-    box.className = "result show r-info"; box.innerHTML = "Planning route…"; routeLyr.removeAll();
+    if (!stops.org || !stops.dst) { box.className = "result"; box.innerHTML = `<div class="res info"><p>Set both an origin and a destination.</p></div>`; return; }
+    box.className = "result"; box.innerHTML = `<div class="res info"><p>Planning route…</p></div>`; routeLyr.removeAll();
     try {
       const [ca, sz, mode] = await Promise.all([activePolys("Control Area"), activePolys("Surveillance Zone"), truckMode()]);
       const caUnion = ca.length ? geometryEngine.union(ca) : null;
@@ -386,7 +435,7 @@ require([
       html += `</ul>`;
       if (r.steps && r.steps.length) html += `<details class="dirs"><summary>Turn-by-turn directions</summary><ol>${r.steps.map((d) => `<li>${esc(d.text)}${d.km > 0.05 ? " (" + d.km.toFixed(1) + " km)" : ""}</li>`).join("")}</ol></details>`;
       if (permit) {
-        html += `<p>Why: ${reasons.join("; ")}.</p>`;
+        html += `<p>${reasons.join("; ")}.</p>`;
         if (C.permitFormUrl && !C.permitFormUrl.startsWith("REPLACE")) {
           const q = new URLSearchParams({
             "field:origin": stops.org.name || label(stops.org.pt), "field:destination": stops.dst.name || label(stops.dst.pt),
@@ -395,12 +444,12 @@ require([
           });
           const og = webMercatorUtils.webMercatorToGeographic(stops.org.pt);
           q.set("center", `${og.y.toFixed(6)},${og.x.toFixed(6)}`); // places the request point at the origin
-          html += `<a class="permit" target="_blank" rel="noopener" href="${C.permitFormUrl}?${q.toString()}">Request a movement permit →</a>`;
+          html += `<a class="cta red" target="_blank" rel="noopener" href="${C.permitFormUrl}?${q.toString()}">Request a movement permit</a>`;
         } else html += `<p><i>Permit request form not configured yet.</i></p>`;
       }
-      box.className = "result show " + (permit ? "r-ca" : "r-free"); box.innerHTML = html;
+      box.className = "result"; box.innerHTML = `<div class="res ${permit ? "ca" : "free"}">${html}</div>`;
     } catch (err) {
-      box.className = "result show r-info"; box.innerHTML = "Could not plan the route: " + esc(err.message);
+      box.className = "result"; box.innerHTML = `<div class="res info"><p>Couldn't plan the route: ${esc(err.message)}</p></div>`;
     }
   };
 
@@ -413,13 +462,14 @@ require([
       div.querySelectorAll(".prem").forEach((el) => el.onclick = () => { const f = r.features[+el.dataset.i]; view.goTo({ target: f.geometry, zoom: 11 }); view.openPopup({ features: [f], location: f.geometry }); });
     } catch (err) { div.innerHTML = "Could not load premises: " + esc(err.message); }
     const links = [];
-    if (C.permitResultsUrl) links.push(`<a href="${C.permitResultsUrl}" target="_blank" rel="noopener">Permit requests →</a>`);
-    if (C.reportResultsUrl) links.push(`<a href="${C.reportResultsUrl}" target="_blank" rel="noopener">Outbreak reports →</a>`);
+    if (C.permitResultsUrl) links.push(`<a href="${C.permitResultsUrl}" target="_blank" rel="noopener">Permit requests</a>`);
+    if (C.reportResultsUrl) links.push(`<a href="${C.reportResultsUrl}" target="_blank" rel="noopener">Outbreak reports</a>`);
     document.getElementById("permitAdmin").innerHTML = links.join(" &nbsp; ");
   }
 
   // ---------------- Map clicks ----------------
   view.on("click", (e) => {
+    if (pickMode === "perm") { setPermit(e.mapPoint); pickMode = null; updatePickButtons(); e.stopPropagation(); return; }
     if (pickMode === "rep") { setReport(e.mapPoint); pickMode = null; updatePickButtons(); e.stopPropagation(); return; }
     if (pickMode === "org" || pickMode === "dst") {
       stops[pickMode] = { pt: e.mapPoint, name: label(e.mapPoint) };

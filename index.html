@@ -3,100 +3,103 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Maryland HPAI Response Map (Prototype)</title>
+<title>Maryland HPAI Map (Prototype)</title>
 <link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/light/main.css">
 <link rel="stylesheet" href="app.css">
 <script src="https://js.arcgis.com/4.31/"></script>
 </head>
 <body>
 <header>
-  <div class="title">
-    <h1>Maryland HPAI Response Map</h1>
-    <span class="proto">PROTOTYPE · SAMPLE DATA</span>
-    <span class="grow"></span>
-    <span id="who" class="who"></span>
-  </div>
+  <div class="brand"><span class="mark"></span><h1>Maryland HPAI Map</h1><span class="proto">Prototype · sample data</span></div>
+  <div id="acct"></div>
 </header>
 
 <main>
   <aside id="panel">
-    <!-- PUBLIC: always visible, no sign-in -->
-    <section id="s-public">
-      <h2>Is this location in an HPAI control area?</h2>
-      <p class="hint">Enter an address or click the map.</p>
+
+    <!-- Everyone: no sign-in needed -->
+    <section class="card" id="check">
       <div id="pubSearch"></div>
-      <button class="link" id="locBtn">Use my current location</button>
-      <details class="nearby"><summary>Search nearby</summary>
-        <label class="rad">Show results within <b id="radVal">0</b> km</label>
-        <input type="range" id="radius" min="0" max="20" value="0" step="1">
-      </details>
-      <div id="pubResult" class="result"></div>
-      <details class="defs"><summary>What do the zones mean?</summary>
-        <p><b>Infected Zone</b>: within 3 km of the infected premises. Highest risk, tightest controls.</p>
-        <p><b>Buffer Zone</b>: 3–10 km. Together with the Infected Zone it forms the <b>Control Area</b>, where movement permits and testing apply.</p>
-        <p><b>Surveillance Zone</b>: a further 10 km (10–20 km). Flocks may be tested; no movement permit.</p>
-        <p><b>Free Area</b>: outside all zones.</p>
-        <p style="font-size:12px">Zones are measured from the edge of the infected premises.</p>
-      </details>
-      <div class="legend-box">
-        <div class="lg"><span class="sw ca"></span>Control area (10 km): permit required</div>
-        <div class="lg"><span class="sw sz"></span>Surveillance zone (10–20 km)</div>
-        <div class="lg"><span class="sw rel"></span>Past control area (fades with time)</div>
-        <div class="lg"><span class="dot"></span>Wild bird HPAI, last 4 weeks</div>
-        <div class="lg" style="font-size:12px;opacity:.8" id="wildNote"></div>
-      </div>
-      <p class="disc" id="updated"></p>
-      <p class="disc">General information only. Call MDA to confirm before moving birds or products.</p>
-      <p class="report">Sick birds? Call MDA Animal Health: <b>(410) 841-5810</b></p>
-    </section>
-
-    <!-- SIGNED-IN USERS -->
-    <section id="s-report" hidden>
-      <details class="tool"><summary>Report a suspected HPAI outbreak</summary>
-        <p class="hint">Mark where the birds are, then open the report form. MDA is notified when you submit.</p>
-        <button class="link" id="pickRep">Click the map to mark the location</button>
-        <p class="hint" id="repLoc"></p>
-        <a class="permit" id="repLink" target="_blank" rel="noopener" hidden>Open the report form →</a>
-      </details>
-    </section>
-
-    <!-- HAULERS (and regulators) -->
-    <section id="s-hauler" hidden>
-      <details class="tool"><summary>Plan a truck route and request a permit</summary>
-        <p class="hint">Routes follow real roads and avoid active control areas. If the origin or destination is inside one, a permit is required.</p>
-        <label>Origin</label>
-        <div id="orgSearch"></div>
-        <button class="link" id="pickOrg">or click the map to set origin</button>
-        <label>Destination</label>
-        <div id="dstSearch"></div>
-        <button class="link" id="pickDst">or click the map to set destination</button>
-        <label>Commodity</label>
-        <select id="commodity">
-          <option>Feed</option><option>Live birds</option><option>Eggs / egg products</option><option>Hatching eggs / chicks</option><option>Litter / manure</option><option>Carcasses / rendering</option><option>Service / equipment</option><option>Other</option>
-        </select>
-        <div class="btns"><button id="routeBtn" class="primary">Plan route</button><button id="clearRoute">Clear</button></div>
-        <div id="routeResult" class="result"></div>
-      </details>
-    </section>
-
-    <!-- REGULATORS -->
-    <section id="s-reg" hidden>
-      <details class="tool" open><summary>Premises and zones (regulators)</summary>
-        <div class="legend-box">
-          <div class="lg"><span class="sw pm"></span>Premises perimeter (zones are measured from this edge)</div>
-          <div class="lg"><span class="sw iz"></span>Infected Zone: 0–3 km. Highest risk, tightest controls</div>
-          <div class="lg"><span class="sw bz"></span>Buffer Zone: 3–10 km. With the Infected Zone, forms the Control Area</div>
-          <div class="lg"><span class="sw ca"></span>Control Area: 0–10 km. Movement permits, testing</div>
-          <div class="lg"><span class="sw sz"></span>Surveillance Zone: 10–20 km. Flock testing, no permit</div>
+      <div class="row">
+        <button class="ghost" id="locBtn"><svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>My location</button>
+        <div class="seg" id="radSeg" title="Also check the area around the point">
+          <span>Radius</span><button data-r="0" class="on">Off</button><button data-r="5">5</button><button data-r="10">10</button><button data-r="20">20 km</button>
         </div>
-        <p class="hint" id="permitAdmin"></p>
-        <div id="premList"></div>
-        <div id="layerListDiv"></div>
+      </div>
+      <div id="pubResult" class="result"><p class="empty">Search an address or tap the map to check a location.</p></div>
+    </section>
+
+    <!-- Signed-in workspace (hidden for the public) -->
+    <section class="card" id="ws" hidden>
+      <div class="wshead"><b id="wsName"></b><div class="seg" id="wsSwitch"></div></div>
+
+      <details class="tool" id="t-report"><summary>Report suspected HPAI</summary>
+        <div class="body">
+          <button class="pick" id="pickRep">Mark location on map</button>
+          <p class="hint" id="repLoc"></p>
+          <a class="cta" id="repLink" target="_blank" rel="noopener" hidden>Open report form</a>
+        </div>
+      </details>
+
+      <details class="tool" id="t-permit"><summary>Request a movement permit</summary>
+        <div class="body">
+          <button class="pick" id="pickPerm">Mark premises on map</button>
+          <p class="hint" id="permLoc"></p>
+          <a class="cta" id="permLink" target="_blank" rel="noopener" hidden>Open permit request</a>
+        </div>
+      </details>
+
+      <details class="tool" id="t-route" open><summary>Plan a truck route</summary>
+        <div class="body">
+          <div id="orgSearch"></div>
+          <button class="pick small" id="pickOrg">Set origin on map</button>
+          <div id="dstSearch"></div>
+          <button class="pick small" id="pickDst">Set destination on map</button>
+          <select id="commodity">
+            <option>Feed</option><option>Live birds</option><option>Eggs / egg products</option><option>Hatching eggs / chicks</option><option>Litter / manure</option><option>Carcasses / rendering</option><option>Service / equipment</option><option>Other</option>
+          </select>
+          <div class="btns"><button id="routeBtn" class="primary">Plan route</button><button id="clearRoute" class="ghost">Clear</button></div>
+          <div id="routeResult" class="result"></div>
+        </div>
+      </details>
+
+      <details class="tool" id="t-off" open><summary>Premises and zones</summary>
+        <div class="body">
+          <p class="hint" id="permitAdmin"></p>
+          <div id="premList"></div>
+          <div id="layerListDiv"></div>
+        </div>
       </details>
     </section>
+
+    <details class="key"><summary>Map key</summary>
+      <div class="lg"><span class="sw ca"></span>Control Area (0–10 km): permit required</div>
+      <div class="lg"><span class="sw sz"></span>Surveillance Zone (10–20 km)</div>
+      <div class="lg"><span class="sw rel"></span>Past control area, fades with time</div>
+      <div class="lg"><span class="dot"></span>Wild bird HPAI, last 4 weeks <span id="wildNote"></span></div>
+      <div class="lg staffkey" hidden><span class="sw pm"></span>Premises edge</div>
+      <div class="lg staffkey" hidden><span class="sw iz"></span>Infected Zone (0–3 km)</div>
+      <div class="lg staffkey" hidden><span class="sw bz"></span>Buffer Zone (3–10 km)</div>
+    </details>
+
+    <p class="foot">Sick birds? Call MDA <b>(410) 841-5810</b>. General information only. <span id="updated"></span></p>
   </aside>
   <div id="viewDiv"></div>
 </main>
+
+<!-- Sign-in -->
+<div id="modal" hidden>
+  <div class="dlg" role="dialog" aria-labelledby="mt">
+    <button class="x" id="mclose" aria-label="Close">×</button>
+    <h2 id="mt">Sign in</h2>
+    <p class="sub">Choose your role</p>
+    <button class="role" data-ws="regulator"><span class="ri r1"></span><span><b>Animal health officials</b><i>MDA and partner agencies</i></span></button>
+    <button class="role" data-ws="hauler"><span class="ri r2"></span><span><b>Transporters</b><i>Haulers, feed and service crews</i></span></button>
+    <button class="role" data-ws="industry"><span class="ri r3"></span><span><b>Poultry industry</b><i>Growers, hatcheries, processors</i></span></button>
+    <p class="fine">You sign in with your ArcGIS account. Need access? <a id="reqAccess" href="#">Contact MDA</a></p>
+  </div>
+</div>
+<div id="toast" hidden></div>
 
 <script src="config.js"></script>
 <script src="app.js"></script>
