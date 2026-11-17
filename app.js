@@ -135,6 +135,7 @@ require([
     document.querySelectorAll("section[data-panel]").forEach((s) => s.classList.toggle("on", s.dataset.panel === t));
     ALL.forEach((l) => (l.visible = TIER_LAYERS[t].includes(l)));
     routeLyr.visible = t === "hauler";
+    view.popupEnabled = t === "regulator"; // public and hauler use the result card instead of popups
     marks.removeAll(); view.closePopup();
     if (t === "regulator" && !layerList) { layerList = new LayerList({ view, container: "layerListDiv" }); loadPremisesList(); }
     if (layerList) layerList.visible = t === "regulator";
