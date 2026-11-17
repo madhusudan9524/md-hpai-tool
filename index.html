@@ -17,23 +17,19 @@
 <main>
   <aside id="panel">
 
-    <section class="card">
+    <!-- everyone -->
+    <section class="card" id="sec-check">
+      <h2>Check a location</h2>
       <div id="pubSearch"></div>
-      <div class="tiles" id="tiles">
-        <button class="tile" data-tool="near"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><svg class="lk" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Near me</span></button>
-        <button class="tile" data-tool="route"><svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.6"/><circle cx="18" cy="6" r="2.6"/><path d="M8.6 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.4"/></svg><svg class="lk" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Route</span></button>
-        <button class="tile" data-tool="permit"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 14l2 2 4-4"/></svg><svg class="lk" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Permit</span></button>
-        <button class="tile" data-tool="report"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z"/><path d="M12 10v5M12 17.6v.4"/></svg><svg class="lk" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Report</span></button>
-        <button class="tile" data-tool="rrep"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11h6M9 15h6"/></svg><svg class="lk" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Detections</span></button>
-        <button class="tile" data-tool="rper"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 14l2 2 4-4"/></svg><svg class="lk" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Permits</span></button>
-        <button class="tile" data-tool="prem"><svg viewBox="0 0 24 24"><path d="M3 21V9l6-4v16M9 21V12l6-3v12M15 21V8l6 3v10M2 21h20"/></svg><svg class="lk" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Premises</span></button>
+      <div class="row">
+        <button class="ghost" id="locBtn"><svg viewBox="0 0 24 24" width="15" height="15"><circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>My location</button>
+        <div class="seg" id="radSeg" title="Also check the area around the point"><span>Within</span><button data-r="0" class="on">Off</button><button data-r="5">5</button><button data-r="10">10</button><button data-r="20">20 km</button></div>
       </div>
-      <div class="seg" id="radSeg" title="Also check the area around the point"><span>Radius</span><button data-r="0" class="on">Off</button><button data-r="5">5</button><button data-r="10">10</button><button data-r="20">20 km</button></div>
-      <div class="seg" id="wsSwitch" hidden></div>
     </section>
 
-    <section class="card tool" id="tool-route" hidden>
-      <h3>Route</h3>
+    <!-- transporters -->
+    <section class="card" id="sec-route" hidden>
+      <h3>Plan a truck route</h3>
       <div class="field"><span class="dotA"></span><div id="orgSearch"></div><button class="pin" id="pickOrg" title="Pick on map"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button></div>
       <div class="field"><span class="dotB"></span><div id="dstSearch"></div><button class="pin" id="pickDst" title="Pick on map"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button></div>
       <select id="commodity">
@@ -41,47 +37,38 @@
       </select>
       <div class="btns"><button id="routeBtn" class="primary">Plan route</button><button id="clearRoute" class="ghost">Clear</button></div>
       <div id="routeResult" class="result"></div>
-      <div class="areas"><h4>Active control areas</h4><div class="areaList"></div></div>
     </section>
 
+    <!-- transporters and industry -->
+    <div class="acts" id="sec-acts" hidden>
+      <button class="act" data-t="permit"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 14l2 2 4-4"/></svg><span>Request permit</span></button>
+      <button class="act" data-t="report"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z"/><path d="M12 10v5M12 17.6v.4"/></svg><span>Report HPAI</span></button>
+    </div>
     <section class="card tool" id="tool-permit" hidden>
-      <h3>Permit</h3>
+      <h3>Request a permit</h3>
       <button class="pick" id="pickPerm">Mark premises on map</button>
       <p class="hint" id="permLoc"></p>
       <a class="cta" id="permLink" target="_blank" rel="noopener" hidden>Open permit request</a>
-      <div class="areas"><h4>Active control areas</h4><div class="areaList"></div></div>
     </section>
-
     <section class="card tool" id="tool-report" hidden>
-      <h3>Report</h3>
+      <h3>Report suspected HPAI</h3>
       <button class="pick" id="pickRep">Mark location on map</button>
       <p class="hint" id="repLoc"></p>
       <a class="cta" id="repLink" target="_blank" rel="noopener" hidden>Open report form</a>
     </section>
 
-    <section class="card tool" id="tool-rrep" hidden><h3>Detection reports</h3><div id="repQueue"></div></section>
-    <section class="card tool" id="tool-rper" hidden><h3>Permit requests</h3><div id="perQueue"></div></section>
-
-    <section class="card tool" id="tool-prem" hidden>
-      <h3>Premises</h3>
-      <p class="hint" id="permitAdmin"></p>
-      <div id="premList"></div>
-      <div id="layerListDiv"></div>
+    <!-- MDA staff -->
+    <section class="card" id="sec-staff" hidden>
+      <div class="seg full" id="staffTabs"><button data-p="rep" class="on">Detections<i class="badge" hidden></i></button><button data-p="per">Permits<i class="badge" hidden></i></button><button data-p="prem">Premises</button></div>
+      <div id="pane-rep"><div id="repQueue"></div></div>
+      <div id="pane-per" hidden><div id="perQueue"></div></div>
+      <div id="pane-prem" hidden><p class="hint" id="permitAdmin"></p><div id="premList"></div></div>
     </section>
 
-    <section class="card legend">
-      <h3>Map key</h3>
-      <div class="lg"><span class="sw ca"></span><b>Control Area</b><i>0–10 km</i></div>
-      <div class="lg"><span class="sw sz"></span><b>Surveillance Zone</b><i>10–20 km</i></div>
-      <div class="lg"><span class="sw rel"></span><b>Past control area</b><i>fades</i></div>
-      <div class="lg"><span class="sw cty"></span><b>County with outbreak</b></div>
-      <div class="lg"><span class="dot"></span><b>Wild bird</b><i>last 4 weeks <span id="wildNote"></span></i></div>
-      <div class="lg staffkey" hidden><svg class="lgi" viewBox="0 0 24 24" width="30" height="20"><path d="M12 4 20 19H4z" fill="#e65a1e" stroke="#fff" stroke-width="1.5"/></svg><b>Detection report</b></div>
-      <div class="lg staffkey" hidden><svg class="lgi" viewBox="0 0 24 24" width="30" height="20"><rect x="6" y="5" width="12" height="12" fill="#1e6ebe" stroke="#fff" stroke-width="1.5"/></svg><b>Permit request</b></div>
-      <div class="lg staffkey" hidden><span class="dot farm"></span><b>Poultry farm</b><i>estimated</i></div>
-      <div class="lg staffkey" hidden><span class="sw iz"></span><b>Infected Zone</b><i>0–3 km</i></div>
-      <div class="lg staffkey" hidden><span class="sw bz"></span><b>Buffer Zone</b><i>3–10 km</i></div>
-      <div class="lg staffkey" hidden><span class="sw pm"></span><b>Premises edge</b></div>
+    <!-- everyone -->
+    <section class="card" id="sec-areas">
+      <h3>Active control areas</h3>
+      <div class="areaList"></div>
     </section>
 
     <p class="foot">Sick birds? Call MDA <b>(410) 841-5810</b><br>General information only. <span id="updated"></span></p>
@@ -93,11 +80,9 @@
   <div class="dlg" role="dialog" aria-labelledby="mt">
     <button class="x" id="mclose" aria-label="Close">×</button>
     <h2 id="mt">Sign in</h2>
-    <p class="sub">Choose your role</p>
-    <button class="role" data-ws="regulator"><span class="ri r1"></span><span><b>Animal health officials</b><i>MDA and partner agencies</i></span></button>
-    <button class="role" data-ws="hauler"><span class="ri r2"></span><span><b>Transporters</b><i>Haulers, feed and service crews</i></span></button>
-    <button class="role" data-ws="industry"><span class="ri r3"></span><span><b>Poultry industry</b><i>Growers, hatcheries, processors</i></span></button>
-    <p class="fine">You sign in with your ArcGIS account. Need access? <a id="reqAccess" href="#">Contact MDA</a></p>
+    <button class="role" data-ws="regulator"><span class="ri r1"></span><span><b>MDA staff</b><i>Review reports and permits</i></span></button>
+    <button class="role" data-ws="partner"><span class="ri r2"></span><span><b>Haulers &amp; industry</b><i>Routes, permits, reporting</i></span></button>
+    <p class="fine">Uses your ArcGIS account. Need access? <a id="reqAccess" href="#">Contact MDA</a></p>
   </div>
 </div>
 <div id="toast" hidden></div>

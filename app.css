@@ -224,3 +224,36 @@ body[data-ws="industry"] header { background: #1d5a3a; }
 .sw.sq::after { content: ""; position: absolute; left: 9px; top: 3px; width: 12px; height: 12px; background: #1e6ebe; }
 .pop.bird .banner { background: linear-gradient(135deg, #176b7c, #2a98ad); }
 .dot.farm { background: #7d5a28; box-shadow: 0 0 0 1px #7d5a28; width: 11px; height: 11px; }
+
+/* ===== v5: simple left panel, floating layers widget, two sign-in paths ===== */
+#panel { width: 380px; flex: 0 0 380px; font-size: 15px; }
+#sec-check h2 { margin: 0 0 12px; font-size: 19px; }
+.seg.full { display: flex; width: 100%; }
+.seg.full button { flex: 1; position: relative; padding: 8px 6px; font-size: 14px; }
+.seg.full .badge { display: inline-grid; position: static; margin-left: 6px; min-width: 20px; height: 20px; font-size: 12px; background: var(--red); color: #fff; border-radius: 99px; place-items: center; font-style: normal; font-weight: 750; padding: 0 5px; vertical-align: middle; }
+.seg.full .badge[hidden] { display: none; }
+#sec-staff .seg { margin-bottom: 12px; }
+.acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.act { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 8px; background: #fff; border: 1.5px solid var(--line); border-radius: 14px; font-weight: 650; font-size: 15px; color: var(--navy); box-shadow: 0 1px 2px rgba(20,40,60,.06); }
+.act svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.act:hover, .act.on { border-color: var(--accent); color: var(--accent); background: #f2f8fe; }
+#sec-areas h3, #sec-route h3 { margin: 0 0 10px; font-size: 17px; }
+#sec-route > * + * { margin-top: 10px; }
+.sw.dm { display: inline-block; }
+/* floating layers widget on the map */
+.mapkey { width: 250px; background: #fff; border-radius: 14px; box-shadow: 0 6px 22px rgba(10,30,50,.22); font-family: inherit; color: var(--ink); overflow: hidden; }
+.mapkey > button { display: flex; width: 100%; align-items: center; justify-content: space-between; border: 0; background: #fff; padding: 11px 14px; font-weight: 700; font-size: 14.5px; color: var(--navy); }
+.mapkey > button::after { content: "–"; color: var(--mute); font-size: 18px; font-weight: 400; }
+.mapkey.shut > button::after { content: "+"; }
+.mapkey .kb { padding: 2px 14px 12px; max-height: 60vh; overflow-y: auto; }
+.mapkey.shut .kb { display: none; }
+.mapkey label { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 13.5px; cursor: pointer; }
+.mapkey label input { margin: 0; width: 16px; height: 16px; accent-color: var(--navy); flex: 0 0 auto; }
+.mapkey label .sw { width: 26px; height: 17px; }
+.mapkey label .ic { width: 26px; display: grid; place-items: center; flex: 0 0 auto; }
+.mapkey label i { font-style: normal; color: var(--mute); font-size: 12px; margin-left: auto; }
+.mapkey .sec { margin: 8px 0 2px; font-size: 11px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--mute); }
+.menu .va { display: flex; gap: 4px; margin: 4px 0 10px; }
+.menu .va button { flex: 1; padding: 6px 2px; font-size: 12.5px; border-radius: 8px; }
+.menu .va button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.menu .vl { font-size: 12px; color: var(--mute); margin-top: 8px; }

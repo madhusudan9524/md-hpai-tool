@@ -125,7 +125,7 @@ require([
     popupTemplate: { title: "Permit: {company}", content: [{ type: "fields", fieldInfos: [{ fieldName: "review_status", label: "Status" }, { fieldName: "commodity", label: "Commodity" }, { fieldName: "origin", label: "From" }, { fieldName: "destination", label: "To" }, { fieldName: "permit_reason", label: "Why" }, { fieldName: "vehicle_id", label: "Vehicle" }, { fieldName: "phone", label: "Phone" }] }] } });
 
   // OFFICIALS: known poultry farms (USGS houses mapped from 2016-17 imagery, grouped within 200 m); not an official MDA premises registry
-  const farmsLyr = new FeatureLayer({ url: C.farmsUrl, title: "Poultry farms (estimated)", outFields: ["*"],
+  const farmsLyr = new FeatureLayer({ url: C.farmsUrl, title: "Poultry farms (estimated)", outFields: ["*"], visible: false,
     renderer: { type: "simple", symbol: { type: "simple-marker", style: "circle", size: 4, color: [125, 90, 40, 0.8], outline: { color: [255, 255, 255, 0.9], width: 0.6 } } },
     popupTemplate: { title: "Poultry farm {farm_id}", content: "{houses} poultry house(s)<br><span style='font-size:11px'>{source}. Estimated from aerial imagery; not an official premises record.</span>" } });
 
@@ -179,16 +179,16 @@ require([
   const fadeCounties = () => {
     const z = view.zoom, cl = (a, b) => Math.max(0, Math.min(1, (z - a) / (b - a)));
     countyLyr.opacity = 1 - cl(8, 11);
-    const k = (typeof canHaul === "function" && canHaul()) ? 1 : cl(9, 10.5);
+    const k = cl(9, 10.5);   // surveillance zones and past areas appear as you zoom in (all users)
     pubSZ.opacity = k; pubReleased.opacity = k;
   };
   view.watch("zoom", fadeCounties); view.when(fadeCounties);
   view.ui.add(new Expand({ view, expandIcon: "measure", expandTooltip: "Measure distance", content: new DistanceMeasurement2D({ view, unit: "kilometers" }) }), "top-left");
 
-  // ---------------- Workspaces: the public needs no sign-in; signing in opens the workspace for your role ----------------
-  const WS_NAME = { regulator: "Animal health officials", hauler: "Transporters", industry: "Poultry industry" };
+  // ---------------- Workspaces: the public needs no sign-in; two sign-in paths (MDA staff / haulers & industry) ----------------
+  const WS_NAME = { regulator: "MDA staff", hauler: "Transporter", industry: "Poultry industry" };
   const STAFF_LAYERS = [farmsLyr, regBZ, regIZ, regCA, perim, premises, repLyr, perLyr];
-  let ws = "public", roles = [], layerList = null, regAdded = false, signedUser = null;
+  let ws = "public", roles = [], regAdded = false, signedUser = null;
   const isStaff = () => ws === "regulator";
   const canHaul = () => ws === "hauler" || ws === "regulator";
   const $ = (id) => document.getElementById(id);
@@ -202,28 +202,16 @@ require([
       return;
     }
     const nm = user.fullName || user.username || "Signed in", ini = nm.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+    const va = roles.length > 1 ? `<div class="vl">View as</div><div class="va">${roles.map((r) => `<button data-w="${r}" class="${r === ws ? "on" : ""}">${{ regulator: "MDA", hauler: "Hauler", industry: "Industry" }[r]}</button>`).join("")}</div>` : "";
     a.innerHTML = `<button class="me" id="me"><span class="ava">${esc(ini)}</span>${esc(WS_NAME[ws])}</button>
-      <div class="menu" id="menu" hidden><div class="nm">${esc(nm)}</div><div class="em">${esc(user.email || user.username || "")}</div><span class="rl">${esc(WS_NAME[ws])}</span><button id="signout">Sign out</button></div>`;
+      <div class="menu" id="menu" hidden><div class="nm">${esc(nm)}</div><div class="em">${esc(user.email || user.username || "")}</div>${va}<button id="signout" style="margin-top:8px">Sign out</button></div>`;
     $("me").onclick = (e) => { e.stopPropagation(); $("menu").hidden = !$("menu").hidden; };
+    $("menu").onclick = (e) => e.stopPropagation();
+    $("menu").querySelectorAll(".va button").forEach((b) => (b.onclick = () => { setWorkspace(b.dataset.w); renderAcct(signedUser); $("menu").hidden = false; }));
     $("signout").onclick = () => { try { sessionStorage.removeItem("hpaiWs"); } catch (e) {} esriId.destroyCredentials(); location.href = location.pathname; };
   }
   document.addEventListener("click", () => { const m = $("menu"); if (m) m.hidden = true; });
 
-  // tiles: Near me / Route / Permit / Report / Premises. Locked tiles open the sign-in dialog.
-  const TOOLS = ["route", "permit", "report", "prem", "rrep", "rper"];
-  const TILESET = { public: ["near", "route", "permit", "report"], industry: ["near", "permit", "report"], hauler: ["near", "route", "permit", "report"], regulator: ["near", "rrep", "rper", "prem", "route"] };
-  let openTool = null;
-  function showTool(k) {
-    openTool = k;
-    TOOLS.forEach((t) => ($("tool-" + t).hidden = t !== k));
-    document.querySelectorAll(".tile").forEach((b) => b.classList.toggle("on", b.dataset.tool === k));
-    if (k !== "route") { pickMode = null; updatePickButtons(); }
-    if (k === "rrep") loadQueue("rep"); if (k === "rper") loadQueue("per");
-  }
-  function access(k) {
-    const signed = ws !== "public";
-    return { near: true, route: canHaul(), permit: ws === "industry" || ws === "hauler", report: signed, prem: isStaff(), rrep: isStaff(), rper: isStaff() }[k];
-  }
   function nearMe() {
     if (!navigator.geolocation) return toast("Your browser can't share its location.");
     navigator.geolocation.getCurrentPosition((p) => {
@@ -231,35 +219,74 @@ require([
       view.goTo({ target: pt, zoom: 11 }); checkLocation(pt, "My location");
     }, () => toast("Couldn't get your location. Search an address or tap the map."), { timeout: 10000 });
   }
-  document.querySelectorAll(".tile").forEach((b) => (b.onclick = () => {
-    const k = b.dataset.tool;
-    if (!access(k)) { if (ws === "public") $("modal").hidden = false; else toast("Not available for " + WS_NAME[ws]); return; }
-    if (k === "near") return nearMe();
-    showTool(openTool === k ? null : k);
-  }));
+  $("locBtn").onclick = nearMe;
+
+  // transporter / industry: permit + report helpers
+  function showAct(t) {
+    ["permit", "report"].forEach((k) => ($("tool-" + k).hidden = k !== t));
+    document.querySelectorAll(".act").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
+    pickMode = null; updatePickButtons();
+  }
+  document.querySelectorAll(".act").forEach((b) => (b.onclick = () => showAct(b.classList.contains("on") ? null : b.dataset.t)));
+
+  // MDA staff: Detections / Permits / Premises
+  function showPane(p) {
+    document.querySelectorAll("#staffTabs button").forEach((b) => b.classList.toggle("on", b.dataset.p === p));
+    ["rep", "per", "prem"].forEach((k) => ($("pane-" + k).hidden = k !== p));
+    if (p === "rep") loadQueue("rep"); if (p === "per") loadQueue("per");
+  }
+  document.querySelectorAll("#staffTabs button").forEach((b) => (b.onclick = () => showPane(b.dataset.p)));
+
+  // ---- floating layers + key widget on the map ----
+  const sw = (cls) => `<span class="sw ${cls}"></span>`;
+  const ico = (svg) => `<span class="ic">${svg}</span>`;
+  const KEY = [
+    { t: "Control area", n: "0–10 km", sw: sw("ca"), ls: [pubCA] },
+    { t: "Surveillance zone", n: "10–20 km", sw: sw("sz"), ls: [pubSZ] },
+    { t: "Past control area", n: "fades", sw: sw("rel"), ls: [pubReleased] },
+    { t: "Wild bird, 4 weeks", sw: ico('<span class="dot" style="margin:0"></span>'), ls: [wild] },
+    { t: "County names", sw: sw("cty"), ls: [countyLyr, tintLyr] },
+    { staff: 1, sec: "MDA layers" },
+    { staff: 1, t: "Infected zone", n: "0–3 km", sw: sw("iz"), ls: [regIZ] },
+    { staff: 1, t: "Buffer zone", n: "3–10 km", sw: sw("bz"), ls: [regBZ] },
+    { staff: 1, t: "Premises edge", sw: sw("pm"), ls: [perim] },
+    { staff: 1, t: "Infected premises", sw: ico('<svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 2 22 12 12 22 2 12z" fill="#8c1414" stroke="#fff" stroke-width="2"/></svg>'), ls: [premises] },
+    { staff: 1, t: "Detection reports", sw: ico('<svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 3 22 20H2z" fill="#e65a1e" stroke="#fff" stroke-width="2"/></svg>'), ls: [repLyr] },
+    { staff: 1, t: "Permit requests", sw: ico('<svg width="14" height="14" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" fill="#1e6ebe" stroke="#fff" stroke-width="2"/></svg>'), ls: [perLyr] },
+    { staff: 1, t: "Poultry farms", n: "estimated", sw: ico('<span class="dot farm" style="margin:0;width:10px;height:10px"></span>'), ls: [farmsLyr] }
+  ];
+  const keyEl = document.createElement("div"); keyEl.className = "mapkey" + (window.innerWidth < 900 ? " shut" : "");
+  view.ui.add(keyEl, "top-right");
+  function renderKey() {
+    keyEl.innerHTML = `<button id="keyBtn">Layers &amp; key</button><div class="kb"></div>`;
+    $("keyBtn").onclick = () => keyEl.classList.toggle("shut");
+    const kb = keyEl.querySelector(".kb");
+    KEY.filter((k) => !k.staff || isStaff()).forEach((k) => {
+      if (k.sec) { kb.insertAdjacentHTML("beforeend", `<div class="sec">${k.sec}</div>`); return; }
+      const lab = document.createElement("label");
+      lab.innerHTML = `<input type="checkbox" ${k.ls[0].visible ? "checked" : ""}>${k.sw}<span>${k.t}</span>${k.n ? `<i>${k.n}</i>` : ""}`;
+      lab.querySelector("input").onchange = (e) => k.ls.forEach((l) => (l.visible = e.target.checked));
+      kb.appendChild(lab);
+    });
+  }
 
   function setWorkspace(w) {
     ws = w; pickMode = null; updatePickButtons(); marks.removeAll(); view.closePopup();
     document.body.dataset.ws = w;
-    const set = TILESET[w] || TILESET.public;
-    document.querySelectorAll(".tile").forEach((b) => { const k = b.dataset.tool; b.hidden = !set.includes(k); b.classList.remove("wide"); b.classList.toggle("locked", !access(k)); });
-    const vis = [...document.querySelectorAll(".tile")].filter((b) => !b.hidden); if (vis.length % 2) vis[vis.length - 1].classList.add("wide");
-    fadeCounties();
-    showTool(null);
-    document.querySelectorAll(".staffkey").forEach((e) => (e.hidden = !isStaff()));
-    routeLyr.visible = canHaul();
-    const sw = $("wsSwitch"); sw.innerHTML = ""; sw.hidden = roles.length < 2;
-    roles.forEach((r) => { const b = document.createElement("button"); b.textContent = { regulator: "Officials", hauler: "Transport", industry: "Industry" }[r]; b.className = r === w ? "on" : ""; b.onclick = () => { setWorkspace(r); renderAcct(signedUser); }; sw.appendChild(b); });
-    if (isStaff() && !regAdded) {   // private layers are added only for officials, so the public never hits a sign-in prompt
+    $("sec-route").hidden = w !== "hauler";
+    $("sec-acts").hidden = !(w === "hauler" || w === "industry");
+    $("sec-staff").hidden = w !== "regulator";
+    showAct(null);
+    routeLyr.visible = w === "hauler";
+    if (isStaff() && !regAdded) {   // private layers are added only for MDA staff, so the public never hits a sign-in prompt
       regAdded = true;
       map.addMany(STAFF_LAYERS);
       map.reorder(routeLyr, map.layers.length - 1); map.reorder(marks, map.layers.length - 1);
-      layerList = new LayerList({ view, container: "layerListDiv" }); loadPremisesList();
+      loadPremisesList();
     }
-    if (isStaff()) { refreshBadges();
-    }
-    STAFF_LAYERS.forEach((l) => (l.visible = isStaff()));
-    if (signedUser) renderAcct(signedUser);
+    STAFF_LAYERS.forEach((l) => { if (!isStaff()) l.visible = false; else if (l !== farmsLyr) l.visible = true; });
+    renderKey(); fadeCounties();
+    if (isStaff()) { refreshBadges(); showPane("rep"); }
   }
 
   async function initRole() {
@@ -276,15 +303,16 @@ require([
       const portal = new Portal({ url: C.portalUrl }); await portal.load();
       const user = portal.user, groups = await user.fetchGroups();
       const names = groups.map((g) => g.title.toLowerCase());
-      if (names.includes((C.regulatorGroup || "").toLowerCase())) roles = ["regulator", "hauler", "industry"];
-      else if (names.includes((C.haulerGroup || "").toLowerCase())) roles = ["hauler"];
-      else roles = ["industry"];
+      const isReg = names.includes((C.regulatorGroup || "").toLowerCase()), isHaul = names.includes((C.haulerGroup || "").toLowerCase());
+      roles = isReg ? ["regulator", "hauler", "industry"] : isHaul ? ["hauler"] : ["industry"];
       signedUser = user;
       let want = null; try { want = sessionStorage.getItem("hpaiWs"); sessionStorage.removeItem("hpaiWs"); } catch (e) {}
       const as = new URLSearchParams(location.search).get("as");   // preview, e.g. ?as=hauler or ?as=public
       if (as === "public") { signedUser = null; roles = []; renderAcct(null); setWorkspace("public"); return; }
-      let pick = roles.includes(as) ? as : roles.includes(want) ? want : roles[0];
-      if (want && !roles.includes(want)) toast(`Your account doesn't have ${WS_NAME[want]} access. Opened ${WS_NAME[pick]} instead.`);
+      let pick = roles[0];
+      if (roles.includes(as)) pick = as;
+      else if (want === "regulator" && !isReg) toast("This account isn't set up as MDA staff. Opened the partner view.");
+      else if (want === "partner") pick = isHaul || isReg ? "hauler" : "industry";
       setWorkspace(pick); renderAcct(user);
     } catch (e) { renderAcct(null); setWorkspace("public"); }
   }
@@ -405,11 +433,6 @@ require([
     const d = zonesQ.editingInfo && zonesQ.editingInfo.lastEditDate;
     document.getElementById("updated").textContent = d ? "Updated " + new Date(d).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : "";
   }).catch(() => {});
-
-  // wild-bird status line
-  wild.when(() => wild.queryFeatureCount().then((n) => {
-    document.getElementById("wildNote").textContent = n ? `(${n})` : "(none)";
-  }).catch(() => {}));
 
   // ---------------- HAULER ----------------
   const stops = { org: null, dst: null };
@@ -560,10 +583,9 @@ require([
   // ---- Officials: review queues ----
   const pendingWhere = (kind) => kind === "rep" ? "review_status IS NULL OR review_status = 'New'" : "review_status IS NULL OR review_status = 'Pending'";
   async function refreshBadges() {
-    for (const [kind, lyr, k] of [["rep", repLyr, "rrep"], ["per", perLyr, "rper"]]) {
+    for (const [kind, lyr] of [["rep", repLyr], ["per", perLyr]]) {
       const n = await lyr.queryFeatureCount({ where: pendingWhere(kind) }).catch(() => 0);
-      const b = document.querySelector(`.tile[data-tool="${k}"]`); let bd = b.querySelector(".badge");
-      if (!bd) { bd = document.createElement("i"); bd.className = "badge"; b.appendChild(bd); }
+      const bd = document.querySelector(`#staffTabs button[data-p="${kind}"] .badge`);
       bd.textContent = n; bd.hidden = !n;
     }
   }
