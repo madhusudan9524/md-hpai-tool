@@ -26,15 +26,23 @@
     <!-- PUBLIC -->
     <section data-panel="public" class="on">
       <h2>Is this location in an HPAI control area?</h2>
-      <p class="hint">Search an address or click the map.</p>
+      <p class="hint">Enter an address or click the map.</p>
       <div id="pubSearch"></div>
+      <button class="link" id="locBtn">Use my current location</button>
+      <details class="nearby"><summary>Search nearby</summary>
+        <label class="rad">Show results within <b id="radVal">0</b> km</label>
+        <input type="range" id="radius" min="0" max="20" value="0" step="1">
+      </details>
       <div id="pubResult" class="result"></div>
       <div class="legend-box">
-        <div class="lg"><span class="sw ca"></span>Active control area (10 km from an infected premises): movement permit required</div>
-        <div class="lg"><span class="sw rel"></span>Released control area (fades the longer ago it was released)</div>
-        <div class="lg"><span class="dot"></span>HPAI found in wild birds (USDA APHIS, by county)</div>
+        <div class="lg"><span class="sw ca"></span>Control area (10 km): permit required</div>
+        <div class="lg"><span class="sw sz"></span>Surveillance zone (10–20 km)</div>
+        <div class="lg"><span class="sw rel"></span>Past control area (fades with time)</div>
+        <div class="lg"><span class="dot"></span>Wild bird HPAI, last 4 weeks</div>
+        <div class="lg" style="font-size:12px;opacity:.8" id="wildNote"></div>
       </div>
-      <p class="report">Suspect avian influenza in your birds? Report it to MDA Animal Health: <b>(410) 841-5810</b>, animalhealth.mda@maryland.gov</p>
+      <p class="disc">General information only. Call MDA to confirm before moving birds or products.</p>
+      <p class="report">Sick birds? Call MDA Animal Health: <b>(410) 841-5810</b></p>
     </section>
 
     <!-- HAULER -->

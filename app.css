@@ -36,7 +36,7 @@ button.link.active { color: #b42318; font-weight: 700; }
 .lg { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0; }
 .sw { width: 18px; height: 14px; border-radius: 2px; flex: 0 0 auto; }
 .sw.ca { background: rgba(200,40,30,.45); border: 2px solid #b42318; }
-.sw.rel { background: linear-gradient(90deg, rgba(130,90,170,.45), rgba(130,90,170,.08)); border: 1px dashed #7a5aa6; }
+.sw.rel { background: linear-gradient(90deg, rgba(120,120,120,.45), rgba(120,120,120,.08)); border: 1px dashed #777; }
 .dot { width: 12px; height: 12px; border-radius: 50%; background: #1f7a8c; border: 2px solid #fff; box-shadow: 0 0 0 1px #1f7a8c; flex: 0 0 auto; }
 .report { font-size: 13px; background: #eef2f6; padding: 8px 10px; border-radius: 4px; margin-top: 14px; }
 .prem { border: 1px solid #d9e0e6; border-radius: 6px; padding: 8px 10px; margin: 6px 0; background: #fff; cursor: pointer; font-size: 13px; }
@@ -44,6 +44,16 @@ button.link.active { color: #b42318; font-weight: 700; }
 .prem b { font-size: 14px; }
 .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 8px; margin-left: 6px; }
 .tag.Active { background: #fdecea; color: #b42318; }
-.tag.Released { background: #efe9f7; color: #5b3f8c; }
+.tag.Released { background: #eceff1; color: #555; }
 #layerListDiv { margin-top: 10px; }
 @media (max-width: 800px) { main { flex-direction: column-reverse; } #panel { width: 100%; flex: 0 0 auto; max-height: 50vh; } #viewDiv { min-height: 50vh; } }
+.sw.sz { background: rgba(243,198,74,.25); border: 1px dashed #c89614; }
+.rad { margin-top: 10px; font-size: 13px; font-weight: 600; }
+input[type=range] { width: 100%; }
+.disc { font-size: 11px; color: #52606d; margin: 12px 0 0; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.chip { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 10px; background: #fff; border: 1px solid #cfd8e0; color: #52606d; }
+.chip.yes { background: #b42318; border-color: #b42318; color: #fff; }
+.chip.ysz { background: #e0a100; border-color: #e0a100; color: #fff; }
+details.nearby { margin-top: 8px; font-size: 13px; }
+details.nearby summary { cursor: pointer; color: #1f5f99; }

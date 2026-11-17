@@ -31,13 +31,22 @@ require([
     url: C.zonesUrl, title: "Active control areas",
     definitionExpression: "zone_type = 'Control Area' AND status = 'Active'",
     outFields: ["confirmed_date"],
-    renderer: { type: "simple", symbol: fill([200, 40, 30, 0.28], [180, 35, 24, 1], 2) },
+    renderer: { type: "simple", symbol: fill([200, 40, 30, 0.25], [180, 35, 24, 0.9], 0.5) },
     popupTemplate: { title: "Active HPAI control area", content: [{ type: "text", text: "Established {confirmed_date}. A movement permit from MDA is required for poultry, poultry products, feed and other regulated items moving onto or off premises in this area." }], fieldInfos: [{ fieldName: "confirmed_date", format: { dateFormat: "short-date" } }] }
+  });
+
+  // PUBLIC: active surveillance zones (10-20 km), drawn faint
+  const pubSZ = new FeatureLayer({
+    url: C.zonesUrl, title: "Active surveillance zones",
+    definitionExpression: "zone_type = 'Surveillance Zone' AND status = 'Active'",
+    outFields: ["confirmed_date"],
+    renderer: { type: "simple", symbol: fill([243, 198, 74, 0.14], [200, 150, 20, 0.9], 0.75, "dash") },
+    popupTemplate: { title: "Active HPAI surveillance zone", content: [{ type: "text", text: "Established {confirmed_date}. Within 20 km of an infected premises, outside the control area. No movement permit is required, but flocks may be tested. Report sick or dead birds to MDA immediately." }], fieldInfos: [{ fieldName: "confirmed_date", format: { dateFormat: "short-date" } }] }
   });
 
   // PUBLIC + REGULATOR: released control areas, fading with time since release
   const releasedRenderer = {
-    type: "simple", symbol: fill([130, 90, 170, 1], [122, 90, 166, 1], 1, "dash"),
+    type: "simple", symbol: fill([120, 120, 120, 1], [105, 105, 105, 1], 0.75, "dash"),
     visualVariables: [{
       type: "opacity", valueExpression: "DateDiff(Now(), $feature.released_date, 'days')", valueExpressionTitle: "Days since release",
       stops: [{ value: 0, opacity: 0.45 }, { value: 60, opacity: 0.30 }, { value: 180, opacity: 0.16 }, { value: 365, opacity: 0.06 }]
@@ -55,20 +64,17 @@ require([
     outFields: ["confirmed_date", "released_date"], renderer: releasedRenderer, popupTemplate: releasedPopup
   });
 
-  // PUBLIC + REGULATOR: wild bird detections (county level)
+  // PUBLIC + REGULATOR: wild-bird detections from the last 4 weeks, one point per detection
+  // (APHIS publishes county only, so each point sits inside the county; it is not an exact site)
+  const WILD_DAYS = 28;
+  const wildCutoff = new Date(Date.now() - WILD_DAYS * DAY).toISOString().slice(0, 10);
   const wild = new FeatureLayer({
-    url: C.wildBirdsUrl, title: "HPAI in wild birds (USDA APHIS, by county)", outFields: ["*"],
-    renderer: {
-      type: "simple", symbol: { type: "simple-marker", color: [31, 122, 140, 0.85], outline: { color: [255, 255, 255, 1], width: 1.5 } },
-      visualVariables: [
-        { type: "size", field: "detections_total", stops: [{ value: 1, size: 8 }, { value: 10, size: 14 }, { value: 40, size: 24 }] },
-        { type: "color", valueExpression: "DateDiff(Now(), $feature.last_detected, 'days')", valueExpressionTitle: "Days since most recent detection",
-          stops: [{ value: 30, color: [200, 60, 30, 0.9] }, { value: 180, color: [31, 122, 140, 0.85] }, { value: 730, color: [150, 160, 170, 0.75] }] }
-      ]
-    },
+    url: C.wildBirdsUrl, title: "HPAI in wild birds (last 4 weeks)", outFields: ["*"],
+    definitionExpression: `last_detected >= DATE '${wildCutoff}'`,
+    renderer: { type: "simple", symbol: { type: "simple-marker", style: "circle", size: 9, color: [31, 122, 140, 0.95], outline: { color: [255, 255, 255, 1], width: 1.5 } } },
     popupTemplate: {
-      title: "{county}, {state}: HPAI in wild birds",
-      content: "<b>{detections_total}</b> detections since 2022 ({detections_90d} in the last 90 days).<br>Most recent: <b>{last_detected}</b><br>{recent}<br><br><span style='font-size:11px'>Source: USDA APHIS. Locations are county-level, not exact sites.</span>",
+      title: "HPAI in a wild bird",
+      content: "{species}<br>Detected {last_detected}<br>{county} County, {state}<br><span style='font-size:11px'>Source: USDA APHIS. Shown at county level, not the exact site.</span>",
       fieldInfos: [{ fieldName: "last_detected", format: { dateFormat: "short-date" } }]
     }
   });
@@ -86,14 +92,14 @@ require([
   const regSZ = zoneLayer("Surveillance Zone (10–20 km)", "zone_type = 'Surveillance Zone' AND status = 'Active'", { type: "simple", symbol: fill([243, 198, 74, 0.12], [200, 150, 20, 1], 1, "dash") });
   const regBZ = zoneLayer("Buffer Zone (3–10 km)", "zone_type = 'Buffer Zone' AND status = 'Active'", { type: "simple", symbol: fill([235, 120, 40, 0.18], [210, 100, 30, 1], 1) });
   const regIZ = zoneLayer("Infected Zone (0–3 km)", "zone_type = 'Infected Zone' AND status = 'Active'", { type: "simple", symbol: fill([200, 30, 30, 0.35], [160, 20, 20, 1], 1.5) });
-  const regCA = zoneLayer("Control Area outline (10 km)", "zone_type = 'Control Area' AND status = 'Active'", { type: "simple", symbol: fill([0, 0, 0, 0], [140, 20, 20, 1], 2.5) });
+  const regCA = zoneLayer("Control Area outline (10 km)", "zone_type = 'Control Area' AND status = 'Active'", { type: "simple", symbol: fill([0, 0, 0, 0], [140, 20, 20, 1], 0.5) });
   const regReleased = new FeatureLayer({ url: C.zonesUrl, title: "Released control areas (fade with age)", definitionExpression: "zone_type = 'Control Area' AND status = 'Released'", outFields: ["*"], renderer: releasedRenderer, popupTemplate: regPopup("Released control area") });
   const premises = new FeatureLayer({
     url: C.premisesUrl, title: "Infected premises", outFields: ["*"],
     renderer: { type: "unique-value", field: "status",
       uniqueValueInfos: [
         { value: "Active", label: "Infected premises (active)", symbol: { type: "simple-marker", style: "diamond", size: 13, color: [140, 20, 20, 1], outline: { color: "white", width: 1.5 } } },
-        { value: "Released", label: "Infected premises (released)", symbol: { type: "simple-marker", style: "diamond", size: 10, color: [122, 90, 166, 0.8], outline: { color: "white", width: 1 } } }] },
+        { value: "Released", label: "Infected premises (released)", symbol: { type: "simple-marker", style: "diamond", size: 10, color: [120, 120, 120, 0.8], outline: { color: "white", width: 1 } } }] },
     popupTemplate: { title: "{premises_id} ({status})", content: [{ type: "fields", fieldInfos: [
       { fieldName: "county", label: "County" }, { fieldName: "flock_type", label: "Flock type" }, { fieldName: "birds", label: "Birds", format: { digitSeparator: true, places: 0 } },
       { fieldName: "confirmed_date", label: "Confirmed", format: { dateFormat: "short-date" } }, { fieldName: "released_date", label: "Released", format: { dateFormat: "short-date" } },
@@ -106,17 +112,17 @@ require([
   const marks = new GraphicsLayer({ title: "Selected locations", listMode: "hide" });
   const routeLyr = new GraphicsLayer({ title: "Route", listMode: "hide" });
 
-  const map = new Map({ basemap: "topo-vector", layers: [regSZ, regBZ, pubReleased, regReleased, pubCA, regIZ, regCA, wild, premises, routeLyr, marks] });
+  const map = new Map({ basemap: "topo-vector", layers: [regSZ, regBZ, pubSZ, pubReleased, regReleased, pubCA, regIZ, regCA, wild, premises, routeLyr, marks] });
   const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, popup: { dockEnabled: false } });
   view.ui.add(new Home({ view }), "top-left");
 
   // ---------------- Tiers ----------------
   const TIER_LAYERS = {
-    public: [pubCA, pubReleased, wild],
-    hauler: [pubCA, pubReleased],
+    public: [pubSZ, pubCA, pubReleased, wild],
+    hauler: [pubSZ, pubCA, pubReleased],
     regulator: [premises, regIZ, regBZ, regCA, regSZ, regReleased, wild]
   };
-  const ALL = [pubCA, pubReleased, wild, premises, regIZ, regBZ, regCA, regSZ, regReleased];
+  const ALL = [pubSZ, pubCA, pubReleased, wild, premises, regIZ, regBZ, regCA, regSZ, regReleased];
   let tier = "public", layerList = null;
   function setTier(t) {
     tier = t; pickMode = null; updatePickButtons();
@@ -131,8 +137,8 @@ require([
   document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => setTier(b.dataset.tier)));
 
   // ---------------- Zone lookup ----------------
-  async function zonesAt(pt) {
-    const r = await zonesQ.queryFeatures({ geometry: pt, spatialRelationship: "intersects", where: "1=1", outFields: ["*"], returnGeometry: false });
+  async function zonesAt(geom) {
+    const r = await zonesQ.queryFeatures({ geometry: geom, spatialRelationship: "intersects", where: "1=1", outFields: ["*"], returnGeometry: false });
     return r.features.map((f) => f.attributes);
   }
   function designation(z) {
@@ -151,26 +157,64 @@ require([
   const pubSearch = new Search({ view, container: "pubSearch", popupEnabled: false, resultGraphicEnabled: false, locationEnabled: false });
   pubSearch.on("select-result", (e) => e.result && checkLocation(e.result.feature.geometry, e.result.name));
 
+  // radius slider ("show results within N km"), like the Pennsylvania checker
+  const radiusEl = document.getElementById("radius"), radVal = document.getElementById("radVal");
+  let lastCheck = null;
+  radiusEl.oninput = () => { radVal.textContent = radiusEl.value; };
+  radiusEl.onchange = () => { if (lastCheck) checkLocation(lastCheck.pt, lastCheck.name); };
+
+  const haversineKm = (a, b) => {
+    const A = webMercatorUtils.webMercatorToGeographic(a), B = webMercatorUtils.webMercatorToGeographic(b), R = 6371.0088, rad = Math.PI / 180;
+    const dLat = (B.y - A.y) * rad, dLon = (B.x - A.x) * rad;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(A.y * rad) * Math.cos(B.y * rad) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  };
+
   async function checkLocation(pt, name) {
+    lastCheck = { pt, name };
     const box = document.getElementById("pubResult");
+    const radius = +radiusEl.value;
     box.className = "result show r-info"; box.innerHTML = "Checking…";
     marks.removeAll(); mark(pt, [23, 50, 77, 1]);
+    let ring = null;
+    if (radius > 0) {
+      ring = geometryEngine.geodesicBuffer(pt, radius, "kilometers");
+      marks.add(new Graphic({ geometry: ring, symbol: { type: "simple-fill", color: [23, 50, 77, 0.04], outline: { color: [23, 50, 77, 0.9], width: 1, style: "dash" } } }));
+    }
     try {
-      const z = await zonesAt(pt);
+      const [z, zr, prem] = await Promise.all([
+        zonesAt(pt),
+        ring ? zonesAt(ring) : Promise.resolve(null),
+        premises.queryFeatures({ where: "status = 'Active'", outFields: ["premises_id"], returnGeometry: true, outSpatialReference: view.spatialReference }).catch(() => ({ features: [] }))
+      ]);
       const d = designation(z);
       const act = z.filter((a) => a.status === "Active" && a.zone_type === d);
+      const inIZ = z.some((a) => a.status === "Active" && a.zone_type === "Infected Zone");
       const since = act.length ? fmtDate(Math.min(...act.map((a) => a.confirmed_date))) : "";
       const rel = z.filter((a) => a.status === "Released" && a.zone_type === "Control Area").sort((a, b) => b.released_date - a.released_date)[0];
-      let html = "";
+      const dists = prem.features.map((f) => haversineKm(pt, f.geometry));
+      const nearest = dists.length ? Math.min(...dists) : null;
+      const inCA = d === "Control Area", inSZ = z.some((a) => a.status === "Active" && a.zone_type === "Surveillance Zone");
+      let html = `<div class="chips"><span class="chip ${inCA ? "yes" : "no"}">Control Area: ${inCA ? "YES" : "No"}</span><span class="chip ${inSZ ? "ysz" : "no"}">Surveillance Zone: ${inSZ ? "YES" : "No"}</span></div>`;
       if (d === "Control Area") {
         box.className = "result show r-ca";
-        html = `<div class="big">Inside an HPAI Control Area</div><p>In place since ${since}.</p><ul><li>Moving poultry, eggs, feed, litter, carcasses or service vehicles onto or off a premises here requires an <b>MDA movement permit</b>.</li><li>Follow enhanced biosecurity. Flocks here are under surveillance testing.</li><li>Haulers: use the <b>Haulers &amp; industry</b> tab to plan a route and request a permit.</li></ul>`;
+        html += `<div class="big">Inside an HPAI Control Area</div><p>In place since ${since}.</p><ul>`
+          + (inIZ ? `<li><b>Infected Zone</b> (within 3 km of an infected premises): the strictest limits apply. Call MDA before any movement.</li>` : `<li>Buffer Zone (3–10 km from an infected premises).</li>`)
+          + `<li>Moving poultry, eggs, feed, litter, carcasses or service vehicles onto or off a premises here requires an <b>MDA movement permit</b>.</li><li>Flocks here are under surveillance testing. Follow enhanced biosecurity.</li><li>Haulers: use the <b>Haulers &amp; industry</b> tab to plan a route and request a permit.</li></ul>`;
       } else if (d === "Surveillance Zone") {
         box.className = "result show r-sz";
-        html = `<div class="big">Inside an HPAI Surveillance Zone</div><p>Within 20 km of an infected premises, outside the control area. Since ${since}.</p><ul><li>Not a movement-control area, but commercial flocks may be tested.</li><li>Watch flocks closely and report sick birds immediately.</li><li>Check with MDA before moving birds; zones can expand.</li></ul>`;
+        html += `<div class="big">Inside an HPAI Surveillance Zone</div><p>10–20 km from an infected premises, outside the control area. Since ${since}.</p><ul><li>No movement permit is required, but commercial flocks may be tested.</li><li>Watch flocks closely and report sick or dead birds to MDA immediately.</li><li>Check with MDA before moving birds; zones can expand.</li></ul><p>Help close the outbreak: tell MDA your birds are healthy or report sick birds at <b>(410) 841-5810</b>.</p>`;
       } else {
         box.className = "result show r-free";
-        html = `<div class="big">Not in an active HPAI zone</div><p>No HPAI movement restrictions apply here right now.</p>`;
+        html += `<div class="big">Not in an active HPAI zone</div><p>No HPAI movement restrictions apply here right now.</p>`;
+      }
+      html += `<p>` + (nearest == null ? "No active infected premises." : `Nearest active infected premises: <b>${nearest.toFixed(1)} km</b> away.`) + `</p>`;
+      if (ring) {
+        const n = dists.filter((k) => k <= radius).length;
+        const ca = zr.some((a) => a.status === "Active" && a.zone_type === "Control Area");
+        const sz = zr.some((a) => a.status === "Active" && a.zone_type === "Surveillance Zone");
+        const relN = new Set(zr.filter((a) => a.status === "Released" && a.zone_type === "Control Area").map((a) => a.premises_id)).size;
+        html += `<p><b>Within ${radius} km:</b> ${n} active infected premises; ${ca ? "a control area reaches this area" : "no control area"}${sz ? "; a surveillance zone reaches this area" : ""}${relN ? `; ${relN} released control area${relN > 1 ? "s" : ""}` : ""}.</p>`;
       }
       if (rel) html += `<p style="font-size:12px;opacity:.85">History: this location was in a control area released ${fmtDate(rel.released_date)} (${daysAgo(rel.released_date)} days ago).</p>`;
       html += `<p style="font-size:12px;opacity:.85">Location: ${esc(name || label(pt))}. Checked ${new Date().toLocaleString()}. Sample data.</p>`;
@@ -179,6 +223,22 @@ require([
       box.className = "result show r-info"; box.innerHTML = "Could not check this location: " + esc(err.message);
     }
   }
+
+  // use my location (like the Washington "Near Me" tool)
+  document.getElementById("locBtn").onclick = () => {
+    const box = document.getElementById("pubResult");
+    if (!navigator.geolocation) { box.className = "result show r-info"; box.innerHTML = "Your browser cannot share its location."; return; }
+    box.className = "result show r-info"; box.innerHTML = "Finding your location…";
+    navigator.geolocation.getCurrentPosition((p) => {
+      const pt = webMercatorUtils.geographicToWebMercator({ type: "point", x: p.coords.longitude, y: p.coords.latitude, spatialReference: { wkid: 4326 } });
+      view.goTo({ target: pt, zoom: 11 }); checkLocation(pt, "My location");
+    }, () => { box.className = "result show r-info"; box.innerHTML = "Could not get your location. Search an address or click the map instead."; }, { timeout: 10000 });
+  };
+
+  // wild-bird status line
+  wild.when(() => wild.queryFeatureCount().then((n) => {
+    document.getElementById("wildNote").textContent = n ? `${n} wild-bird detection${n > 1 ? "s" : ""} in the last 4 weeks.` : "No wild-bird detections reported in the last 4 weeks.";
+  }).catch(() => {}));
 
   // ---------------- HAULER ----------------
   const stops = { org: null, dst: null };
