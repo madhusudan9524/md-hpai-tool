@@ -195,3 +195,5 @@ button.primary { font-size: 15px; padding: 12px; border-radius: 12px; }
 .pop .note { padding: 0 16px 6px; font-size: 14px; color: #3a4a5c; }
 .pop .cta { margin: 6px 16px 4px; }
 .pop .meta { padding: 8px 16px 14px; font-size: 12px; color: var(--mute); }
+.esri-popup__button--dock, .esri-popup__header-buttons .esri-popup__button:not(:last-child) { display: none !important; }
+.esri-popup__header-container--button { display: none !important; }
