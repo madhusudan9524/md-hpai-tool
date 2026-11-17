@@ -129,7 +129,7 @@ require([
   const tintLyr = new GraphicsLayer({ title: "Counties with an outbreak", listMode: "hide" });   // mild red tint on counties that reported an outbreak
   const maskLyr = new GraphicsLayer({ title: "Outside Maryland", listMode: "hide" });
   const map = new Map({ basemap: "topo-vector", layers: [maskLyr, tintLyr, countyLyr, pubSZ, pubReleased, pubCA, wild, routeLyr, marks] });
-  const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, popup: { dockEnabled: false } });
+  const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, popup: { dockEnabled: false, collapseEnabled: false, autoCloseEnabled: false, visibleElements: { featureNavigation: false, actionBar: false, heading: false } }, popupEnabled: false });
   view.ui.add(new Home({ view }), "top-left");
 
   // ---- Maryland only ----
@@ -179,18 +179,39 @@ require([
   }
   document.addEventListener("click", () => { const m = $("menu"); if (m) m.hidden = true; });
 
+  // tiles: Near me / Route / Permit / Report / Premises. Locked tiles open the sign-in dialog.
+  const TOOLS = ["route", "permit", "report", "prem"];
+  let openTool = null;
+  function showTool(k) {
+    openTool = k;
+    TOOLS.forEach((t) => ($("tool-" + t).hidden = t !== k));
+    document.querySelectorAll(".tile").forEach((b) => b.classList.toggle("on", b.dataset.tool === k));
+    if (k !== "route") { pickMode = null; updatePickButtons(); }
+  }
+  function access(k) {
+    const signed = ws !== "public";
+    return { near: true, route: canHaul(), permit: ws === "industry" || ws === "hauler", report: signed, prem: isStaff() }[k];
+  }
+  function nearMe() {
+    if (!navigator.geolocation) return toast("Your browser can't share its location.");
+    navigator.geolocation.getCurrentPosition((p) => {
+      const pt = webMercatorUtils.geographicToWebMercator({ type: "point", x: p.coords.longitude, y: p.coords.latitude, spatialReference: { wkid: 4326 } });
+      view.goTo({ target: pt, zoom: 11 }); checkLocation(pt, "My location");
+    }, () => toast("Couldn't get your location. Search an address or tap the map."), { timeout: 10000 });
+  }
+  document.querySelectorAll(".tile").forEach((b) => (b.onclick = () => {
+    const k = b.dataset.tool;
+    if (!access(k)) { if (ws === "public") $("modal").hidden = false; else toast("Not available for " + WS_NAME[ws]); return; }
+    if (k === "near") return nearMe();
+    showTool(openTool === k ? null : k);
+  }));
+
   function setWorkspace(w) {
-    ws = w; pickMode = null; updatePickButtons(); marks.removeAll();
-    const signed = w !== "public";
-    $("ws").hidden = !signed;
-    $("wsName").textContent = WS_NAME[w] || "";
-    $("t-report").hidden = !signed;
-    $("t-permit").hidden = w !== "industry";
-    $("t-route").hidden = !canHaul();
-    $("t-off").hidden = !isStaff();
+    ws = w; pickMode = null; updatePickButtons(); marks.removeAll(); view.closePopup();
+    document.querySelectorAll(".tile").forEach((b) => { const k = b.dataset.tool; b.hidden = (k === "prem" && !isStaff()) || (k === "permit" && isStaff()); b.classList.toggle("locked", !access(k)); });
+    showTool(null);
     document.querySelectorAll(".staffkey").forEach((e) => (e.hidden = !isStaff()));
     routeLyr.visible = canHaul();
-    view.popupEnabled = isStaff();
     const sw = $("wsSwitch"); sw.innerHTML = ""; sw.hidden = roles.length < 2;
     roles.forEach((r) => { const b = document.createElement("button"); b.textContent = { regulator: "Officials", hauler: "Transport", industry: "Industry" }[r]; b.className = r === w ? "on" : ""; b.onclick = () => { setWorkspace(r); renderAcct(signedUser); }; sw.appendChild(b); });
     if (isStaff() && !regAdded) {   // private layers are added only for officials, so the public never hits a sign-in prompt
@@ -201,7 +222,6 @@ require([
     }
     STAFF_LAYERS.forEach((l) => (l.visible = isStaff()));
     if (signedUser) renderAcct(signedUser);
-    if (lastCheck) checkLocation(lastCheck.pt, lastCheck.name);
   }
 
   async function initRole() {
@@ -268,13 +288,24 @@ require([
     return 2 * R * Math.asin(Math.sqrt(h));
   };
 
+  const ICON = {
+    ca: '<svg viewBox="0 0 24 24"><path d="M12 2.5 4 6v6c0 5 3.4 8.5 8 9.5 4.6-1 8-4.5 8-9.500V6z"/><path d="M12 8v5M12 16v.5"/></svg>',
+    sz: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.500S22 12 22 12s-3.6 6.5-10 6.500S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+    free: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>',
+    info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.500v.5"/></svg>'
+  };
+  function showPop(pt, cls, big, sub, body) {
+    const el = document.createElement("div");
+    el.className = "pop " + cls;
+    el.innerHTML = `<div class="banner">${ICON[cls]}<div><div class="big">${big}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div></div>${body || ""}`;
+    view.openPopup({ location: pt, title: " ", content: el });
+  }
   async function checkLocation(pt, name) {
     lastCheck = { pt, name };
-    const box = $("pubResult");
-    box.className = "result"; box.innerHTML = `<div class="res info"><div class="big">Checking…</div></div>`;
     marks.removeAll(); mark(pt, [23, 50, 77, 1]);
+    showPop(pt, "info", "Checking…", "");
     await mdReady;
-    if (!inMD(pt)) { box.innerHTML = `<div class="res info"><div class="big">Outside Maryland</div><p>This map covers Maryland only. For other states, check that state's agriculture department.</p></div>`; return; }
+    if (!inMD(pt)) return showPop(pt, "info", "Outside Maryland", "This map covers Maryland only");
     let ring = null;
     if (radius > 0) {
       ring = geometryEngine.geodesicBuffer(pt, radius, "kilometers");
@@ -294,46 +325,30 @@ require([
       const dists = prem ? prem.features.map((f) => haversineKm(pt, f.geometry)) : [];
       const nearest = dists.length ? Math.min(...dists) : null;
       const inCA = d === "Control Area", inSZ = z.some((a) => a.status === "Active" && a.zone_type === "Surveillance Zone");
-      const chips = `<div class="chips"><span class="chip ${inCA ? "yes" : ""}">Control Area: ${inCA ? "YES" : "No"}</span><span class="chip ${inSZ ? "ysz" : ""}">Surveillance Zone: ${inSZ ? "YES" : "No"}</span></div>`;
-      let cls, big, text;
-      if (inCA) {
-        cls = "ca"; big = "Control Area";
-        text = `${inIZ ? "Infected Zone: call MDA before any movement." : "Buffer Zone."} A movement permit is required for poultry, eggs, feed, litter and equipment. Since ${since}.`;
-      } else if (inSZ) {
-        cls = "sz"; big = "Surveillance Zone";
-        text = `No movement permit needed. Flocks may be tested. Report sick or dead birds to MDA. Since ${since}.`;
-      } else { cls = "free"; big = "Outside all zones"; text = "No HPAI movement limits here right now."; }
-      let extra = "";
-      if (nearest != null) extra += `<p>Nearest active infected premises: <b>${nearest.toFixed(1)} km</b> (straight line).</p>`;
+      let cls, big, sub;
+      if (inCA) { cls = "ca"; big = "Control Area"; sub = inIZ ? "Infected Zone · call MDA first" : "Movement permit required"; }
+      else if (inSZ) { cls = "sz"; big = "Surveillance Zone"; sub = "No permit · flocks may be tested"; }
+      else { cls = "free"; big = "Outside all zones"; sub = "No HPAI limits here"; }
+      let body = `<div class="rows"><div class="row2">Control Area<span class="yn ${inCA ? "y" : ""}">${inCA ? "YES" : "No"}</span></div><div class="row2">Surveillance Zone<span class="yn ${inSZ ? "s" : ""}">${inSZ ? "YES" : "No"}</span></div>`;
+      if (nearest != null) body += `<div class="row2">Nearest premises<span>${nearest.toFixed(1)} km</span></div>`;
       if (ring) {
         const n = dists.filter((k) => k <= radius).length;
         const ca = zr.some((a) => a.status === "Active" && a.zone_type === "Control Area");
         const sz = zr.some((a) => a.status === "Active" && a.zone_type === "Surveillance Zone");
-        extra += `<p><b>Within ${radius} km:</b> ${prem ? n + " infected premises, " : ""}${ca ? "control area reaches here" : "no control area"}${sz ? ", surveillance zone reaches here" : ""}.</p>`;
+        body += `<div class="row2">Within ${radius} km<span>${ca ? "control area" : sz ? "surveillance" : "clear"}${prem ? " · " + n + " premises" : ""}</span></div>`;
       }
-      if (rel) extra += `<p>This spot was in a control area released ${fmtDate(rel.released_date)}.</p>`;
-      let cta = "";
+      body += `</div>`;
+      if (rel) body += `<div class="note">Past control area, released ${fmtDate(rel.released_date)}</div>`;
       if (inCA && (ws === "hauler" || ws === "industry") && C.permitFormUrl && !C.permitFormUrl.startsWith("REPLACE")) {
         const g = webMercatorUtils.webMercatorToGeographic(pt);
-        cta = `<a class="cta red" target="_blank" rel="noopener" href="${C.permitFormUrl}?center=${g.y.toFixed(6)},${g.x.toFixed(6)}&field:origin=${encodeURIComponent(name || label(pt))}">Request a permit</a>`;
+        body += `<a class="cta red" target="_blank" rel="noopener" href="${C.permitFormUrl}?center=${g.y.toFixed(6)},${g.x.toFixed(6)}&field:origin=${encodeURIComponent(name || label(pt))}">Request a permit</a>`;
       }
-      box.className = "result";
-      box.innerHTML = `<div class="res ${cls}"><div class="big">${big}</div><p>${text}</p>${chips}${extra}${cta}<div class="meta">${esc(name || label(pt))} · checked ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</div></div>`;
+      if (inCA || inSZ) body += `<div class="meta">Since ${since} · ${esc(name || label(pt))}</div>`; else body += `<div class="meta">${esc(name || label(pt))}</div>`;
+      showPop(pt, cls, big, sub, body);
     } catch (err) {
-      box.innerHTML = `<div class="res info"><div class="big">Couldn't check</div><p>${esc(err.message)}</p></div>`;
+      showPop(pt, "info", "Couldn't check", esc(err.message));
     }
   }
-
-  // use my location (like the Washington "Near Me" tool)
-  document.getElementById("locBtn").onclick = () => {
-    const box = $("pubResult"); const msg = (t) => (box.innerHTML = `<div class="res info"><p>${t}</p></div>`);
-    if (!navigator.geolocation) return msg("Your browser cannot share its location.");
-    msg("Finding your location…");
-    navigator.geolocation.getCurrentPosition((p) => {
-      const pt = webMercatorUtils.geographicToWebMercator({ type: "point", x: p.coords.longitude, y: p.coords.latitude, spatialReference: { wkid: 4326 } });
-      view.goTo({ target: pt, zoom: 11 }); checkLocation(pt, "My location");
-    }, () => msg("Couldn't get your location. Search an address or tap the map."), { timeout: 10000 });
-  };
 
   // data last-updated stamp (like Pennsylvania's "updated daily" note)
   zonesQ.load().then(() => {
@@ -464,11 +479,11 @@ require([
       if (dstIn) reasons.push("destination is inside a control area");
       if (caKm > 0.05) reasons.push(`route passes ${caKm.toFixed(1)} km through a control area`);
       const mins = r.minutes != null ? `${Math.round(r.minutes)} min` : "";
-      let html = `<div class="big">${permit ? "Movement permit required" : "No permit required for this route"}</div>`;
+      let html = `<div class="big">${permit ? "Permit required" : "No permit needed"}</div>`;
       html += `<p><b>${r.km.toFixed(1)} km</b>${mins ? ", about " + mins : ""}${mode ? " (truck routing)" : ""}.</p><ul>`;
-      html += `<li>In control areas: <b>${caKm.toFixed(1)} km</b></li><li>In surveillance zones: ${szKm.toFixed(1)} km</li>`;
-      if (direct && Math.abs(direct.km - r.km) > 0.5) html += `<li>Avoiding control areas adds ${(r.km - direct.km).toFixed(1)} km compared with the direct route (red dashed line).</li>`;
-      if (!avoided) html += `<li>No road route avoids every control area, so the shortest route is shown.</li>`;
+      html += `<li>In control areas: <b>${caKm.toFixed(1)} km</b></li>`;
+      if (direct && Math.abs(direct.km - r.km) > 0.5) html += `<li>Detour around control areas: +${(r.km - direct.km).toFixed(1)} km (red dashed = direct)</li>`;
+      if (!avoided) html += `<li>No road avoids every control area.</li>`;
       html += roadLine("Origin", roadO) + roadLine("Destination", roadD);
       html += `</ul>`;
       if (r.steps && r.steps.length) html += `<details class="dirs"><summary>Turn-by-turn directions</summary><ol>${r.steps.map((d) => `<li>${esc(d.text)}${d.km > 0.05 ? " (" + d.km.toFixed(1) + " km)" : ""}</li>`).join("")}</ol></details>`;
@@ -506,13 +521,18 @@ require([
   }
 
   // ---------------- Map clicks ----------------
-  view.on("click", (e) => {
+  view.on("click", async (e) => {
     if (pickMode === "perm") { setPermit(e.mapPoint); pickMode = null; updatePickButtons(); e.stopPropagation(); return; }
     if (pickMode === "rep") { setReport(e.mapPoint); pickMode = null; updatePickButtons(); e.stopPropagation(); return; }
     if (pickMode === "org" || pickMode === "dst") {
       stops[pickMode] = { pt: e.mapPoint, name: label(e.mapPoint) };
       (pickMode === "org" ? orgSearch : dstSearch).searchTerm = label(e.mapPoint);
       pickMode = null; updatePickButtons(); drawStops(); e.stopPropagation(); return;
+    }
+    if (isStaff()) {   // officials: tapping a premises or perimeter opens its details; elsewhere checks the location
+      const hit = await view.hitTest(e, { include: [premises, perim] }).catch(() => null);
+      const g = hit && hit.results.find((r) => r.graphic && (r.graphic.layer === premises || r.graphic.layer === perim));
+      if (g) { view.openPopup({ features: [g.graphic], location: e.mapPoint }); return; }
     }
     checkLocation(e.mapPoint);
   });

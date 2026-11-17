@@ -17,77 +17,68 @@
 <main>
   <aside id="panel">
 
-    <!-- Everyone: no sign-in needed -->
-    <section class="card" id="check">
+    <section class="card">
       <div id="pubSearch"></div>
-      <div class="row">
-        <button class="ghost" id="locBtn"><svg viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="3.2" fill="currentColor"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>My location</button>
-        <div class="seg" id="radSeg" title="Also check the area around the point">
-          <span>Radius</span><button data-r="0" class="on">Off</button><button data-r="5">5</button><button data-r="10">10</button><button data-r="20">20 km</button>
-        </div>
+      <div class="tiles" id="tiles">
+        <button class="tile" data-tool="near"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><svg class="lk" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Near me</span></button>
+        <button class="tile" data-tool="route"><svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.6"/><circle cx="18" cy="6" r="2.6"/><path d="M8.6 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.4"/></svg><svg class="lk" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Route</span></button>
+        <button class="tile" data-tool="permit"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 14l2 2 4-4"/></svg><svg class="lk" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Permit</span></button>
+        <button class="tile" data-tool="report"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z"/><path d="M12 10v5M12 17.6v.4"/></svg><svg class="lk" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Report</span></button>
+        <button class="tile" data-tool="prem"><svg viewBox="0 0 24 24"><path d="M3 21V9l6-4v16M9 21V12l6-3v12M15 21V8l6 3v10M2 21h20"/></svg><svg class="lk" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Premises</span></button>
       </div>
-      <div id="pubResult" class="result"><p class="empty">Search an address or tap the map to check a location.</p></div>
+      <div class="seg" id="radSeg" title="Also check the area around the point"><span>Radius</span><button data-r="0" class="on">Off</button><button data-r="5">5</button><button data-r="10">10</button><button data-r="20">20 km</button></div>
+      <div class="seg" id="wsSwitch" hidden></div>
     </section>
 
-    <!-- Signed-in workspace (hidden for the public) -->
-    <section class="card" id="ws" hidden>
-      <div class="wshead"><b id="wsName"></b><div class="seg" id="wsSwitch"></div></div>
-
-      <details class="tool" id="t-report"><summary>Report suspected HPAI</summary>
-        <div class="body">
-          <button class="pick" id="pickRep">Mark location on map</button>
-          <p class="hint" id="repLoc"></p>
-          <a class="cta" id="repLink" target="_blank" rel="noopener" hidden>Open report form</a>
-        </div>
-      </details>
-
-      <details class="tool" id="t-permit"><summary>Request a movement permit</summary>
-        <div class="body">
-          <button class="pick" id="pickPerm">Mark premises on map</button>
-          <p class="hint" id="permLoc"></p>
-          <a class="cta" id="permLink" target="_blank" rel="noopener" hidden>Open permit request</a>
-        </div>
-      </details>
-
-      <details class="tool" id="t-route" open><summary>Plan a truck route</summary>
-        <div class="body">
-          <div id="orgSearch"></div>
-          <button class="pick small" id="pickOrg">Set origin on map</button>
-          <div id="dstSearch"></div>
-          <button class="pick small" id="pickDst">Set destination on map</button>
-          <select id="commodity">
-            <option>Feed</option><option>Live birds</option><option>Eggs / egg products</option><option>Hatching eggs / chicks</option><option>Litter / manure</option><option>Carcasses / rendering</option><option>Service / equipment</option><option>Other</option>
-          </select>
-          <div class="btns"><button id="routeBtn" class="primary">Plan route</button><button id="clearRoute" class="ghost">Clear</button></div>
-          <div id="routeResult" class="result"></div>
-        </div>
-      </details>
-
-      <details class="tool" id="t-off" open><summary>Premises and zones</summary>
-        <div class="body">
-          <p class="hint" id="permitAdmin"></p>
-          <div id="premList"></div>
-          <div id="layerListDiv"></div>
-        </div>
-      </details>
+    <section class="card tool" id="tool-route" hidden>
+      <h3>Route</h3>
+      <div class="field"><span class="dotA"></span><div id="orgSearch"></div><button class="pin" id="pickOrg" title="Pick on map"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button></div>
+      <div class="field"><span class="dotB"></span><div id="dstSearch"></div><button class="pin" id="pickDst" title="Pick on map"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button></div>
+      <select id="commodity">
+        <option>Feed</option><option>Live birds</option><option>Eggs / egg products</option><option>Hatching eggs / chicks</option><option>Litter / manure</option><option>Carcasses / rendering</option><option>Service / equipment</option><option>Other</option>
+      </select>
+      <div class="btns"><button id="routeBtn" class="primary">Plan route</button><button id="clearRoute" class="ghost">Clear</button></div>
+      <div id="routeResult" class="result"></div>
     </section>
 
-    <details class="key"><summary>Map key</summary>
-      <div class="lg"><span class="sw ca"></span>Control Area (0–10 km): permit required</div>
-      <div class="lg"><span class="sw sz"></span>Surveillance Zone (10–20 km)</div>
-      <div class="lg"><span class="sw rel"></span>Past control area, fades with time</div>
-      <div class="lg"><span class="dot"></span>Wild bird HPAI, last 4 weeks <span id="wildNote"></span></div>
-      <div class="lg staffkey" hidden><span class="sw pm"></span>Premises edge</div>
-      <div class="lg staffkey" hidden><span class="sw iz"></span>Infected Zone (0–3 km)</div>
-      <div class="lg staffkey" hidden><span class="sw bz"></span>Buffer Zone (3–10 km)</div>
-    </details>
+    <section class="card tool" id="tool-permit" hidden>
+      <h3>Permit</h3>
+      <button class="pick" id="pickPerm">Mark premises on map</button>
+      <p class="hint" id="permLoc"></p>
+      <a class="cta" id="permLink" target="_blank" rel="noopener" hidden>Open permit request</a>
+    </section>
 
-    <p class="foot">Sick birds? Call MDA <b>(410) 841-5810</b>. General information only. <span id="updated"></span></p>
+    <section class="card tool" id="tool-report" hidden>
+      <h3>Report</h3>
+      <button class="pick" id="pickRep">Mark location on map</button>
+      <p class="hint" id="repLoc"></p>
+      <a class="cta" id="repLink" target="_blank" rel="noopener" hidden>Open report form</a>
+    </section>
+
+    <section class="card tool" id="tool-prem" hidden>
+      <h3>Premises</h3>
+      <p class="hint" id="permitAdmin"></p>
+      <div id="premList"></div>
+      <div id="layerListDiv"></div>
+    </section>
+
+    <section class="card legend">
+      <h3>Map key</h3>
+      <div class="lg"><span class="sw ca"></span><b>Control Area</b><i>0–10 km</i></div>
+      <div class="lg"><span class="sw sz"></span><b>Surveillance Zone</b><i>10–20 km</i></div>
+      <div class="lg"><span class="sw rel"></span><b>Past control area</b><i>fades</i></div>
+      <div class="lg"><span class="sw cty"></span><b>County with outbreak</b></div>
+      <div class="lg"><span class="dot"></span><b>Wild bird</b><i>last 4 weeks <span id="wildNote"></span></i></div>
+      <div class="lg staffkey" hidden><span class="sw iz"></span><b>Infected Zone</b><i>0–3 km</i></div>
+      <div class="lg staffkey" hidden><span class="sw bz"></span><b>Buffer Zone</b><i>3–10 km</i></div>
+      <div class="lg staffkey" hidden><span class="sw pm"></span><b>Premises edge</b></div>
+    </section>
+
+    <p class="foot">Sick birds? Call MDA <b>(410) 841-5810</b><br>General information only. <span id="updated"></span></p>
   </aside>
   <div id="viewDiv"></div>
 </main>
 
-<!-- Sign-in -->
 <div id="modal" hidden>
   <div class="dlg" role="dialog" aria-labelledby="mt">
     <button class="x" id="mclose" aria-label="Close">×</button>
