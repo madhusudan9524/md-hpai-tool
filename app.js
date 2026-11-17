@@ -71,7 +71,7 @@ require([
   const wildCutoff = new Date(Date.now() - WILD_DAYS * DAY).toISOString().slice(0, 10);
   const wild = new FeatureLayer({
     url: C.wildBirdsUrl, title: "HPAI in wild birds (last 4 weeks)", outFields: ["*"],
-    definitionExpression: `last_detected >= DATE '${wildCutoff}'`,
+    definitionExpression: `state = 'Maryland' AND last_detected >= DATE '${wildCutoff}'`,
     renderer: { type: "simple", symbol: { type: "simple-marker", style: "circle", size: 9, color: [31, 122, 140, 0.95], outline: { color: [255, 255, 255, 1], width: 1.5 } } },
     popupTemplate: {
       title: "HPAI in a wild bird",
@@ -118,9 +118,41 @@ require([
   const marks = new GraphicsLayer({ title: "Selected locations", listMode: "hide" });
   const routeLyr = new GraphicsLayer({ title: "Route", listMode: "hide" });
 
-  const map = new Map({ basemap: "topo-vector", layers: [pubSZ, pubReleased, pubCA, wild, routeLyr, marks] });
+  // Maryland counties (Esri Living Atlas): names + borders fade out as you zoom in
+  const COUNTY_URL = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Counties_Generalized_Boundaries/FeatureServer/0";
+  const countyLyr = new FeatureLayer({
+    url: COUNTY_URL, title: "Counties", definitionExpression: "STATE_NAME = 'Maryland'", outFields: ["NAME"], popupEnabled: false, listMode: "hide",
+    renderer: { type: "simple", symbol: { type: "simple-fill", color: [0, 0, 0, 0], outline: { color: [70, 85, 100, 0.9], width: 1 } } },
+    labelingInfo: [{ labelExpressionInfo: { expression: "Replace($feature.NAME, ' County', '')" }, labelPlacement: "always-horizontal",
+      symbol: { type: "text", color: [45, 60, 78, 1], haloColor: [255, 255, 255, 0.9], haloSize: 1.5, font: { size: 11, weight: "bold" } } }]
+  });
+  const tintLyr = new GraphicsLayer({ title: "Counties with an outbreak", listMode: "hide" });   // mild red tint on counties that reported an outbreak
+  const maskLyr = new GraphicsLayer({ title: "Outside Maryland", listMode: "hide" });
+  const map = new Map({ basemap: "topo-vector", layers: [maskLyr, tintLyr, countyLyr, pubSZ, pubReleased, pubCA, wild, routeLyr, marks] });
   const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, popup: { dockEnabled: false } });
   view.ui.add(new Home({ view }), "top-left");
+
+  // ---- Maryland only ----
+  let mdGeom = null, mdExtent = null, mdReady = null;
+  const inMD = (pt) => !mdGeom || geometryEngine.contains(mdGeom, pt) || geometryEngine.intersects(mdGeom, pt);
+  mdReady = countyLyr.queryFeatures({ where: "STATE_NAME = 'Maryland'", outFields: ["NAME"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((r) => {
+    const feats = r.features;
+    mdGeom = geometryEngine.union(feats.map((f) => f.geometry));
+    mdExtent = mdGeom.extent.clone();
+    view.constraints = { geometry: mdExtent.clone().expand(1.35), minZoom: 7 };   // can't pan away from Maryland
+    const world = { type: "extent", xmin: -20037508, ymin: -20037508, xmax: 20037508, ymax: 20037508, spatialReference: { wkid: 102100 } };
+    const outside = geometryEngine.difference({ type: "polygon", rings: [[[world.xmin, world.ymin], [world.xmin, world.ymax], [world.xmax, world.ymax], [world.xmax, world.ymin], [world.xmin, world.ymin]]], spatialReference: { wkid: 102100 } }, mdGeom);
+    maskLyr.add(new Graphic({ geometry: outside, symbol: { type: "simple-fill", color: [244, 246, 249, 0.7], outline: { color: [0, 0, 0, 0] } } }));
+    // outbreak tint: counties containing an active control area's center (the infected premises; no premises ID is read)
+    zonesQ.queryFeatures({ where: "zone_type = 'Control Area' AND status = 'Active'", returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((za) => {
+      const hit = new Set();
+      za.features.forEach((z) => { const c = z.geometry.extent.center; feats.forEach((f) => { if (geometryEngine.contains(f.geometry, c)) hit.add(f); }); });
+      hit.forEach((f) => tintLyr.add(new Graphic({ geometry: f.geometry, symbol: { type: "simple-fill", color: [200, 40, 30, 0.09], outline: { color: [200, 40, 30, 0.35], width: 1 } } })));
+    }).catch(() => {});
+  }).catch(() => {});
+  // county names and borders: fully visible at the opening view, gone by about zoom 11
+  const fadeCounties = () => { const z = view.zoom; countyLyr.opacity = z <= 8 ? 1 : z >= 11 ? 0 : 1 - (z - 8) / 3; };
+  view.watch("zoom", fadeCounties); view.when(fadeCounties);
   view.ui.add(new Expand({ view, expandIcon: "measure", expandTooltip: "Measure distance", content: new DistanceMeasurement2D({ view, unit: "kilometers" }) }), "top-left");
 
   // ---------------- Workspaces: the public needs no sign-in; signing in opens the workspace for your role ----------------
@@ -218,7 +250,8 @@ require([
 
   // ---------------- PUBLIC ----------------
   let lastCheck = null;
-  const pubSearch = new Search({ view, container: "pubSearch", popupEnabled: false, resultGraphicEnabled: false, locationEnabled: false });
+  const mdSources = (ph) => [{ url: "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer", name: "Maryland addresses", placeholder: ph, countryCode: "US", singleLineFieldName: "SingleLine", outFields: ["*"], maxResults: 6, filter: { geometry: { type: "extent", xmin: -79.6, ymin: 37.85, xmax: -74.95, ymax: 39.75, spatialReference: { wkid: 4326 } } }, suggestionsEnabled: true }];
+  const pubSearch = new Search({ view, container: "pubSearch", popupEnabled: false, resultGraphicEnabled: false, locationEnabled: false, includeDefaultSources: false, sources: mdSources("Find a Maryland address or place") });
   pubSearch.on("select-result", (e) => e.result && checkLocation(e.result.feature.geometry, e.result.name));
 
   // radius slider ("show results within N km"), like the Pennsylvania checker
@@ -240,6 +273,8 @@ require([
     const box = $("pubResult");
     box.className = "result"; box.innerHTML = `<div class="res info"><div class="big">Checking…</div></div>`;
     marks.removeAll(); mark(pt, [23, 50, 77, 1]);
+    await mdReady;
+    if (!inMD(pt)) { box.innerHTML = `<div class="res info"><div class="big">Outside Maryland</div><p>This map covers Maryland only. For other states, check that state's agriculture department.</p></div>`; return; }
     let ring = null;
     if (radius > 0) {
       ring = geometryEngine.geodesicBuffer(pt, radius, "kilometers");
@@ -313,8 +348,8 @@ require([
 
   // ---------------- HAULER ----------------
   const stops = { org: null, dst: null };
-  const orgSearch = new Search({ view, container: "orgSearch", popupEnabled: false, resultGraphicEnabled: false, locationEnabled: false, allPlaceholder: "Origin address" });
-  const dstSearch = new Search({ view, container: "dstSearch", popupEnabled: false, resultGraphicEnabled: false, locationEnabled: false, allPlaceholder: "Destination address" });
+  const orgSearch = new Search({ view, container: "orgSearch", popupEnabled: false, resultGraphicEnabled: false, locationEnabled: false, includeDefaultSources: false, sources: mdSources("Origin in Maryland") });
+  const dstSearch = new Search({ view, container: "dstSearch", popupEnabled: false, resultGraphicEnabled: false, locationEnabled: false, includeDefaultSources: false, sources: mdSources("Destination in Maryland") });
   orgSearch.on("select-result", (e) => { if (e.result) { stops.org = { pt: e.result.feature.geometry, name: e.result.name }; drawStops(); } });
   dstSearch.on("select-result", (e) => { if (e.result) { stops.dst = { pt: e.result.feature.geometry, name: e.result.name }; drawStops(); } });
   let pickMode = null;
@@ -328,6 +363,7 @@ require([
   document.getElementById("pickDst").onclick = () => { pickMode = pickMode === "dst" ? null : "dst"; updatePickButtons(); };
   document.getElementById("pickPerm").onclick = () => { pickMode = pickMode === "perm" ? null : "perm"; updatePickButtons(); };
   function setPermit(pt) {
+    if (!inMD(pt)) { toast("Pick a location inside Maryland."); return; }
     marks.removeAll(); mark(pt, [217, 130, 43, 1]);
     const g = webMercatorUtils.webMercatorToGeographic(pt);
     const q = new URLSearchParams({ center: `${g.y.toFixed(6)},${g.x.toFixed(6)}`, "field:origin": label(pt) });
@@ -337,6 +373,7 @@ require([
   }
   document.getElementById("pickRep").onclick = () => { pickMode = pickMode === "rep" ? null : "rep"; updatePickButtons(); };
   function setReport(pt) {
+    if (!inMD(pt)) { toast("Pick a location inside Maryland."); return; }
     marks.removeAll(); mark(pt, [180, 35, 24, 1]);
     const g = webMercatorUtils.webMercatorToGeographic(pt);
     const q = new URLSearchParams({ center: `${g.y.toFixed(6)},${g.x.toFixed(6)}` });
@@ -399,6 +436,7 @@ require([
 
   document.getElementById("routeBtn").onclick = async () => {
     const box = document.getElementById("routeResult");
+    if (stops.org && stops.dst && (!inMD(stops.org.pt) || !inMD(stops.dst.pt))) { box.className = "result"; box.innerHTML = `<div class="res info"><p>Origin and destination must both be in Maryland.</p></div>`; return; }
     if (!stops.org || !stops.dst) { box.className = "result"; box.innerHTML = `<div class="res info"><p>Set both an origin and a destination.</p></div>`; return; }
     box.className = "result"; box.innerHTML = `<div class="res info"><p>Planning route…</p></div>`; routeLyr.removeAll();
     try {

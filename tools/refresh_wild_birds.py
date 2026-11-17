@@ -13,7 +13,7 @@ from arcgis.gis import GIS
 PORTAL = "https://uofmd.maps.arcgis.com"
 LAYER_ITEM = "a1f7e3b4c0484be3b0911e819d5edaed"   # MD_HPAI_WildBirds
 CSV = "https://www.aphis.usda.gov/sites/default/files/hpai-wild-birds.csv"
-STATES = {"Maryland", "Delaware", "Virginia", "Pennsylvania", "New Jersey"}
+STATES = {"Maryland"}   # Maryland only
 DAYS = 28
 
 pts = json.load(open(__file__.replace("refresh_wild_birds.py", "county_points.json")))
