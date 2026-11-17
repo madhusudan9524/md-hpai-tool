@@ -197,3 +197,30 @@ button.primary { font-size: 15px; padding: 12px; border-radius: 12px; }
 .pop .meta { padding: 8px 16px 14px; font-size: 12px; color: var(--mute); }
 .esri-popup__button--dock, .esri-popup__header-buttons .esri-popup__button:not(:last-child) { display: none !important; }
 .esri-popup__header-container--button { display: none !important; }
+
+/* v4: role looks, queues, areas, badges */
+body[data-ws="regulator"] header { background: #12304a; }
+body[data-ws="hauler"] header { background: #7a4210; }
+body[data-ws="industry"] header { background: #1d5a3a; }
+.tile.wide { grid-column: span 2; flex-direction: row; justify-content: center; gap: 12px; padding: 12px; }
+.tile .badge { position: absolute; top: 6px; right: 8px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: var(--red); color: #fff; font-style: normal; font-size: 12.5px; font-weight: 750; display: grid; place-items: center; }
+.tile .badge[hidden] { display: none; }
+.qi { border: 1.5px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 10px; background: #fff; }
+.qi.done { opacity: .6; }
+.qh { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 15.5px; }
+.q1 { font-weight: 600; margin-top: 4px; font-size: 14px; }
+.q2, .q3 { font-size: 13px; color: #4a5a6c; margin-top: 3px; line-height: 1.4; }
+.q3 { color: var(--mute); }
+.qa { display: flex; gap: 8px; margin-top: 10px; }
+.qa button { flex: 1; padding: 9px 6px; border-radius: 10px; border: 1.5px solid var(--line); background: #fff; font-weight: 650; font-size: 14px; }
+.qa button.ok { background: var(--green); border-color: var(--green); color: #fff; }
+.qa button.no { background: #fff; border-color: var(--red); color: var(--red); }
+.qa button:disabled { opacity: .5; }
+.areas h4 { margin: 4px 0 8px; font-size: 14px; color: var(--mute); font-weight: 650; }
+.area { display: flex; justify-content: space-between; width: 100%; padding: 10px 12px; margin-bottom: 6px; border-radius: 10px; border: 1.5px solid #f3c9c4; background: #fdf1ef; font-size: 14.5px; }
+.area span { color: var(--mute); font-size: 13px; }
+.sw.tri, .sw.sq { display: inline-block; flex: 0 0 auto; width: 30px; height: 20px; background: none; border: 0; position: relative; }
+.sw.tri::after { content: ""; position: absolute; left: 7px; top: 1px; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 15px solid #e65a1e; }
+.sw.sq::after { content: ""; position: absolute; left: 9px; top: 3px; width: 12px; height: 12px; background: #1e6ebe; }
+.pop.bird .banner { background: linear-gradient(135deg, #176b7c, #2a98ad); }
+.dot.farm { background: #7d5a28; box-shadow: 0 0 0 1px #7d5a28; width: 11px; height: 11px; }

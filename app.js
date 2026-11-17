@@ -112,6 +112,23 @@ require([
       { fieldName: "notes", label: "Notes" }] }] }
   });
 
+  // OFFICIALS: submitted detection reports and permit requests (points on the map + review queues)
+  const tri = (c) => ({ type: "simple-marker", style: "triangle", size: 15, color: c, outline: { color: "white", width: 1.5 } });
+  const sqr = (c) => ({ type: "simple-marker", style: "square", size: 12, color: c, outline: { color: "white", width: 1.5 } });
+  const repLyr = new FeatureLayer({ url: C.reportsUrl, title: "Detection reports", outFields: ["*"],
+    renderer: { type: "unique-value", field: "review_status", defaultSymbol: tri([230, 90, 30, 1]), uniqueValueInfos: [
+      { value: "New", label: "New report", symbol: tri([230, 90, 30, 1]) }, { value: "Confirmed", label: "Confirmed", symbol: tri([140, 20, 20, 1]) }, { value: "Dismissed", label: "Dismissed", symbol: tri([150, 150, 150, 0.8]) }] },
+    popupTemplate: { title: "Report: {species}", content: [{ type: "fields", fieldInfos: [{ fieldName: "review_status", label: "Status" }, { fieldName: "premises_address", label: "Where" }, { fieldName: "flock_size", label: "Flock size" }, { fieldName: "sick_dead", label: "Sick / dead" }, { fieldName: "symptoms", label: "Signs" }, { fieldName: "reporter_name", label: "Reporter" }, { fieldName: "phone", label: "Phone" }] }] } });
+  const perLyr = new FeatureLayer({ url: C.permitsUrl, title: "Permit requests", outFields: ["*"],
+    renderer: { type: "unique-value", field: "review_status", defaultSymbol: sqr([30, 110, 190, 1]), uniqueValueInfos: [
+      { value: "Pending", label: "Pending", symbol: sqr([30, 110, 190, 1]) }, { value: "Approved", label: "Approved", symbol: sqr([46, 139, 87, 1]) }, { value: "Denied", label: "Denied", symbol: sqr([150, 150, 150, 0.8]) }] },
+    popupTemplate: { title: "Permit: {company}", content: [{ type: "fields", fieldInfos: [{ fieldName: "review_status", label: "Status" }, { fieldName: "commodity", label: "Commodity" }, { fieldName: "origin", label: "From" }, { fieldName: "destination", label: "To" }, { fieldName: "permit_reason", label: "Why" }, { fieldName: "vehicle_id", label: "Vehicle" }, { fieldName: "phone", label: "Phone" }] }] } });
+
+  // OFFICIALS: known poultry farms (USGS houses mapped from 2016-17 imagery, grouped within 200 m); not an official MDA premises registry
+  const farmsLyr = new FeatureLayer({ url: C.farmsUrl, title: "Poultry farms (estimated)", outFields: ["*"],
+    renderer: { type: "simple", symbol: { type: "simple-marker", style: "circle", size: 5, color: [125, 90, 40, 0.85], outline: { color: [255, 255, 255, 0.9], width: 0.6 } } },
+    popupTemplate: { title: "Poultry farm {farm_id}", content: "{houses} poultry house(s)<br><span style='font-size:11px'>{source}. Estimated from aerial imagery; not an official premises record.</span>" } });
+
   // Query-only handle on all zones (never drawn)
   const zonesQ = new FeatureLayer({ url: PZ, outFields: ["zone_type", "status", "confirmed_date", "released_date"] });
 
@@ -133,7 +150,7 @@ require([
   view.ui.add(new Home({ view }), "top-left");
 
   // ---- Maryland only ----
-  let mdGeom = null, mdExtent = null, mdReady = null;
+  let mdGeom = null, mdExtent = null, mdReady = null, outbreakAreas = [];
   const inMD = (pt) => !mdGeom || geometryEngine.contains(mdGeom, pt) || geometryEngine.intersects(mdGeom, pt);
   mdReady = countyLyr.queryFeatures({ where: "STATE_NAME = 'Maryland'", outFields: ["NAME"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((r) => {
     const feats = r.features;
@@ -141,23 +158,36 @@ require([
     mdExtent = mdGeom.extent.clone();
     view.constraints = { geometry: mdExtent.clone().expand(1.35), minZoom: 7 };   // can't pan away from Maryland
     const world = { type: "extent", xmin: -20037508, ymin: -20037508, xmax: 20037508, ymax: 20037508, spatialReference: { wkid: 102100 } };
-    const outside = geometryEngine.difference({ type: "polygon", rings: [[[world.xmin, world.ymin], [world.xmin, world.ymax], [world.xmax, world.ymax], [world.xmax, world.ymin], [world.xmin, world.ymin]]], spatialReference: { wkid: 102100 } }, mdGeom);
-    maskLyr.add(new Graphic({ geometry: outside, symbol: { type: "simple-fill", color: [244, 246, 249, 0.7], outline: { color: [0, 0, 0, 0] } } }));
+    const clearArea = (dm) => geometryEngine.union([mdGeom].concat(dm));
+    const worldPoly = { type: "polygon", rings: [[[world.xmin, world.ymin], [world.xmin, world.ymax], [world.xmax, world.ymax], [world.xmax, world.ymin], [world.xmin, world.ymin]]], spatialReference: { wkid: 102100 } };
+    // Maryland + the rest of Delmarva (Delaware, Virginia's Eastern Shore) stay clear; everything else is faded
+    new FeatureLayer({ url: COUNTY_URL }).queryFeatures({ where: "STATE_NAME = 'Delaware' OR (STATE_NAME = 'Virginia' AND NAME IN ('Accomack County','Northampton County'))", returnGeometry: true, outSpatialReference: { wkid: 102100 } })
+      .then((dm) => dm.features.map((f) => f.geometry)).catch(() => [])
+      .then((dg) => { maskLyr.add(new Graphic({ geometry: geometryEngine.difference(worldPoly, clearArea(dg)), symbol: { type: "simple-fill", color: [244, 246, 249, 0.78], outline: { color: [0, 0, 0, 0] } } })); });
     // outbreak tint: counties containing an active control area's center (the infected premises; no premises ID is read)
-    zonesQ.queryFeatures({ where: "zone_type = 'Control Area' AND status = 'Active'", returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((za) => {
-      const hit = new Set();
-      za.features.forEach((z) => { const c = z.geometry.extent.center; feats.forEach((f) => { if (geometryEngine.contains(f.geometry, c)) hit.add(f); }); });
-      hit.forEach((f) => tintLyr.add(new Graphic({ geometry: f.geometry, symbol: { type: "simple-fill", color: [200, 40, 30, 0.09], outline: { color: [200, 40, 30, 0.35], width: 1 } } })));
+    zonesQ.queryFeatures({ where: "zone_type = 'Control Area' AND status = 'Active'", outFields: ["confirmed_date"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((za) => {
+      const hit = new Map();
+      za.features.forEach((z) => { const c = z.geometry.extent.center; feats.forEach((f) => { if (geometryEngine.contains(f.geometry, c)) { const o = hit.get(f) || { f, since: z.attributes.confirmed_date, ext: z.geometry.extent.clone() }; o.since = Math.min(o.since, z.attributes.confirmed_date); o.ext = o.ext.union(z.geometry.extent); hit.set(f, o); } }); });
+      hit.forEach((o) => tintLyr.add(new Graphic({ geometry: o.f.geometry, symbol: { type: "simple-fill", color: [200, 40, 30, 0.12], outline: { color: [200, 40, 30, 0.4], width: 1 } } })));
+      outbreakAreas = [...hit.values()].map((o) => ({ county: o.f.attributes.NAME.replace(" County", ""), since: o.since, ext: o.ext })).sort((a, b) => b.since - a.since);
+      renderAreas();
     }).catch(() => {});
   }).catch(() => {});
   // county names and borders: fully visible at the opening view, gone by about zoom 11
-  const fadeCounties = () => { const z = view.zoom; countyLyr.opacity = z <= 8 ? 1 : z >= 11 ? 0 : 1 - (z - 8) / 3; };
+  // detail: the public sees only control areas at first; surveillance zones and past areas appear as you zoom in
+  // (transporters and officials always see everything)
+  const fadeCounties = () => {
+    const z = view.zoom, cl = (a, b) => Math.max(0, Math.min(1, (z - a) / (b - a)));
+    countyLyr.opacity = 1 - cl(8, 11);
+    const k = (typeof canHaul === "function" && canHaul()) ? 1 : cl(9, 10.5);
+    pubSZ.opacity = k; pubReleased.opacity = k;
+  };
   view.watch("zoom", fadeCounties); view.when(fadeCounties);
   view.ui.add(new Expand({ view, expandIcon: "measure", expandTooltip: "Measure distance", content: new DistanceMeasurement2D({ view, unit: "kilometers" }) }), "top-left");
 
   // ---------------- Workspaces: the public needs no sign-in; signing in opens the workspace for your role ----------------
   const WS_NAME = { regulator: "Animal health officials", hauler: "Transporters", industry: "Poultry industry" };
-  const STAFF_LAYERS = [regBZ, regIZ, regCA, perim, premises];
+  const STAFF_LAYERS = [farmsLyr, regBZ, regIZ, regCA, perim, premises, repLyr, perLyr];
   let ws = "public", roles = [], layerList = null, regAdded = false, signedUser = null;
   const isStaff = () => ws === "regulator";
   const canHaul = () => ws === "hauler" || ws === "regulator";
@@ -180,17 +210,19 @@ require([
   document.addEventListener("click", () => { const m = $("menu"); if (m) m.hidden = true; });
 
   // tiles: Near me / Route / Permit / Report / Premises. Locked tiles open the sign-in dialog.
-  const TOOLS = ["route", "permit", "report", "prem"];
+  const TOOLS = ["route", "permit", "report", "prem", "rrep", "rper"];
+  const TILESET = { public: ["near", "route", "permit", "report"], industry: ["near", "permit", "report"], hauler: ["near", "route", "permit", "report"], regulator: ["near", "rrep", "rper", "prem", "route"] };
   let openTool = null;
   function showTool(k) {
     openTool = k;
     TOOLS.forEach((t) => ($("tool-" + t).hidden = t !== k));
     document.querySelectorAll(".tile").forEach((b) => b.classList.toggle("on", b.dataset.tool === k));
     if (k !== "route") { pickMode = null; updatePickButtons(); }
+    if (k === "rrep") loadQueue("rep"); if (k === "rper") loadQueue("per");
   }
   function access(k) {
     const signed = ws !== "public";
-    return { near: true, route: canHaul(), permit: ws === "industry" || ws === "hauler", report: signed, prem: isStaff() }[k];
+    return { near: true, route: canHaul(), permit: ws === "industry" || ws === "hauler", report: signed, prem: isStaff(), rrep: isStaff(), rper: isStaff() }[k];
   }
   function nearMe() {
     if (!navigator.geolocation) return toast("Your browser can't share its location.");
@@ -208,7 +240,11 @@ require([
 
   function setWorkspace(w) {
     ws = w; pickMode = null; updatePickButtons(); marks.removeAll(); view.closePopup();
-    document.querySelectorAll(".tile").forEach((b) => { const k = b.dataset.tool; b.hidden = (k === "prem" && !isStaff()) || (k === "permit" && isStaff()); b.classList.toggle("locked", !access(k)); });
+    document.body.dataset.ws = w;
+    const set = TILESET[w] || TILESET.public;
+    document.querySelectorAll(".tile").forEach((b) => { const k = b.dataset.tool; b.hidden = !set.includes(k); b.classList.remove("wide"); b.classList.toggle("locked", !access(k)); });
+    const vis = [...document.querySelectorAll(".tile")].filter((b) => !b.hidden); if (vis.length % 2) vis[vis.length - 1].classList.add("wide");
+    fadeCounties();
     showTool(null);
     document.querySelectorAll(".staffkey").forEach((e) => (e.hidden = !isStaff()));
     routeLyr.visible = canHaul();
@@ -219,6 +255,8 @@ require([
       map.addMany(STAFF_LAYERS);
       map.reorder(routeLyr, map.layers.length - 1); map.reorder(marks, map.layers.length - 1);
       layerList = new LayerList({ view, container: "layerListDiv" }); loadPremisesList();
+    }
+    if (isStaff()) { refreshBadges();
     }
     STAFF_LAYERS.forEach((l) => (l.visible = isStaff()));
     if (signedUser) renderAcct(signedUser);
@@ -292,7 +330,8 @@ require([
     ca: '<svg viewBox="0 0 24 24"><path d="M12 2.5 4 6v6c0 5 3.4 8.5 8 9.5 4.6-1 8-4.5 8-9.500V6z"/><path d="M12 8v5M12 16v.5"/></svg>',
     sz: '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-6.5 10-6.500S22 12 22 12s-3.6 6.5-10 6.500S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
     free: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>',
-    info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.500v.5"/></svg>'
+    info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.5"/></svg>',
+    bird: '<svg viewBox="0 0 24 24"><path d="M3 15c3-1 4-4 6-6 2.5-2.5 6-2 7.5 0L21 8l-1.500 3.500c0 5-4 8.5-9 8.5-3 0-5-1.500-7.5-5z"/><circle cx="15.5" cy="10" r=".8"/></svg>'
   };
   function showPop(pt, cls, big, sub, body) {
     const el = document.createElement("div");
@@ -301,12 +340,18 @@ require([
     view.openPopup({ location: pt, title: " ", content: el });
     const sp = view.toScreen(pt); if (sp && sp.y < 360) view.goTo({ center: pt }, { duration: 350 }).catch(() => {});   // keep the card on screen
   }
+  function showWildPop(f, pt) {
+    const a = f.attributes, d = a.last_detected || a.collection_date;
+    showPop(pt, "bird", "HPAI in a wild bird", esc(a.species || "Species not listed"),
+      `<div class="rows"><div class="row2">Detected<span>${fmtDate(d)}</span></div><div class="row2">County<span>${esc(a.county || "")}</span></div></div><div class="meta">USDA APHIS · shown at county level, not the exact site</div>`);
+  }
   async function checkLocation(pt, name) {
+    if (mdGeom && !inMD(pt)) return;   // outside Maryland: nothing happens
     lastCheck = { pt, name };
     marks.removeAll(); mark(pt, [23, 50, 77, 1]);
     showPop(pt, "info", "Checking…", "");
     await mdReady;
-    if (!inMD(pt)) return showPop(pt, "info", "Outside Maryland", "This map covers Maryland only");
+    if (!inMD(pt)) { view.closePopup(); marks.removeAll(); return; }
     let ring = null;
     if (radius > 0) {
       ring = geometryEngine.geodesicBuffer(pt, radius, "kilometers");
@@ -318,6 +363,8 @@ require([
         ring ? zonesAt(ring) : Promise.resolve(null),
         canHaul() ? premises.queryFeatures({ where: "status = 'Active'", outFields: ["premises_id"], returnGeometry: true, outSpatialReference: view.spatialReference }).catch(() => null) : Promise.resolve(null)
       ]);
+      const wr = geometryEngine.geodesicBuffer(pt, radius || 10, "kilometers");
+      const wildN = await wild.queryFeatureCount({ geometry: wr, spatialRelationship: "intersects" }).catch(() => 0);
       const d = designation(z);
       const act = z.filter((a) => a.status === "Active" && a.zone_type === d);
       const inIZ = z.some((a) => a.status === "Active" && a.zone_type === "Infected Zone");
@@ -338,6 +385,8 @@ require([
         const sz = zr.some((a) => a.status === "Active" && a.zone_type === "Surveillance Zone");
         body += `<div class="row2">Within ${radius} km<span>${ca ? "control area" : sz ? "surveillance" : "clear"}${prem ? " · " + n + " premises" : ""}</span></div>`;
       }
+      if (isStaff()) { const fN = await farmsLyr.queryFeatureCount({ geometry: wr, spatialRelationship: "intersects" }).catch(() => 0); if (fN) body += `<div class="row2">Poultry farms<span>~${fN} within ${radius || 10} km</span></div>`; }
+      if (wildN) body += `<div class="row2">Wild birds<span>${wildN} within ${radius || 10} km</span></div>`;
       body += `</div>`;
       if (rel) body += `<div class="note">Past control area, released ${fmtDate(rel.released_date)}</div>`;
       if (inCA && (ws === "hauler" || ws === "industry") && C.permitFormUrl && !C.permitFormUrl.startsWith("REPLACE")) {
@@ -508,6 +557,55 @@ require([
   };
 
   // ---------------- REGULATOR ----------------
+  // ---- Officials: review queues ----
+  const pendingWhere = (kind) => kind === "rep" ? "review_status IS NULL OR review_status = 'New'" : "review_status IS NULL OR review_status = 'Pending'";
+  async function refreshBadges() {
+    for (const [kind, lyr, k] of [["rep", repLyr, "rrep"], ["per", perLyr, "rper"]]) {
+      const n = await lyr.queryFeatureCount({ where: pendingWhere(kind) }).catch(() => 0);
+      const b = document.querySelector(`.tile[data-tool="${k}"]`); let bd = b.querySelector(".badge");
+      if (!bd) { bd = document.createElement("i"); bd.className = "badge"; b.appendChild(bd); }
+      bd.textContent = n; bd.hidden = !n;
+    }
+  }
+  async function loadQueue(kind) {
+    const lyr = kind === "rep" ? repLyr : perLyr, box = $(kind === "rep" ? "repQueue" : "perQueue");
+    box.innerHTML = `<p class="hint">Loading…</p>`;
+    const done = kind === "rep" ? ["Confirmed", "Dismissed"] : ["Approved", "Denied"];
+    const yes = kind === "rep" ? ["Confirm", "Confirmed"] : ["Approve", "Approved"], no = kind === "rep" ? ["Dismiss", "Dismissed"] : ["Deny", "Denied"];
+    try {
+      const r = await lyr.queryFeatures({ where: "1=1", outFields: ["*"], returnGeometry: true, outSpatialReference: view.spatialReference });
+      const rows = r.features.map((f) => ({ f, st: f.attributes.review_status || (kind === "rep" ? "New" : "Pending") })).sort((a, b) => (done.includes(a.st) - done.includes(b.st)) || (b.f.attributes.OBJECTID - a.f.attributes.OBJECTID));
+      if (!rows.length) { box.innerHTML = `<p class="hint">Nothing submitted yet.</p>`; return; }
+      box.innerHTML = rows.map(({ f, st }, i) => {
+        const a = f.attributes, pend = !done.includes(st);
+        const head = kind === "rep" ? esc(a.species || "Report") : esc(a.company || "Permit request");
+        const l1 = kind === "rep" ? `${(a.sick_dead ?? "?").toLocaleString()} sick/dead of ${(a.flock_size ?? "?").toLocaleString()}${a.onset_date ? " · onset " + fmtDate(a.onset_date) : ""}` : `${esc(a.commodity || "")} · ${esc(a.origin || "?")} → ${esc(a.destination || "?")}`;
+        const l2 = kind === "rep" ? esc(a.premises_address || "") + (a.symptoms ? "<br>" + esc(a.symptoms) : "") : `${a.route_km != null ? a.route_km + " km" : ""}${a.ca_km ? ", " + a.ca_km + " km in control area" : ""}${a.move_date ? " · " + fmtDate(a.move_date) : ""}<br>${esc(a.permit_reason || "")}`;
+        const who = kind === "rep" ? `${esc(a.reporter_name || "")} ${esc(a.phone || "")}` : `${esc(a.contact_name || "")} ${esc(a.phone || "")}`;
+        return `<div class="qi ${pend ? "" : "done"}" data-i="${i}"><div class="qh"><b>${head}</b><span class="tag ${pend ? "Active" : "Released"}">${esc(st)}</span></div><div class="q1">${l1}</div><div class="q2">${l2}</div><div class="q3">${who}</div>
+          <div class="qa"><button data-a="loc">Locate</button>${pend ? `<button class="ok" data-a="yes">${yes[0]}</button><button class="no" data-a="no">${no[0]}</button>` : ""}</div></div>`;
+      }).join("");
+      box.querySelectorAll(".qi").forEach((el) => el.querySelectorAll("button").forEach((btn) => btn.onclick = async () => {
+        const { f } = rows[+el.dataset.i], act = btn.dataset.a;
+        if (act === "loc") { view.goTo({ target: f.geometry, zoom: 12 }); view.openPopup({ features: [f], location: f.geometry }); return; }
+        btn.disabled = true;
+        try {
+          const res = await lyr.applyEdits({ updateFeatures: [{ attributes: { OBJECTID: f.attributes.OBJECTID, review_status: act === "yes" ? yes[1] : no[1] } }] });
+          if (res.updateFeatureResults[0].error) throw new Error(res.updateFeatureResults[0].error.message);
+          toast(`${act === "yes" ? yes[1] : no[1]}`); lyr.refresh(); loadQueue(kind); refreshBadges();
+        } catch (err) { btn.disabled = false; toast("Couldn't save: " + err.message); }
+      }));
+    } catch (err) { box.innerHTML = `<p class="hint">Couldn't load: ${esc(err.message)}</p>`; }
+  }
+
+  // ---- Active control areas list (transporters, industry, officials) ----
+  function renderAreas() {
+    const html = outbreakAreas.length ? outbreakAreas.map((a, i) => `<button class="area" data-i="${i}"><b>${esc(a.county)}</b><span>since ${fmtDate(a.since)}</span></button>`).join("") : `<p class="hint">No active control areas.</p>`;
+    document.querySelectorAll(".areaList").forEach((el) => {
+      el.innerHTML = html;
+      el.querySelectorAll(".area").forEach((b) => (b.onclick = () => view.goTo(outbreakAreas[+b.dataset.i].ext.clone().expand(2.2))));
+    });
+  }
   async function loadPremisesList() {
     const div = document.getElementById("premList");
     try {
@@ -530,11 +628,11 @@ require([
       (pickMode === "org" ? orgSearch : dstSearch).searchTerm = label(e.mapPoint);
       pickMode = null; updatePickButtons(); drawStops(); e.stopPropagation(); return;
     }
-    if (isStaff()) {   // officials: tapping a premises or perimeter opens its details; elsewhere checks the location
-      const hit = await view.hitTest(e, { include: [premises, perim] }).catch(() => null);
-      const g = hit && hit.results.find((r) => r.graphic && (r.graphic.layer === premises || r.graphic.layer === perim));
-      if (g) { view.openPopup({ features: [g.graphic], location: e.mapPoint }); return; }
-    }
+    const inc = [wild].concat(isStaff() ? [premises, perim, repLyr, perLyr, farmsLyr] : []);
+    const hit = await view.hitTest(e, { include: inc }).catch(() => null);
+    const g = hit && hit.results.find((r) => r.graphic && r.graphic.layer);
+    if (g && g.graphic.layer === wild) { showWildPop(g.graphic, g.graphic.geometry); return; }
+    if (g) { view.openPopup({ features: [g.graphic], location: e.mapPoint }); return; }
     checkLocation(e.mapPoint);
   });
 
