@@ -1,0 +1,49 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; font-family: "Avenir Next", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1f2933; }
+body { display: flex; flex-direction: column; }
+header { background: #17324d; color: #fff; padding: 10px 16px 0; }
+.title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+h1 { font-size: 19px; margin: 0; font-weight: 600; }
+.proto { background: #f3c64a; color: #3d2f00; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 10px; }
+nav { display: flex; gap: 4px; margin-top: 8px; }
+nav button { background: transparent; color: #c8d6e5; border: 0; border-bottom: 3px solid transparent; padding: 8px 12px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+nav button.on { color: #fff; border-bottom-color: #f3c64a; }
+main { flex: 1; display: flex; min-height: 0; }
+#panel { width: 380px; flex: 0 0 380px; overflow-y: auto; padding: 14px 16px; border-right: 1px solid #d9e0e6; background: #fafbfc; }
+#viewDiv { flex: 1; min-width: 0; }
+section { display: none; }
+section.on { display: block; }
+h2 { font-size: 16px; margin: 0 0 6px; }
+.hint { font-size: 13px; color: #52606d; margin: 4px 0 10px; }
+label { display: block; font-size: 12px; font-weight: 700; color: #52606d; margin: 12px 0 4px; }
+select { width: 100%; padding: 6px; font: inherit; font-size: 14px; }
+.btns { display: flex; gap: 8px; margin-top: 12px; }
+button.primary { background: #17324d; color: #fff; border: 0; padding: 8px 14px; border-radius: 4px; font: inherit; font-weight: 600; cursor: pointer; }
+.btns button:not(.primary) { background: #fff; border: 1px solid #b8c4ce; padding: 8px 14px; border-radius: 4px; font: inherit; cursor: pointer; }
+button.link { background: none; border: 0; color: #1f5f99; font-size: 12px; padding: 2px 0; cursor: pointer; text-decoration: underline; }
+button.link.active { color: #b42318; font-weight: 700; }
+.result { margin-top: 12px; border-radius: 6px; padding: 0; font-size: 14px; }
+.result.show { padding: 12px; border: 1px solid; }
+.result .big { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+.result p { margin: 6px 0; }
+.result ul { margin: 6px 0; padding-left: 18px; }
+.r-ca { background: #fdecea; border-color: #f2b8b5 !important; color: #7a1a12; }
+.r-sz { background: #fff6dd; border-color: #f0d68a !important; color: #5f4500; }
+.r-free { background: #e9f6ee; border-color: #b6dfc4 !important; color: #14532d; }
+.r-info { background: #eef2f6; border-color: #cfd8e0 !important; color: #1f2933; }
+.permit { display: inline-block; margin-top: 8px; background: #b42318; color: #fff !important; padding: 8px 12px; border-radius: 4px; text-decoration: none; font-weight: 700; }
+.legend-box { margin-top: 16px; border-top: 1px solid #e1e6eb; padding-top: 10px; }
+.lg { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 6px 0; }
+.sw { width: 18px; height: 14px; border-radius: 2px; flex: 0 0 auto; }
+.sw.ca { background: rgba(200,40,30,.45); border: 2px solid #b42318; }
+.sw.rel { background: linear-gradient(90deg, rgba(130,90,170,.45), rgba(130,90,170,.08)); border: 1px dashed #7a5aa6; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: #1f7a8c; border: 2px solid #fff; box-shadow: 0 0 0 1px #1f7a8c; flex: 0 0 auto; }
+.report { font-size: 13px; background: #eef2f6; padding: 8px 10px; border-radius: 4px; margin-top: 14px; }
+.prem { border: 1px solid #d9e0e6; border-radius: 6px; padding: 8px 10px; margin: 6px 0; background: #fff; cursor: pointer; font-size: 13px; }
+.prem:hover { border-color: #17324d; }
+.prem b { font-size: 14px; }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 8px; margin-left: 6px; }
+.tag.Active { background: #fdecea; color: #b42318; }
+.tag.Released { background: #efe9f7; color: #5b3f8c; }
+#layerListDiv { margin-top: 10px; }
+@media (max-width: 800px) { main { flex-direction: column-reverse; } #panel { width: 100%; flex: 0 0 auto; max-height: 50vh; } #viewDiv { min-height: 50vh; } }

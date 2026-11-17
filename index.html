@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maryland HPAI Response Map (Prototype)</title>
+<link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/light/main.css">
+<link rel="stylesheet" href="app.css">
+<script src="https://js.arcgis.com/4.31/"></script>
+</head>
+<body>
+<header>
+  <div class="title">
+    <h1>Maryland HPAI Response Map</h1>
+    <span class="proto">PROTOTYPE · SAMPLE PREMISES DATA</span>
+  </div>
+  <nav id="tabs">
+    <button data-tier="public" class="on">Public</button>
+    <button data-tier="hauler">Haulers &amp; industry</button>
+    <button data-tier="regulator">Regulators (MDA / USDA)</button>
+  </nav>
+</header>
+
+<main>
+  <aside id="panel">
+    <!-- PUBLIC -->
+    <section data-panel="public" class="on">
+      <h2>Is this location in an HPAI control area?</h2>
+      <p class="hint">Search an address or click the map.</p>
+      <div id="pubSearch"></div>
+      <div id="pubResult" class="result"></div>
+      <div class="legend-box">
+        <div class="lg"><span class="sw ca"></span>Active control area (10 km from an infected premises): movement permit required</div>
+        <div class="lg"><span class="sw rel"></span>Released control area (fades the longer ago it was released)</div>
+        <div class="lg"><span class="dot"></span>HPAI found in wild birds (USDA APHIS, by county)</div>
+      </div>
+      <p class="report">Suspect avian influenza in your birds? Report it to MDA Animal Health: <b>(410) 841-5810</b>, animalhealth.mda@maryland.gov</p>
+    </section>
+
+    <!-- HAULER -->
+    <section data-panel="hauler">
+      <h2>Plan a movement</h2>
+      <p class="hint">Truck routes avoid active control areas. If the origin or destination is inside one, a permit is required.</p>
+      <label>Origin</label>
+      <div id="orgSearch"></div>
+      <button class="link" id="pickOrg">or click the map to set origin</button>
+      <label>Destination</label>
+      <div id="dstSearch"></div>
+      <button class="link" id="pickDst">or click the map to set destination</button>
+      <label>Commodity</label>
+      <select id="commodity">
+        <option>Feed</option><option>Live birds</option><option>Eggs / egg products</option><option>Hatching eggs / chicks</option><option>Litter / manure</option><option>Carcasses / rendering</option><option>Service / equipment</option><option>Other</option>
+      </select>
+      <div class="btns"><button id="routeBtn" class="primary">Plan route</button><button id="clearRoute">Clear</button></div>
+      <div id="routeResult" class="result"></div>
+    </section>
+
+    <!-- REGULATOR -->
+    <section data-panel="regulator">
+      <h2>Infected premises and zones</h2>
+      <p class="hint">Full detail: premises locations, Infected Zone (3 km), Buffer Zone (3–10 km), Control Area (10 km), Surveillance Zone (10–20 km). Turn layers on and off below.</p>
+      <div id="premList"></div>
+      <div id="layerListDiv"></div>
+      <p class="hint" id="permitAdmin"></p>
+    </section>
+  </aside>
+  <div id="viewDiv"></div>
+</main>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
