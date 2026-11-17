@@ -8,11 +8,12 @@ require([
   "esri/Map", "esri/views/MapView", "esri/layers/FeatureLayer", "esri/layers/GraphicsLayer", "esri/Graphic",
   "esri/widgets/Search", "esri/widgets/LayerList", "esri/widgets/Home", "esri/widgets/DistanceMeasurement2D", "esri/widgets/Expand",
   "esri/rest/route", "esri/rest/support/RouteParameters", "esri/rest/support/FeatureSet", "esri/rest/networkService",
-  "esri/geometry/geometryEngine", "esri/geometry/support/webMercatorUtils"
+  "esri/geometry/geometryEngine", "esri/geometry/support/webMercatorUtils", "esri/portal/Portal"
 ], function (esriConfig, OAuthInfo, esriId, Map, MapView, FeatureLayer, GraphicsLayer, Graphic,
-  Search, LayerList, Home, DistanceMeasurement2D, Expand, route, RouteParameters, FeatureSet, networkService, geometryEngine, webMercatorUtils) {
+  Search, LayerList, Home, DistanceMeasurement2D, Expand, route, RouteParameters, FeatureSet, networkService, geometryEngine, webMercatorUtils, Portal) {
 
   const C = window.HPAI_CONFIG;
+  const PZ = C.publicZonesUrl || C.zonesUrl;   // public layer: no premises IDs (use a public view in production)
   esriConfig.portalUrl = C.portalUrl;
   if (C.appId && !C.appId.startsWith("REPLACE")) {
     esriId.registerOAuthInfos([new OAuthInfo({ appId: C.appId, portalUrl: C.portalUrl, popup: false })]);
@@ -28,7 +29,7 @@ require([
 
   // PUBLIC: active control areas (no premises identity in popup)
   const pubCA = new FeatureLayer({
-    url: C.zonesUrl, title: "Active control areas",
+    url: PZ, title: "Active control areas",
     definitionExpression: "zone_type = 'Control Area' AND status = 'Active'",
     outFields: ["confirmed_date"],
     renderer: { type: "simple", symbol: fill([200, 40, 30, 0.25], [180, 35, 24, 0.9], 0.5) },
@@ -37,7 +38,7 @@ require([
 
   // PUBLIC: active surveillance zones (10-20 km), drawn faint
   const pubSZ = new FeatureLayer({
-    url: C.zonesUrl, title: "Active surveillance zones",
+    url: PZ, title: "Active surveillance zones",
     definitionExpression: "zone_type = 'Surveillance Zone' AND status = 'Active'",
     outFields: ["confirmed_date"],
     renderer: { type: "simple", symbol: fill([243, 198, 74, 0.14], [200, 150, 20, 0.9], 0.75, "dash") },
@@ -59,7 +60,7 @@ require([
     fieldInfos: [{ fieldName: "confirmed_date", format: { dateFormat: "short-date" } }, { fieldName: "released_date", format: { dateFormat: "short-date" } }, { fieldName: "expression/ago", format: { digitSeparator: true, places: 0 } }]
   };
   const pubReleased = new FeatureLayer({
-    url: C.zonesUrl, title: "Released control areas (fade with age)",
+    url: PZ, title: "Released control areas (fade with age)",
     definitionExpression: "zone_type = 'Control Area' AND status = 'Released'",
     outFields: ["confirmed_date", "released_date"], renderer: releasedRenderer, popupTemplate: releasedPopup
   });
@@ -112,40 +113,58 @@ require([
   });
 
   // Query-only handle on all zones (never drawn)
-  const zonesQ = new FeatureLayer({ url: C.zonesUrl, outFields: ["*"] });
+  const zonesQ = new FeatureLayer({ url: PZ, outFields: ["zone_type", "status", "confirmed_date", "released_date"] });
 
   const marks = new GraphicsLayer({ title: "Selected locations", listMode: "hide" });
   const routeLyr = new GraphicsLayer({ title: "Route", listMode: "hide" });
 
-  const map = new Map({ basemap: "topo-vector", layers: [regSZ, regBZ, pubSZ, pubReleased, regReleased, pubCA, regIZ, regCA, wild, perim, premises, routeLyr, marks] });
+  const map = new Map({ basemap: "topo-vector", layers: [pubSZ, pubReleased, pubCA, wild, routeLyr, marks] });
   const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, popup: { dockEnabled: false } });
   view.ui.add(new Home({ view }), "top-left");
   view.ui.add(new Expand({ view, expandIcon: "measure", expandTooltip: "Measure distance", content: new DistanceMeasurement2D({ view, unit: "kilometers" }) }), "top-left");
 
-  // ---------------- Tiers ----------------
-  const TIER_LAYERS = {
-    public: [pubSZ, pubCA, pubReleased, wild],
-    hauler: [pubSZ, pubCA, pubReleased],
-    regulator: [premises, perim, regIZ, regBZ, regCA, regSZ, regReleased, wild]
-  };
-  const ALL = [pubSZ, pubCA, pubReleased, wild, perim, premises, regIZ, regBZ, regCA, regSZ, regReleased];
-  let tier = "public", layerList = null;
-  function setTier(t) {
-    tier = t; pickMode = null; updatePickButtons();
-    document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tier === t));
-    document.querySelectorAll("section[data-panel]").forEach((s) => s.classList.toggle("on", s.dataset.panel === t));
-    ALL.forEach((l) => (l.visible = TIER_LAYERS[t].includes(l)));
-    routeLyr.visible = t === "hauler";
-    view.popupEnabled = t === "regulator"; // public and hauler use the result card instead of popups
-    marks.removeAll(); view.closePopup();
-    if (t === "regulator" && !layerList) { layerList = new LayerList({ view, container: "layerListDiv" }); loadPremisesList(); }
-    if (layerList) layerList.visible = t === "regulator";
+  // ---------------- Roles: signing in decides what is shown; the public needs no sign-in ----------------
+  const RANK = { public: 0, member: 1, hauler: 2, regulator: 3 };
+  let role = "public", layerList = null, regAdded = false, signedUser = null;
+  const can = (r) => RANK[role] >= RANK[r];
+  function applyRole(r, user) {
+    role = r; signedUser = user || null;
+    document.getElementById("s-report").hidden = !can("member");
+    document.getElementById("s-hauler").hidden = !can("hauler");
+    document.getElementById("s-reg").hidden = !can("regulator");
+    routeLyr.visible = can("hauler");
+    view.popupEnabled = can("regulator");
+    const who = document.getElementById("who");
+    who.innerHTML = user ? `${esc(user.fullName || user.username)} · ${{ member: "signed in", hauler: "hauler", regulator: "regulator" }[r]} · <a href="#" id="signout">Sign out</a>` : `<a href="#" id="signin">Staff sign in</a>`;
+    const so = document.getElementById("signout");
+    if (so) so.onclick = (e) => { e.preventDefault(); esriId.destroyCredentials(); location.href = location.pathname; };
+    const si = document.getElementById("signin");
+    if (si) si.onclick = (e) => { e.preventDefault(); esriId.getCredential(C.portalUrl + "/sharing"); };
+    if (can("regulator") && !regAdded) {   // private layers are added only for regulators, so the public never hits a sign-in prompt
+      regAdded = true;
+      map.addMany([regBZ, regIZ, regCA, perim, premises]);
+      map.reorder(routeLyr, map.layers.length - 1); map.reorder(marks, map.layers.length - 1);
+      layerList = new LayerList({ view, container: "layerListDiv" }); loadPremisesList();
+    }
   }
-  document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => setTier(b.dataset.tier)));
+  async function initRole() {
+    try {
+      await esriId.checkSignInStatus(C.portalUrl + "/sharing");
+      const portal = new Portal({ url: C.portalUrl }); await portal.load();
+      const user = portal.user, groups = await user.fetchGroups();
+      const names = groups.map((g) => g.title.toLowerCase());
+      let r = "member";
+      if (names.includes((C.haulerGroup || "").toLowerCase())) r = "hauler";
+      if (names.includes((C.regulatorGroup || "").toLowerCase())) r = "regulator";
+      const as = new URLSearchParams(location.search).get("as");   // preview a lower role, e.g. ?as=hauler
+      if (as && RANK[as] !== undefined && RANK[as] < RANK[r]) r = as;
+      if (r === "public") applyRole("public"); else applyRole(r, user);
+    } catch (e) { applyRole("public"); }
+  }
 
   // ---------------- Zone lookup ----------------
   async function zonesAt(geom) {
-    const r = await zonesQ.queryFeatures({ geometry: geom, spatialRelationship: "intersects", where: "1=1", outFields: ["*"], returnGeometry: false });
+    const r = await zonesQ.queryFeatures({ geometry: geom, spatialRelationship: "intersects", where: "1=1", outFields: ["zone_type", "status", "confirmed_date", "released_date"], returnGeometry: false });
     return r.features.map((f) => f.attributes);
   }
   function designation(z) {
@@ -192,7 +211,7 @@ require([
       const [z, zr, prem] = await Promise.all([
         zonesAt(pt),
         ring ? zonesAt(ring) : Promise.resolve(null),
-        premises.queryFeatures({ where: "status = 'Active'", outFields: ["premises_id"], returnGeometry: true, outSpatialReference: view.spatialReference }).catch(() => ({ features: [] }))
+        can("hauler") ? premises.queryFeatures({ where: "status = 'Active'", outFields: ["premises_id"], returnGeometry: true, outSpatialReference: view.spatialReference }).catch(() => ({ features: [] })) : Promise.resolve({ features: [] })
       ]);
       const d = designation(z);
       const act = z.filter((a) => a.status === "Active" && a.zone_type === d);
@@ -215,13 +234,13 @@ require([
         box.className = "result show r-free";
         html += `<div class="big">Not in an active HPAI zone</div><p>No HPAI movement restrictions apply here right now.</p>`;
       }
-      html += `<p>` + (nearest == null ? "No active infected premises." : `Nearest active infected premises: <b>${nearest.toFixed(1)} km</b> away.`) + `</p>`;
+      if (can("hauler")) html += `<p>` + (nearest == null ? "No active infected premises." : `Nearest active infected premises: <b>${nearest.toFixed(1)} km</b> away.`) + `</p>`;
       if (ring) {
         const n = dists.filter((k) => k <= radius).length;
         const ca = zr.some((a) => a.status === "Active" && a.zone_type === "Control Area");
         const sz = zr.some((a) => a.status === "Active" && a.zone_type === "Surveillance Zone");
-        const relN = new Set(zr.filter((a) => a.status === "Released" && a.zone_type === "Control Area").map((a) => a.premises_id)).size;
-        html += `<p><b>Within ${radius} km:</b> ${n} active infected premises; ${ca ? "a control area reaches this area" : "no control area"}${sz ? "; a surveillance zone reaches this area" : ""}${relN ? `; ${relN} released control area${relN > 1 ? "s" : ""}` : ""}.</p>`;
+        const relN = zr.filter((a) => a.status === "Released" && a.zone_type === "Control Area").length;
+        html += `<p><b>Within ${radius} km:</b> ${can("hauler") ? n + " active infected premises; " : ""}${ca ? "a control area reaches this area" : "no control area"}${sz ? "; a surveillance zone reaches this area" : ""}${relN ? `; ${relN} released control area${relN > 1 ? "s" : ""}` : ""}.</p>`;
       }
       if (rel) html += `<p style="font-size:12px;opacity:.85">History: this location was in a control area released ${fmtDate(rel.released_date)} (${daysAgo(rel.released_date)} days ago).</p>`;
       html += `<p style="font-size:12px;opacity:.85">Location: ${esc(name || label(pt))}. Checked ${new Date().toLocaleString()}. Sample data.</p>`;
@@ -263,9 +282,22 @@ require([
   function updatePickButtons() {
     document.getElementById("pickOrg").classList.toggle("active", pickMode === "org");
     document.getElementById("pickDst").classList.toggle("active", pickMode === "dst");
+    document.getElementById("pickRep").classList.toggle("active", pickMode === "rep");
   }
   document.getElementById("pickOrg").onclick = () => { pickMode = pickMode === "org" ? null : "org"; updatePickButtons(); };
   document.getElementById("pickDst").onclick = () => { pickMode = pickMode === "dst" ? null : "dst"; updatePickButtons(); };
+  document.getElementById("pickRep").onclick = () => { pickMode = pickMode === "rep" ? null : "rep"; updatePickButtons(); };
+  function setReport(pt) {
+    marks.removeAll(); mark(pt, [180, 35, 24, 1]);
+    const g = webMercatorUtils.webMercatorToGeographic(pt);
+    const q = new URLSearchParams({ center: `${g.y.toFixed(6)},${g.x.toFixed(6)}` });
+    if (signedUser && signedUser.fullName) q.set("field:reporter_name", signedUser.fullName);
+    if (signedUser && signedUser.email) q.set("field:email", signedUser.email);
+    document.getElementById("repLoc").textContent = `Location marked: ${label(pt)}`;
+    const a = document.getElementById("repLink");
+    if (C.reportFormUrl && !C.reportFormUrl.startsWith("REPLACE")) { a.href = `${C.reportFormUrl}?${q.toString()}`; a.hidden = false; }
+    else { a.hidden = true; document.getElementById("repLoc").textContent += ". The report form is not set up yet."; }
+  }
   function drawStops() {
     marks.removeAll();
     if (stops.org) mark(stops.org.pt, [23, 120, 60, 1]);
@@ -380,18 +412,22 @@ require([
       div.innerHTML = r.features.map((f, i) => { const a = f.attributes; return `<div class="prem" data-i="${i}"><b>${esc(a.premises_id)}</b><span class="tag ${a.status}">${a.status}</span><br>${esc(a.county)} Co. · ${esc(a.flock_type)} · ${(a.birds || 0).toLocaleString()} birds<br>Confirmed ${fmtDate(a.confirmed_date)}${a.released_date ? " · Released " + fmtDate(a.released_date) : ""}</div>`; }).join("");
       div.querySelectorAll(".prem").forEach((el) => el.onclick = () => { const f = r.features[+el.dataset.i]; view.goTo({ target: f.geometry, zoom: 11 }); view.openPopup({ features: [f], location: f.geometry }); });
     } catch (err) { div.innerHTML = "Could not load premises: " + esc(err.message); }
-    if (C.permitResultsUrl) document.getElementById("permitAdmin").innerHTML = `<a href="${C.permitResultsUrl}" target="_blank" rel="noopener">View permit requests →</a>`;
+    const links = [];
+    if (C.permitResultsUrl) links.push(`<a href="${C.permitResultsUrl}" target="_blank" rel="noopener">Permit requests →</a>`);
+    if (C.reportResultsUrl) links.push(`<a href="${C.reportResultsUrl}" target="_blank" rel="noopener">Outbreak reports →</a>`);
+    document.getElementById("permitAdmin").innerHTML = links.join(" &nbsp; ");
   }
 
   // ---------------- Map clicks ----------------
   view.on("click", (e) => {
-    if (tier === "public") { checkLocation(e.mapPoint); }
-    else if (tier === "hauler" && pickMode) {
+    if (pickMode === "rep") { setReport(e.mapPoint); pickMode = null; updatePickButtons(); e.stopPropagation(); return; }
+    if (pickMode === "org" || pickMode === "dst") {
       stops[pickMode] = { pt: e.mapPoint, name: label(e.mapPoint) };
       (pickMode === "org" ? orgSearch : dstSearch).searchTerm = label(e.mapPoint);
-      pickMode = null; updatePickButtons(); drawStops(); e.stopPropagation();
+      pickMode = null; updatePickButtons(); drawStops(); e.stopPropagation(); return;
     }
+    checkLocation(e.mapPoint);
   });
 
-  setTier("public");
+  initRole();
 });

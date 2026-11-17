@@ -9,6 +9,14 @@ window.HPAI_CONFIG = {
   wildBirdsUrl: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_WildBirds/FeatureServer/0",
   routeUrl: "https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World",
   // Survey123 movement-permit request form (share URL). Fields are prefilled with ?field:name=value
+  // Production: set this to a public hosted-layer VIEW of Response_Zones that hides premises_id and keeps only Control Area / Surveillance Zone, shared with everyone.
+  publicZonesUrl: "",
+  // Group names that decide what a signed-in user sees
+  regulatorGroup: "MD HPAI Regulators",
+  haulerGroup: "MD HPAI Haulers",
+  // Survey123 form for signed-in users to report a suspected HPAI outbreak
+  reportFormUrl: "https://survey123.arcgis.com/share/05dfdf8cb14c49e7919d2ba646b7f75d",
+  reportResultsUrl: "https://survey123.arcgis.com/surveys/05dfdf8cb14c49e7919d2ba646b7f75d/data",
   permitFormUrl: "https://survey123.arcgis.com/share/dc58d20686754e49a56f072f382121dd",
   permitResultsUrl: "https://survey123.arcgis.com/surveys/dc58d20686754e49a56f072f382121dd/data",
   center: [-75.95, 38.65],
