@@ -299,6 +299,7 @@ require([
     el.className = "pop " + cls;
     el.innerHTML = `<div class="banner">${ICON[cls]}<div><div class="big">${big}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div></div>${body || ""}`;
     view.openPopup({ location: pt, title: " ", content: el });
+    const sp = view.toScreen(pt); if (sp && sp.y < 360) view.goTo({ center: pt }, { duration: 350 }).catch(() => {});   // keep the card on screen
   }
   async function checkLocation(pt, name) {
     lastCheck = { pt, name };
