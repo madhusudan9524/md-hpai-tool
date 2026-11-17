@@ -60,3 +60,8 @@ details.nearby summary { cursor: pointer; color: #1f5f99; }
 .sw.pm { background: rgba(20,20,20,.3); border: 2px solid #141414; }
 .sw.iz { background: rgba(200,30,30,.4); border: 1px solid #a01414; }
 .sw.bz { background: rgba(235,120,40,.3); border: 1px solid #d2641e; }
+details.defs { margin-top: 10px; font-size: 13px; }
+details.defs summary, details.dirs summary { cursor: pointer; color: #1f5f99; }
+details.defs p { margin: 6px 0; }
+details.dirs { margin-top: 6px; font-size: 12px; }
+details.dirs ol { padding-left: 18px; margin: 6px 0; }

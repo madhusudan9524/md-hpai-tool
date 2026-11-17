@@ -6,11 +6,11 @@
 require([
   "esri/config", "esri/identity/OAuthInfo", "esri/identity/IdentityManager",
   "esri/Map", "esri/views/MapView", "esri/layers/FeatureLayer", "esri/layers/GraphicsLayer", "esri/Graphic",
-  "esri/widgets/Search", "esri/widgets/LayerList", "esri/widgets/Home",
+  "esri/widgets/Search", "esri/widgets/LayerList", "esri/widgets/Home", "esri/widgets/DistanceMeasurement2D", "esri/widgets/Expand",
   "esri/rest/route", "esri/rest/support/RouteParameters", "esri/rest/support/FeatureSet", "esri/rest/networkService",
   "esri/geometry/geometryEngine", "esri/geometry/support/webMercatorUtils"
 ], function (esriConfig, OAuthInfo, esriId, Map, MapView, FeatureLayer, GraphicsLayer, Graphic,
-  Search, LayerList, Home, route, RouteParameters, FeatureSet, networkService, geometryEngine, webMercatorUtils) {
+  Search, LayerList, Home, DistanceMeasurement2D, Expand, route, RouteParameters, FeatureSet, networkService, geometryEngine, webMercatorUtils) {
 
   const C = window.HPAI_CONFIG;
   esriConfig.portalUrl = C.portalUrl;
@@ -120,6 +120,7 @@ require([
   const map = new Map({ basemap: "topo-vector", layers: [regSZ, regBZ, pubSZ, pubReleased, regReleased, pubCA, regIZ, regCA, wild, perim, premises, routeLyr, marks] });
   const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, popup: { dockEnabled: false } });
   view.ui.add(new Home({ view }), "top-left");
+  view.ui.add(new Expand({ view, expandIcon: "measure", expandTooltip: "Measure distance", content: new DistanceMeasurement2D({ view, unit: "kilometers" }) }), "top-left");
 
   // ---------------- Tiers ----------------
   const TIER_LAYERS = {
@@ -241,6 +242,12 @@ require([
     }, () => { box.className = "result show r-info"; box.innerHTML = "Could not get your location. Search an address or click the map instead."; }, { timeout: 10000 });
   };
 
+  // data last-updated stamp (like Pennsylvania's "updated daily" note)
+  zonesQ.load().then(() => {
+    const d = zonesQ.editingInfo && zonesQ.editingInfo.lastEditDate;
+    document.getElementById("updated").textContent = d ? "Zones last updated " + new Date(d).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : "";
+  }).catch(() => {});
+
   // wild-bird status line
   wild.when(() => wild.queryFeatureCount().then((n) => {
     document.getElementById("wildNote").textContent = n ? `${n} wild-bird detection${n > 1 ? "s" : ""} in the last 4 weeks.` : "No wild-bird detections reported in the last 4 weeks.";
@@ -284,19 +291,30 @@ require([
   }
   const kmIn = (line, area) => { if (!area) return 0; const i = geometryEngine.intersect(line, area); return i ? geometryEngine.geodesicLength(i, "kilometers") : 0; };
 
-  async function solve(barriers, mode) {
+  async function solveBetween(from, to, barriers, mode, dirs) {
     const p = new RouteParameters({
-      stops: new FeatureSet({ features: [new Graphic({ geometry: stops.org.pt, attributes: { Name: "Origin" } }), new Graphic({ geometry: stops.dst.pt, attributes: { Name: "Destination" } })] }),
-      returnDirections: false, returnRoutes: true, outSpatialReference: view.spatialReference
+      stops: new FeatureSet({ features: [new Graphic({ geometry: from, attributes: { Name: "Origin" } }), new Graphic({ geometry: to, attributes: { Name: "Destination" } })] }),
+      returnDirections: !!dirs, directionsLengthUnits: "kilometers", returnRoutes: true, outSpatialReference: view.spatialReference
     });
     if (mode) p.travelMode = mode;
     if (barriers.length) p.polygonBarriers = new FeatureSet({ features: barriers.map((g) => new Graphic({ geometry: g, attributes: { BarrierType: 0, Name: "Active control area" } })) });
     const res = await route.solve(C.routeUrl, p);
-    const g = res.routeResults[0].route;
-    const a = g.attributes;
+    const rr = res.routeResults[0], g = rr.route, a = g.attributes;
     const minutes = a.Total_TravelTime ?? a.Total_Minutes ?? a.Total_TruckMinutes ?? null;
-    return { geom: g.geometry, km: geometryEngine.geodesicLength(g.geometry, "kilometers"), minutes };
+    const steps = dirs && rr.directions ? rr.directions.features.map((f) => ({ text: f.attributes.text, km: f.attributes.length })) : null;
+    return { geom: g.geometry, km: geometryEngine.geodesicLength(g.geometry, "kilometers"), minutes, steps };
   }
+  const solve = (barriers, mode, dirs) => solveBetween(stops.org.pt, stops.dst.pt, barriers, mode, dirs);
+
+  // road distance from a stop to the nearest active infected premises (checks the 3 closest in a straight line)
+  async function roadToNearest(pt, mode) {
+    const act = (await premises.queryFeatures({ where: "status = 'Active'", returnGeometry: true, outSpatialReference: view.spatialReference })).features;
+    if (!act.length) return null;
+    const cand = act.map((f) => ({ g: f.geometry, d: haversineKm(pt, f.geometry) })).sort((x, y) => x.d - y.d).slice(0, 3);
+    const res = await Promise.all(cand.map(async (cd) => { try { const r = await solveBetween(pt, cd.g, [], mode, false); return { km: r.km, min: r.minutes, straight: cd.d }; } catch (e) { return null; } }));
+    return res.filter(Boolean).sort((x, y) => x.km - y.km)[0] || { km: null, straight: cand[0].d };
+  }
+  const roadLine = (who, r) => !r ? "" : `<li>${who}: nearest infected premises <b>${r.km != null ? r.km.toFixed(1) + " km by road" + (r.min != null ? " (" + Math.round(r.min) + " min)" : "") : "no road route"}</b>, ${r.straight.toFixed(1)} km straight-line</li>`;
 
   document.getElementById("routeBtn").onclick = async () => {
     const box = document.getElementById("routeResult");
@@ -311,8 +329,9 @@ require([
       // Barriers = active control areas that do not contain the origin or destination
       const barriers = ca.filter((g) => !geometryEngine.contains(g, stops.org.pt) && !geometryEngine.contains(g, stops.dst.pt));
       let r, avoided = true;
-      try { r = await solve(barriers, mode); } catch (e) { avoided = false; r = await solve([], mode); }
+      try { r = await solve(barriers, mode, true); } catch (e) { avoided = false; r = await solve([], mode, true); }
       const caKm = kmIn(r.geom, caUnion), szKm = kmIn(r.geom, szOnly);
+      const [roadO, roadD] = await Promise.all([roadToNearest(stops.org.pt, mode).catch(() => null), roadToNearest(stops.dst.pt, mode).catch(() => null)]);
       let direct = null;
       if (barriers.length) { try { direct = await solve([], mode); } catch (e) { direct = null; } }
 
@@ -331,7 +350,9 @@ require([
       html += `<li>In control areas: <b>${caKm.toFixed(1)} km</b></li><li>In surveillance zones: ${szKm.toFixed(1)} km</li>`;
       if (direct && Math.abs(direct.km - r.km) > 0.5) html += `<li>Avoiding control areas adds ${(r.km - direct.km).toFixed(1)} km compared with the direct route (red dashed line).</li>`;
       if (!avoided) html += `<li>No road route avoids every control area, so the shortest route is shown.</li>`;
+      html += roadLine("Origin", roadO) + roadLine("Destination", roadD);
       html += `</ul>`;
+      if (r.steps && r.steps.length) html += `<details class="dirs"><summary>Turn-by-turn directions</summary><ol>${r.steps.map((d) => `<li>${esc(d.text)}${d.km > 0.05 ? " (" + d.km.toFixed(1) + " km)" : ""}</li>`).join("")}</ol></details>`;
       if (permit) {
         html += `<p>Why: ${reasons.join("; ")}.</p>`;
         if (C.permitFormUrl && !C.permitFormUrl.startsWith("REPLACE")) {

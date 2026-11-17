@@ -34,6 +34,13 @@
         <input type="range" id="radius" min="0" max="20" value="0" step="1">
       </details>
       <div id="pubResult" class="result"></div>
+      <details class="defs"><summary>What do the zones mean?</summary>
+        <p><b>Infected Zone</b>: within 3 km of the infected premises. Highest risk, tightest controls.</p>
+        <p><b>Buffer Zone</b>: 3–10 km. Together with the Infected Zone it forms the <b>Control Area</b>, where movement permits and testing apply.</p>
+        <p><b>Surveillance Zone</b>: a further 10 km (10–20 km). Flocks may be tested; no movement permit.</p>
+        <p><b>Free Area</b>: outside all zones.</p>
+        <p style="font-size:12px">Zones are measured from the edge of the infected premises. They are circles here only because the sample premises are small.</p>
+      </details>
       <div class="legend-box">
         <div class="lg"><span class="sw ca"></span>Control area (10 km): permit required</div>
         <div class="lg"><span class="sw sz"></span>Surveillance zone (10–20 km)</div>
@@ -41,6 +48,7 @@
         <div class="lg"><span class="dot"></span>Wild bird HPAI, last 4 weeks</div>
         <div class="lg" style="font-size:12px;opacity:.8" id="wildNote"></div>
       </div>
+      <p class="disc" id="updated"></p>
       <p class="disc">General information only. Call MDA to confirm before moving birds or products.</p>
       <p class="report">Sick birds? Call MDA Animal Health: <b>(410) 841-5810</b></p>
     </section>
