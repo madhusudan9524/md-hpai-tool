@@ -185,7 +185,7 @@ require([
     if (L.decl) {
       try { (await L.decl.queryFeatures({ where: L.decl.definitionExpression, outFields: ["*"], returnGeometry: false })).features.forEach((f) => { const a = f.attributes; mark(a.state || "Maryland", a.county, { kind: "declaration", t: a.declared, status: a.status, text: a.status_text, url: a.source_url }); }); } catch (e) {}
     }
-    S.areas.forEach((f) => { const c = S.counties.find((x) => geometryEngine.contains(x.geom, f.geometry.extent.center)); if (c) mark(c.state, c.name, { kind: "zone", t: f.attributes.since || f.attributes.confirmed_date || f.attributes.created_date }); });
+    S.areas.forEach((f) => { const c = S.counties.find((x) => geometryEngine.contains(x.geom, f.geometry.extent.center)); if (c) mark(c.state, c.name, { kind: "zone", sample: f.attributes.sample === 1, t: f.attributes.since || f.attributes.confirmed_date || f.attributes.created_date }); });
     S.affected = [...aff.values()].map((o) => ({ county: o.c.name, state: o.c.state, geom: o.c.geom, items: o.items, since: Math.min(...o.items.map((i) => i.t || Date.now())) })).sort((a, b) => b.since - a.since);
     S.affected.forEach((a) => tintLyr.add(new Graphic({ geometry: a.geom, attributes: { county: a.county }, symbol: fill(RED, 0.12, RED.concat(0.45), 1) })));
     emit("affected", S.affected); kpis();
@@ -264,6 +264,15 @@ require([
     surveillance: ["Watch your birds closely and report illness.", "Movements may need testing. Check with MDA before moving birds.", "Clean and disinfect vehicles and boots."],
     none: ["No movement restrictions here today.", "Keep birds away from wild waterfowl.", "Report sick or dead birds."]
   };
+  async function fitCard(pt) {
+    const sp = view.toScreen(pt); if (!sp) return;
+    const need = Math.min(430, view.height * 0.62);
+    if (sp.y < need || sp.x < 200 || sp.x > view.width - 200) {
+      const dy = Math.max(0, need - sp.y), dx = sp.x < 200 ? 200 - sp.x : sp.x > view.width - 200 ? view.width - 200 - sp.x : 0;
+      const c = view.toScreen(view.center); await view.goTo(view.toMap({ x: c.x - dx, y: c.y - dy }), { duration: 250 }).catch(() => {});
+    }
+  }
+  ctx.fitCard = fitCard;
   async function locationCard(pt, title) {
     if (!ctx.inArea(pt)) return;
     marks.removeAll(); marks.add(new Graphic({ geometry: pt, symbol: { type: "simple-marker", size: 14, color: [10, 108, 255, 1], outline: { color: [255, 255, 255, 1], width: 3 } } }));
@@ -278,14 +287,14 @@ require([
     const since = z.f && (z.f.attributes.since || z.f.attributes.confirmed_date || z.f.attributes.created_date);
     let rows = `<div class="r"><span>County</span><b>${cty ? esc(cty.name) + (cty.state !== "Maryland" ? ", " + esc(cty.state) : "") : "–"}</b></div>`;
     if (since) rows += `<div class="r"><span>Zone since</span><b>${fmtDate(since)} · day ${Math.max(1, Math.floor((Date.now() - since) / DAY) + 1)}</b></div>`;
-    if (aff) rows += `<div class="r"><span>County status</span><b>${aff.items.some((i) => i.kind === "detection" && i.status === "preliminary") ? "Preliminary detection" : "HPAI reported"} · ${fmtShort(aff.since)}</b></div>`;
+    if (aff) rows += `<div class="r"><span>County status</span><b>${aff.items.every((i) => i.sample) ? "Sample zone (exercise)" : aff.items.some((i) => i.kind === "detection" && i.status === "preliminary") ? "Preliminary detection" : "HPAI reported"} · ${fmtShort(aff.since)}</b></div>`;
     rows += `<div class="r"><span>Wild birds, 10 km</span><b>${wildN} in 4 wk · ${wildY} in 12 mo</b></div>`;
     rows += `<div class="r"><span>Seasonal risk</span><b>${R.TIERS[sr.tier]}</b></div>`;
     rows += `<div class="r"><span>Past outbreaks here</span><b>${hist.n ? hist.n + " · last " + fmtShort(hist.last) : "None on record"}</b></div>`;
     const extra = emit("card", { pt, zone: z, county: cty }).filter(Boolean).join("");
     const el = document.createElement("div"); el.className = "pop";
     el.innerHTML = `<div class="band ${band[0]}"><small>${esc(title || "This location")}${smp}</small><b>${band[1]}</b></div><div class="bd">${rows}<div class="do"><b>What to do</b><ul>${DO[z.zone || "none"].map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>${extra}</div>`;
-    view.openPopup({ location: pt, content: el });
+    await fitCard(pt); view.openPopup({ location: pt, content: el });
     el.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => { view.closePopup(); (ctx.actions[b.dataset.act] || (() => {}))(pt, title); }));
   }
   ctx.locationCard = locationCard;
@@ -429,7 +438,7 @@ require([
   function simpleCard(pt, band, small, big, rows, extra) {
     const el = document.createElement("div"); el.className = "pop";
     el.innerHTML = `<div class="band ${band}"><small>${esc(small)}</small><b>${esc(big || "")}</b></div><div class="bd">${(rows || []).map(([k, v]) => `<div class="r"><span>${esc(k)}</span><b>${esc(v == null ? "–" : v)}</b></div>`).join("")}${extra || ""}</div>`;
-    view.openPopup({ location: pt, content: el }); return el;
+    fitCard(pt).then(() => view.openPopup({ location: pt, content: el })); return el;
   }
   ctx.simpleCard = simpleCard;
   function wildCard(g) {
