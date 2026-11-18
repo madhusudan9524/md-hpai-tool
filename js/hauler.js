@@ -74,7 +74,7 @@ window.HPAI.modules.push(function (ctx) {
       const polys = [];
       ca.forEach((g) => {
         const inside = ge.contains(g, wmu.geographicToWebMercator(oP)) || ge.contains(g, wmu.geographicToWebMercator(dP));
-        polys.push({ geometry: poly4326(g), attributes: inside ? { BarrierType: 1, ScaledTimeFactor: 3, ScaledDistanceFactor: 3, Attr_TravelTime: 3, Attr_TruckTravelTime: 3 } : { BarrierType: 0 } });
+        polys.push({ geometry: poly4326(g), attributes: inside ? { BarrierType: 1, Attr_TravelTime: 3, Attr_TruckTravelTime: 3 } : { BarrierType: 0 } });
       });
       if (ca.length) rules.push(["🛑", oz.zone === "control" || dz.zone === "control" ? "Shortest time inside the control area" : "Routed around control areas"]);
       // 2. other poultry farms (biosecurity): routes stay away where they can
@@ -87,7 +87,7 @@ window.HPAI.modules.push(function (ctx) {
           if (pts.length) {
             const buf = ge.union(ge.geodesicBuffer(pts, C.farmBufferKm, "kilometers"));
             const simple = ge.generalize(buf, 60, true);
-            (simple.rings.length > 400 ? [] : [simple]).forEach((g) => polys.push({ geometry: poly4326(g), attributes: { BarrierType: 1, ScaledTimeFactor: 1.6, ScaledDistanceFactor: 1.6, Attr_TravelTime: 1.6, Attr_TruckTravelTime: 1.6 } }));
+            (simple.rings.length > 400 ? [] : [simple]).forEach((g) => polys.push({ geometry: poly4326(g), attributes: { BarrierType: 1, Attr_TravelTime: 1.6, Attr_TruckTravelTime: 1.6 } }));
             rules.push(["🐔", `Keeps ${C.farmBufferKm * 1000} m from ${pts.length} other poultry farms where it can`]);
           }
         } catch (e) { ctx.layers.farmsUrlReadable = false; }
@@ -96,7 +96,7 @@ window.HPAI.modules.push(function (ctx) {
       const bb = (c) => c.x > Math.min(oP.longitude, dP.longitude) - 0.3 && c.x < Math.max(oP.longitude, dP.longitude) + 0.3 && c.y > Math.min(oP.latitude, dP.latitude) - 0.3 && c.y < Math.max(oP.latitude, dP.latitude) + 0.3;
       if (!closures.length) await loadClosures();
       const near = closures.filter(bb).slice(0, 150);
-      const pointBarriers = near.map((c) => ({ geometry: { x: c.x, y: c.y }, attributes: c.full ? { BarrierType: 0 } : { BarrierType: 2, AdditionalTime: 5, Attr_TravelTime: 5 } }));
+      const pointBarriers = near.map((c) => ({ geometry: { x: c.x, y: c.y }, attributes: c.full ? { BarrierType: 0 } : { BarrierType: 2, Attr_TravelTime: 5, Attr_TruckTravelTime: 5 } }));
       if (near.length) rules.push(["🚧", `${near.length} MDOT CHART closures considered`]);
       // 4. cleaning & disinfection stop when leaving a control area
       const stops = [{ geometry: { x: oP.longitude, y: oP.latitude }, attributes: { Name: "Start" } }];
@@ -122,7 +122,7 @@ window.HPAI.modules.push(function (ctx) {
       if (pointBarriers.length) params.barriers = fs(pointBarriers, "esriGeometryPoint");
       let res;
       try { res = await ctx.rest(C.routeUrl + "/solve", params); }
-      catch (e) { if (polys.some((p) => p.attributes.BarrierType === 0)) { params.polygonBarriers = fs(polys.map((p) => ({ geometry: p.geometry, attributes: { BarrierType: 1, ScaledTimeFactor: 4, Attr_TravelTime: 4, Attr_TruckTravelTime: 4 } })), "esriGeometryPolygon"); res = await ctx.rest(C.routeUrl + "/solve", params); rules.push(["⚠️", "No route fully avoids the control areas; this one keeps exposure low"]); } else throw e; }
+      catch (e) { if (polys.some((p) => p.attributes.BarrierType === 0)) { params.polygonBarriers = fs(polys.map((p) => ({ geometry: p.geometry, attributes: { BarrierType: 1, Attr_TravelTime: 4, Attr_TruckTravelTime: 4 } })), "esriGeometryPolygon"); res = await ctx.rest(C.routeUrl + "/solve", params); rules.push(["⚠️", "No route fully avoids the control areas; this one keeps exposure low"]); } else throw e; }
       const feat = res.routes && res.routes.features[0]; if (!feat) throw new Error("No route found");
       const line = { type: "polyline", paths: feat.geometry.paths, spatialReference: { wkid: 102100 } };
       const km = ge.geodesicLength(line, "kilometers"), min = feat.attributes.Total_TravelTime || feat.attributes.Total_TruckTravelTime || feat.attributes.Total_Minutes || 0;
