@@ -77,6 +77,7 @@ window.HPAI.modules.push(function (ctx) {
       ["My farm & reports", [
       ["barn", "Farm risk", "Screening score for your premises", go("#riskCard")],
       ["plus", "Add a place", "Farm or home, for alerts", () => document.getElementById("addPlace").click()],
+      ["layers", "Import farms", "From a spreadsheet (CSV)", () => ctx.actions.importFarms()],
       ["flag", "Report a sick flock", "MDA follows up", () => ctx.actions.flockReport()],
       ["inbox", "Report dead wild birds", "With a photo", () => ctx.actions.wildReport()],
       ["help", "Help", "Trips, permits, farm risk", () => helpSheet("industry")]]]]

@@ -68,6 +68,8 @@ window.HPAI.modules.push(function (ctx) {
     };
   }
   $("addPlace").onclick = () => addPlace();
+  $("importPlaces").onclick = () => importFarms();
+  ctx.actions.importFarms = () => importFarms();
   ctx.actions.savePlace = (pt, name) => addPlace(pt, name);
   ctx.on("card", ({ pt }) => S.ws === "regulator" ? "" : `<button class="pb" data-act="savePlace">☆ Save</button>`);
 
