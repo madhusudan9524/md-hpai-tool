@@ -225,7 +225,6 @@ require([
     S.live = Ld;
     if (!Ld) { $("newsList").innerHTML = `<p class="hint">Notices are unavailable right now.</p>`; return; }
     S.season = Ld.season || null;
-    $("liveBadge").hidden = false;
     $("updated").textContent = "updated " + new Date(Ld.updated).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
     renderNews(Ld); loadWild(); paintCounties(); emit("live", Ld);
   });

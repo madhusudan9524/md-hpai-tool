@@ -433,6 +433,13 @@ window.HPAI.modules.push(function (ctx) {
   };
 
   // ---------------- permit verification (QR scan opens #verify=ID) ----------------
+  // used by the MDA menu in the top bar
+  ctx.mda = {
+    open, summary, publish: () => publish(), declare, newPremises, invite,
+    queue: (k) => { qkind = k; open("q"); },
+    premises: (s) => { prSub = s; open("pr"); },
+    trace: () => open("tr"), audit: () => open("au")
+  };
   ctx.actions.verify = async (id) => {
     if (!ctx.isStaff()) return sheet("Permit " + id, `<p class="hint">Sign in as MDA staff to verify this permit.</p>`);
     try {
