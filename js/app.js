@@ -254,16 +254,63 @@ require([
   ctx.kpis = kpis;
 
   // ---------------- search (address autocomplete, Maryland + Delmarva only) ----------------
-  const delmarvaExt = new Extent({ xmin: -79.6, ymin: 37.0, xmax: -74.9, ymax: 39.85, spatialReference: { wkid: 4326 } });
+  // Plain address box with suggestions as you type (tolerates small typos) and "Did you mean…?" when nothing matches.
+  // Uses Esri's public World Geocoding Service (no sign-in needed), limited to Maryland and Delmarva.
+  const GEO = "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer";
+  const geoExt = JSON.stringify({ xmin: -79.6, ymin: 37.0, xmax: -74.9, ymax: 39.85, spatialReference: { wkid: 4326 } });
+  const geo = (op, p) => fetch(`${GEO}/${op}?` + new URLSearchParams(Object.assign({ f: "json", searchExtent: geoExt, countryCode: "USA" }, p))).then((r) => r.json());
+  const addrShort = (t) => (t || "").replace(/, USA$/, "").replace(/, (Maryland|MD), (\d{5})/, ", MD $2");
   ctx.makeSearch = (container, placeholder, onPick) => {
-    const s = new Search({ view: onPick ? null : view, container, includeDefaultSources: false, popupEnabled: false, resultGraphicEnabled: false, locationEnabled: false, minSuggestCharacters: 2,
-      sources: [{ url: "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer", name: "Address", placeholder, singleLineFieldName: "SingleLine", filter: { geometry: delmarvaExt }, maxSuggestions: 6, suggestionsEnabled: true, withinViewEnabled: false, countryCode: "USA", zoomScale: 24000 }] });
-    s.on("select-result", (e) => { if (e.result && onPick) onPick(e.result.feature.geometry, e.result.name); });
-    return s;
+    const host = typeof container === "string" ? $(container) : container;
+    host.classList.add("addr");
+    host.innerHTML = `<input type="text" autocomplete="off" spellcheck="false" placeholder="${esc(placeholder)}" aria-label="${esc(placeholder)}" role="combobox" aria-expanded="false"><button class="addrx" type="button" aria-label="Clear" hidden>×</button><ul class="sugg" role="listbox" hidden></ul>`;
+    const inp = host.querySelector("input"), ul = host.querySelector("ul"), clr = host.querySelector(".addrx");
+    let items = [], act = -1, tmo = null, seq = 0;
+    const close = () => { ul.hidden = true; inp.setAttribute("aria-expanded", "false"); act = -1; };
+    const show = (list, head) => {
+      items = list; act = -1;
+      ul.innerHTML = (head ? `<li class="sh">${esc(head)}</li>` : "") + list.map((x, k) => `<li role="option" data-k="${k}"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>${esc(addrShort(x.text))}</span></li>`).join("");
+      ul.hidden = !list.length && !head; inp.setAttribute("aria-expanded", String(!ul.hidden));
+      ul.querySelectorAll("li[data-k]").forEach((li) => li.addEventListener("mousedown", (e) => { e.preventDefault(); choose(items[+li.dataset.k]); }));
+    };
+    const hi = () => ul.querySelectorAll("li[data-k]").forEach((li, k) => li.classList.toggle("on", k === act));
+    async function choose(x) {
+      close(); inp.value = addrShort(x.text); clr.hidden = false;
+      let loc = x.location;
+      if (!loc) { const r = await geo("findAddressCandidates", { SingleLine: x.text, magicKey: x.magicKey || "", maxLocations: 1, outFields: "Match_addr" }).catch(() => null); const c = r && r.candidates && r.candidates[0]; if (!c) return toast("Couldn't find that place"); loc = c.location; inp.value = addrShort(c.address); }
+      const pt = new Point({ longitude: loc.x, latitude: loc.y });
+      if (!ctx.inArea(wmu.geographicToWebMercator(pt))) return toast("That place is outside Maryland and Delmarva");
+      if (onPick) onPick(pt, inp.value); else { await view.goTo({ target: pt, zoom: 13 }).catch(() => {}); locationCard(pt, inp.value); ctx.sheetPeek(); }
+    }
+    // nothing typed matches → closest addresses ("Did you mean…?")
+    async function fuzzy(text, auto) {
+      const r = await geo("findAddressCandidates", { SingleLine: text, maxLocations: 4, outFields: "Match_addr,Score" }).catch(() => null);
+      const c = ((r && r.candidates) || []).filter((x) => x.score >= 70).map((x) => ({ text: x.address, location: x.location, score: x.score }));
+      if (auto && c[0] && c[0].score >= 92) return choose(c[0]);
+      show(c, c.length ? "Did you mean" : "No matching place in Maryland or Delmarva");
+    }
+    inp.addEventListener("input", () => {
+      clr.hidden = !inp.value; clearTimeout(tmo);
+      const t = inp.value.trim(); if (t.length < 3) return close();
+      tmo = setTimeout(async () => {
+        const my = ++seq, r = await geo("suggest", { text: t, location: "-76.2,38.7", maxSuggestions: 6 }).catch(() => null);
+        if (my !== seq) return;
+        const s = ((r && r.suggestions) || []).filter((x) => !x.isCollection).map((x) => ({ text: x.text, magicKey: x.magicKey }));
+        if (s.length) show(s); else fuzzy(t);
+      }, 220);
+    });
+    inp.addEventListener("keydown", (e) => {
+      const n = items.length;
+      if (e.key === "ArrowDown" && n) { act = (act + 1) % n; hi(); e.preventDefault(); }
+      else if (e.key === "ArrowUp" && n) { act = (act - 1 + n) % n; hi(); e.preventDefault(); }
+      else if (e.key === "Enter") { e.preventDefault(); if (act >= 0 && items[act]) choose(items[act]); else if (inp.value.trim().length >= 3) fuzzy(inp.value.trim(), true); }
+      else if (e.key === "Escape") close();
+    });
+    inp.addEventListener("blur", () => setTimeout(close, 150));
+    clr.onclick = () => { inp.value = ""; clr.hidden = true; close(); inp.focus(); };
+    return { clear: () => { inp.value = ""; clr.hidden = true; close(); }, set searchTerm(v) { inp.value = v || ""; clr.hidden = !v; }, get searchTerm() { return inp.value; } };
   };
-  const search = ctx.makeSearch("search", "Search an address or place");
-  search.view = view;
-  search.on("select-result", (e) => { if (e.result) setTimeout(() => locationCard(e.result.feature.geometry, e.result.name), 400); });
+  ctx.makeSearch("search", "Search an address or place");
   $("locBtn").onclick = () => navigator.geolocation ? navigator.geolocation.getCurrentPosition((p) => { const pt = new Point({ longitude: p.coords.longitude, latitude: p.coords.latitude }); view.goTo({ target: pt, zoom: 12 }); locationCard(pt, "Your location"); }, () => toast("Location not available")) : toast("Location not available");
 
   // ---------------- status of a place ----------------
