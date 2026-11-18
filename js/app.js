@@ -43,9 +43,6 @@ require([
   const env = {
     wetlands: new MapImageLayer({ url: C.env.wetlands, title: "Wetlands (USFWS NWI)", visible: false, opacity: 0.7 }),
     land: new WMSLayer({ url: C.env.forestWms.url, sublayers: [{ name: C.env.forestWms.layer }], title: "Forests & land cover (NLCD 2021)", visible: false, opacity: 0.55 }),
-    water: new MapImageLayer({ url: C.env.nhd, title: "Lakes and ponds (USGS NHD)", visible: false, sublayers: C.env.nhdWater.map((id) => ({ id, visible: true })) }),
-    rivers: new MapImageLayer({ url: C.env.nhd, title: "Rivers and streams (USGS NHD)", visible: false, sublayers: C.env.nhdRivers.map((id) => ({ id, visible: true })) }),
-    sheds: new MapImageLayer({ url: C.env.wbd, title: "Watersheds HUC-12 (USGS WBD)", visible: false, sublayers: [{ id: C.env.wbdLayer, visible: true }] }),
     wma: new FeatureLayer({ url: C.env.wma, definitionExpression: "DESIG = 'WMA'", title: "Wildlife management areas (MD DNR)", visible: false, outFields: ["DNRName"],
       renderer: { type: "simple", symbol: fill([132, 160, 60], 0.35, [106, 138, 42, 1], 1) }, popupTemplate: { title: "{DNRName}", content: "Wildlife Management Area · Maryland DNR" } }),
     waterfowl: new FeatureLayer({ url: C.env.waterfowl, title: "Waterfowl concentration areas (MD DNR)", visible: false,
@@ -81,7 +78,7 @@ require([
   const routeLyr = new GraphicsLayer({ listMode: "hide" }), marks = new GraphicsLayer({ listMode: "hide" });
 
   const map = new EsriMap({ basemap: dark ? "dark-gray-vector" : "topo-vector",
-    layers: [maskLyr, env.land, env.wetlands, env.water, env.rivers, env.sheds, env.wma, env.waterfowl, env.refuges, riskLyr, birdsLyr, tintLyr, countyLyr, histLyr] });
+    layers: [maskLyr, env.land, env.wetlands, env.wma, env.waterfowl, env.refuges, riskLyr, birdsLyr, tintLyr, countyLyr, histLyr] });
   const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, constraints: { minZoom: 7, snapToZoom: false },
     popup: { dockEnabled: false, dockOptions: { buttonEnabled: false }, collapseEnabled: false, visibleElements: { closeButton: true, featureNavigation: false, actionBar: false, heading: false, collapseButton: false, spinner: false }, highlightEnabled: false, actions: [] }, ui: { components: ["zoom", "attribution"] } });
   view.ui.move("zoom", "top-left");
@@ -529,23 +526,15 @@ require([
     { sec: "Wildlife" },
     { id: "wb", t: "Wildlife with HPAI", n: "birds and mammals · USDA APHIS", sw: "wb", ls: () => [wild], seg: true },
     { id: "risk", t: "Seasonal risk", n: "migration + detections + habitat", sw: "risk", ls: () => [riskLyr], off: true },
-    { id: "ebd", t: "Waterfowl sightings, 7 days", n: S.birdsNote || "eBird · Cornell Lab", sw: "ebd", ls: () => [birdsLyr], off: true, link: [C.birdcastUrl, "Tonight's migration (BirdCast)"] },
-    { id: "wf", t: "Waterfowl areas", n: "MD DNR", sw: "wf", ls: () => [env.waterfowl], off: true },
-    { id: "nwr", t: "Wildlife refuges", n: "USFWS", sw: "nwr", ls: () => [env.refuges], off: true },
-    { id: "wma", t: "Wildlife management areas", n: "MD DNR", sw: "wma", ls: () => [env.wma], off: true },
+    { id: "ebd", t: "eBird waterfowl sightings", n: S.birdsNote || "7 days", sw: "ebd", ls: () => [birdsLyr], off: true },
+    { id: "habitat", t: "Waterfowl & refuge habitat", n: "MD DNR · USFWS", sw: "habitat", ls: () => [env.waterfowl, env.refuges, env.wma], off: true },
     { sec: "Land and water" },
     { id: "wet", t: "Wetlands and marshes", n: "USFWS NWI · zoom in", sw: "wet", ls: () => [env.wetlands], off: true },
     { id: "for", t: "Forests and land cover", n: "NLCD 2021", sw: "for", ls: () => [env.land], off: true },
-    { id: "lake", t: "Lakes and ponds", n: "USGS NHD · zoom in", sw: "lake", ls: () => [env.water], off: true },
-    { id: "riv", t: "Rivers and streams", n: "USGS NHD · zoom in", sw: "riv", ls: () => [env.rivers], off: true },
-    { id: "wsh", t: "Watersheds (drainage)", n: "USGS WBD HUC-12", sw: "wsh", ls: () => [env.sheds], off: true },
     { sec: "Farms and roads", roles: ["regulator", "industry"] },
     { id: "reg", staff: 1, t: "Registered premises", n: "solid = MDA validated, dashed = review", sw: "reg", ls: () => [ctx.layers.registry] },
-    { id: "hou", staff: 1, t: "Poultry houses", n: "FEMA/ORNL footprints · zoom in", sw: "hou", ls: () => [ctx.layers.houses] },
     { id: "farm", staff: 1, t: "Poultry farms", n: "estimated, USGS study", sw: "farm", ls: () => [ctx.layers.farms], off: true },
-    { id: "road", roles: ["regulator", "industry"], t: "Road closures", n: "MDOT CHART", sw: "road", ls: () => [closuresLyr], off: true },
-    { sec: "Map" },
-    { id: "names", t: "County names", sw: "cty", ls: () => [countyLyr] }
+    { id: "road", roles: ["regulator", "industry"], t: "Road closures", n: "MDOT CHART · live", sw: "road", ls: () => [closuresLyr], off: true }
   ];
   const vis = store.get("vis", {});
   function renderKey() {
@@ -558,19 +547,18 @@ require([
       const on = vis[r.id] != null ? vis[r.id] : !r.off;
       ls.forEach((l) => (l.visible = on));
       html += `<label class="lrow"><span class="sw ${r.sw}"></span><span class="nm">${esc(r.t)}${r.n ? `<small>${esc(r.n)}</small>` : ""}</span><input type="checkbox" class="tg" data-id="${r.id}" ${on ? "checked" : ""}></label>`;
-      if (r.link && on) html += `<a class="lklink" href="${esc(r.link[0])}" target="_blank" rel="noopener">${esc(r.link[1])} ↗</a>`;
       if (r.time && on && timeT0) {
         const months = Math.max(1, Math.round((Date.now() - timeT0) / (30.44 * DAY))), cur = S.timeAt == null ? months : Math.round((S.timeAt - timeT0) / (30.44 * DAY));
         html += `<div class="tline"><button class="tplay" id="timePlay" aria-label="Play">${playing ? "❚❚" : "▶"}</button><input type="range" id="timeRange" min="0" max="${months}" value="${cur}" aria-label="Month"><b id="timeLab"></b></div>`;
       }
-      if (r.seg) html += `<div class="seg" id="wildSeg"><button data-d="28" class="${S.wildRange === 28 ? "on" : ""}">4 weeks</button><button data-d="365" class="${S.wildRange === 365 ? "on" : ""}">12 months</button><button data-d="9999" class="${S.wildRange === 9999 ? "on" : ""}">All years</button></div><div class="wlg"><span><img src="${ICONS.bird}" alt="">Bird</span><span><img src="${ICONS.mammal}" alt="">Mammal</span></div>`;
+      if (r.seg) html += `<div class="seg" id="wildSeg"><button data-d="28" class="${S.wildRange === 28 ? "on" : ""}">4 weeks</button><button data-d="365" class="${S.wildRange === 365 ? "on" : ""}">12 months</button><button data-d="9999" class="${S.wildRange === 9999 ? "on" : ""}">All years</button></div>`;
     });
     html += `</div>`;
     keyEl.innerHTML = html;
     $("keyHead").onclick = () => keyEl.classList.toggle("shut");
     $("keyHead").setAttribute("role", "button"); $("keyHead").setAttribute("tabindex", "0"); $("keyHead").setAttribute("aria-expanded", String(!keyEl.classList.contains("shut")));
     $("keyHead").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); keyEl.classList.toggle("shut"); } };
-    keyEl.querySelectorAll(".tg").forEach((t) => (t.onchange = () => { const r = ROWS().find((x) => x.id === t.dataset.id); vis[r.id] = t.checked; store.set("vis", vis); r.ls().filter(Boolean).forEach((l) => (l.visible = t.checked)); if (r.time || r.link) renderKey(); }));
+    keyEl.querySelectorAll(".tg").forEach((t) => (t.onchange = () => { const r = ROWS().find((x) => x.id === t.dataset.id); vis[r.id] = t.checked; store.set("vis", vis); r.ls().filter(Boolean).forEach((l) => (l.visible = t.checked)); if (r.time) renderKey(); }));
     const seg = $("wildSeg"); if (seg) seg.querySelectorAll("button").forEach((b) => (b.onclick = () => { S.wildRange = +b.dataset.d; store.set("wildRange", S.wildRange); seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); loadWild(); }));
     const tr = $("timeRange");
     if (tr) {
