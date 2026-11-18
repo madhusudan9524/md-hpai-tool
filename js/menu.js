@@ -69,21 +69,17 @@ window.HPAI.modules.push(function (ctx) {
   const go = (sel, fn) => () => { ctx.sheetHalf(); const el = document.querySelector(sel); if (el) { el.scrollIntoView({ behavior: "smooth", block: "start" }); if (fn) setTimeout(() => fn(el), 350); } };
   const focusIn = (sel) => (el) => { const f = el.querySelector(sel) || document.querySelector(sel); if (f) f.focus(); };
   const ROLE = {
-    hauler: [["Trips", [
+    industry: [["Trips & permits", [
       ["route", "Plan a trip", "Route around control areas", go(".planner", focusIn("#orgBox input"))],
       ["truck", "My permits", "Status and QR codes", go("#hTabs", () => document.querySelector('#hTabs [data-p="permits"]').click())],
-      ["layers", "Saved trips", "Plan again in one tap", go("#hTabs", () => document.querySelector('#hTabs [data-p="trips"]').click())]]],
-      ["On the road", [
-      ["barn", "Farm check-in", "Log a farm visit", () => ctx.actions.checkin()],
-      ["inbox", "Report dead wild birds", "With a photo", () => ctx.actions.wildReport()],
-      ["help", "Help", "How trip planning works", () => helpSheet("hauler")]]]],
-    industry: [["My farm", [
+      ["layers", "Saved trips", "Plan again in one tap", go("#hTabs", () => document.querySelector('#hTabs [data-p="trips"]').click())],
+      ["barn", "Farm check-in", "Log a farm visit", () => ctx.actions.checkin()]]],
+      ["My farm & reports", [
       ["barn", "Farm risk", "Screening score for your premises", go("#riskCard")],
-      ["plus", "Add a place", "Farm or home, for alerts", () => document.getElementById("addPlace").click()]]],
-      ["Report", [
+      ["plus", "Add a place", "Farm or home, for alerts", () => document.getElementById("addPlace").click()],
       ["flag", "Report a sick flock", "MDA follows up", () => ctx.actions.flockReport()],
       ["inbox", "Report dead wild birds", "With a photo", () => ctx.actions.wildReport()],
-      ["help", "Help", "Risk score and reports", () => helpSheet("industry")]]]]
+      ["help", "Help", "Trips, permits, farm risk", () => helpSheet("industry")]]]]
   };
 
   // ---------------- account button + dropdown ----------------
@@ -95,13 +91,13 @@ window.HPAI.modules.push(function (ctx) {
     actions = [];
     if (!S.user) {
       menu.className = "mega small";
-      menu.innerHTML = `<div class="mg"><h4>Sign in</h4>${item("user", "MDA staff", "Zones, reviews, tracing", () => ctx.signIn("regulator"))}${item("truck", "Haulers & industry", "Routes, permits, farm risk", () => ctx.signIn("partner"))}
-        <div class="msep"></div>${item("plus", "Request access", "New haulers and growers", () => ctx.actions.signup())}</div>`;
+      menu.innerHTML = `<div class="mg"><h4>Sign in</h4>${item("user", "MDA staff", "Maryland Department of Agriculture", () => ctx.signIn("regulator"))}${item("truck", "Industry partners", "Haulers, growers and poultry businesses", () => ctx.signIn("partner"))}
+        <div class="msep"></div>${item("plus", "Register as an industry partner", "MDA reviews every request", () => ctx.actions.signup())}</div>`;
       return;
     }
-    const views = S.roles.concat(S.roles.includes("regulator") ? ["hauler", "industry", "public"] : ["public"]).filter((v, k, x) => x.indexOf(v) === k && v !== S.ws);
-    const acct = `<div class="mg macct"><div class="mwho"><span class="av ${S.ws}">${esc(ini())}</span><span><b>${esc(S.user.fullName || S.user.username)}</b><small>Viewing as ${esc(ctx.WS[S.ws])}</small></span></div>
-      ${views.length ? `<h4>View as</h4>${views.map((v) => item(v === "regulator" ? "user" : v === "hauler" ? "truck" : v === "industry" ? "barn" : "globe", ctx.WS[v], "", () => ctx.setWorkspace(v))).join("")}` : ""}
+    const roleName = S.role === "pending" ? "Waiting for MDA approval" : ctx.WS[S.role];
+    const acct = `<div class="mg macct"><div class="mwho"><span class="av ${S.ws}">${esc(ini())}</span><span><b>${esc(S.user.fullName || S.user.username)}</b><small>${esc(roleName)}</small></span></div>
+      ${S.role === "pending" ? item("plus", "Send an access request", "If you haven't already", () => ctx.actions.signup()) : ""}
       <div class="msep"></div>${item("log", "Sign out", "", () => ctx.signOut())}</div>`;
     const groups = S.ws === "regulator" ? GROUPS : ROLE[S.ws] || [];
     menu.className = "mega" + (S.ws === "regulator" ? "" : " small");
@@ -233,11 +229,13 @@ window.HPAI.modules.push(function (ctx) {
 
   // ---------------- help ----------------
   function helpSheet(kind) {
-    if (kind === "hauler") return sheet("Help", `<div class="form help">
+    if (kind === "industry") return sheet("Help", `<div class="form help">
       <p><b>Plan a trip.</b> Enter where you start and where you're going, pick the load, check truck height and weight, then Plan route. Routes go around control areas, keep away from other poultry farms and add a cleaning stop when needed.</p>
       <p><b>Permits.</b> If a trip has to enter a control area, tap Request permit. The form is filled in from the route. Approved permits show a QR code to present at checkpoints.</p>
-      <p><b>Farm check-in.</b> Log each farm you visit. If a farm later tests positive, MDA can reach the right drivers quickly.</p></div>`);
-    if (kind === "industry") return sheet("Help", `<div class="form help">
+      <p><b>Farm check-in.</b> Log each farm you visit. If a farm later tests positive, MDA can reach the right drivers quickly.</p>
+      <p><b>Farm risk.</b> Save your farm under My places. The score adds up nearby control areas, wild-bird detections, vehicle visits from control areas, waterfowl habitat and season. It's a screening aid, not a diagnosis.</p>
+      <p><b>Sick birds.</b> If birds are dying now, call MDA at ${esc(C.mdaPhone)}.</p></div>`);
+    if (kind === "industry-farm") return sheet("Help", `<div class="form help">
       <p><b>Farm risk.</b> Save your farm under My places. The score adds up nearby control areas, wild-bird detections, vehicle visits from control areas, waterfowl habitat and season. It's a screening aid, not a diagnosis.</p>
       <p><b>Sick birds.</b> If birds are dying now, call MDA at ${esc(C.mdaPhone)}. The Report a sick flock form helps MDA follow up.</p></div>`);
     sheet("Help", `<div class="form help">

@@ -101,7 +101,7 @@ window.HPAI.modules.push(function (ctx) {
         box.innerHTML = rows.map((f, i) => {
           const a = f.attributes, done = a.status !== "New" && a.status !== "Pending";
           const img = att[a.OBJECTID] ? `<img class="photo" src="${cfg.u}/${a.OBJECTID}/attachments/${att[a.OBJECTID].id}${tk ? "?token=" + tk : ""}" alt="Photo">` : "";
-          const title = qkind === "rep" ? `${a.report_type === "flock" ? "Sick flock" : "Dead wild bird"} · ${esc(a.species || "")} × ${a.count || 1}` : qkind === "per" ? `${esc(a.permit_id)} · ${esc((C.commodities[a.commodity] || {}).label || a.commodity)}` : `${esc(a.name)} · ${a.role === "hauler" ? "Hauler" : "Industry"}`;
+          const title = qkind === "rep" ? `${a.report_type === "flock" ? "Sick flock" : "Dead wild bird"} · ${esc(a.species || "")} × ${a.count || 1}` : qkind === "per" ? `${esc(a.permit_id)} · ${esc((C.commodities[a.commodity] || {}).label || a.commodity)}` : `${esc(a.name)} · ${esc(a.role || "Industry partner")}`;
           const sub = qkind === "rep" ? `${fmtShort(a.observed || a.created)} · ${esc(a.name || "anonymous")} ${esc(a.phone || "")}<br>${esc(a.description || "")}`
             : qkind === "per" ? `${esc((a.origin || "").split(",")[0])} → ${esc((a.destination || "").split(",")[0])}<br>${fmtDate(a.depart)}–${fmtShort(a.valid_to)} · ${esc(a.company)} · ${H.mi(a.zone_km || 0)} mi in zone`
             : `${esc(a.email)} · ${esc(a.org || "")} · ${esc(a.county || "")}${a.ref_id ? " · " + esc(a.ref_id) : ""}`;
@@ -134,14 +134,29 @@ window.HPAI.modules.push(function (ctx) {
     load();
   };
   // approving an access request: invite the person to the right ArcGIS group
+  // approving an access request: add the person to the industry partners
+  //  - they gave an ArcGIS username → invite that account to the group directly
+  //  - otherwise → organization invitation by email as a Data Editor with a Contributor license, so they can submit permits and trips
+  //    (needs an administrator and a free license); otherwise the members page opens so MDA can invite them by hand
   async function invite(a) {
-    const title = a.role === "hauler" ? C.haulerGroup : C.industryGroup;
+    const title = C.industryGroup;
     try {
       const r = await ctx.rest(ctx.sharing + "/rest/community/groups", { q: `title:"${title}"`, num: 1 });
-      const g = r.results && r.results[0];
-      if (g) { window.open(`${C.portalUrl}/home/group.html?id=${g.id}#members`, "_blank"); toast(`Invite ${a.email} to “${title}” in the tab that opened`, 6000); }
-      else toast(`Create the group “${title}” in ArcGIS, then invite ${a.email}`, 6000);
-    } catch (e) { toast("Approved. Invite " + a.email + " in ArcGIS Online."); }
+      const g = r.results && r.results[0]; if (!g) return toast(`Create the group “${title}” in ArcGIS first`, 6000);
+      const m = /arcgis:([^\s·]+)/.exec(a.ref_id || "");
+      if (m) {
+        const res = await ctx.rest(ctx.sharing + `/rest/community/groups/${g.id}/invite`, { users: m[1], role: "group_member", expiration: 20160 });
+        if (res.notInvited && res.notInvited.length) throw new Error("this account can't join (it may be a free public account)");
+        ctx.audit("access:invite", a.email, "group invitation to " + m[1]); return toast(`Invitation sent to ArcGIS user ${m[1]}`, 5000);
+      }
+      try {
+        await ctx.rest(ctx.sharing + "/rest/portals/self/invite", { invitationList: JSON.stringify({ invitations: [{ email: a.email, fullname: a.name, role: "iBBBBBBBBBBBBBBB", userLicenseType: "editorUT", groups: g.id, userType: "arcgisonly" }] }), message: "MDA approved your request to use the Maryland avian influenza map. Follow this link to create your sign-in." });
+        ctx.audit("access:invite", a.email, "organization invitation"); return toast(`Invitation emailed to ${a.email}`, 5000);
+      } catch (e) {
+        window.open(`${C.portalUrl}/home/organization.html?tab=members#invite`, "_blank");
+        toast(`Approved. Invite ${a.email} in the ArcGIS tab that opened, and add them to “${title}”.`, 8000);
+      }
+    } catch (e) { toast("Approved, but the invitation failed: " + e.message, 7000); }
   }
 
   // ---------------- zones ----------------

@@ -23,14 +23,16 @@
     <div class="grip" id="grip" aria-hidden="true"><i></i></div>
     <div class="pscroll">
 
+    <div class="pending" id="pendingNote" hidden></div>
+
     <!-- 1. FIND A PLACE (+ trip planning for haulers) -->
     <div class="group">
     <h2 class="sec">Find a place</h2>
     <section class="search"><div id="search"></div>
       <button class="iconbtn" id="locBtn" title="Use my location" aria-label="Use my location"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
     </section>
-    <h2 class="sec sub2" data-for="hauler">Plan a trip</h2>
-    <section class="card planner" data-for="hauler">
+    <h2 class="sec sub2" data-for="industry">Plan a trip</h2>
+    <section class="card planner" data-for="industry">
       <div class="legs">
         <div class="rail"><i class="a"></i><u></u><i class="b"></i></div>
         <div class="inputs">
@@ -64,11 +66,11 @@
       <button class="act" data-t="wildReport"><svg viewBox="0 0 24 24"><path d="M3 15c3-1 4-4 6-6 2.5-2.5 6-2 7.5 0L21 8l-1.5 3.5c0 5-4 8.5-9 8.5-3 0-5-1.5-7.5-5z"/></svg><span>Report dead wild birds</span></button>
     </div></section>
     <a class="callbtn" data-for="industry" id="callBtn" href="tel:4108415810"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg><span>Sick birds? <b>Call MDA</b></span></a>
-    <section data-for="hauler"><div class="acts">
+    <section data-for="industry"><div class="acts">
       <button class="act" data-t="checkin"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><path d="m9 9.5 2 2 4-4"/></svg><span>Farm check-in</span></button>
       <button class="act" data-t="wildReport"><svg viewBox="0 0 24 24"><path d="M3 15c3-1 4-4 6-6 2.5-2.5 6-2 7.5 0L21 8l-1.5 3.5c0 5-4 8.5-9 8.5-3 0-5-1.5-7.5-5z"/></svg><span>Report dead wild birds</span></button>
     </div></section>
-    <section class="card" data-for="hauler">
+    <section class="card" data-for="industry">
       <div class="seg" id="hTabs"><button class="on" data-p="trips">Saved trips</button><button data-p="permits">My permits</button></div>
       <div id="pane-trips"><div id="tripList"><p class="hint">Plan a route and tap Save.</p></div></div>
       <div id="pane-permits" hidden><div id="permitList"><p class="hint">No permits yet.</p></div></div>
@@ -92,7 +94,7 @@
       </div>
     </section>
 
-    <section class="card" data-for="public industry hauler">
+    <section class="card" data-for="public industry">
       <div class="ch"><h3>My places</h3><button class="link" id="addPlace">+ Add</button></div>
       <div id="places"><p class="hint">Save your farm or home to get alerts.</p></div>
     </section>
@@ -102,7 +104,7 @@
     <!-- 3. STAY INFORMED -->
     <div class="group">
     <h2 class="sec">Stay informed</h2>
-    <section data-for="public industry hauler">
+    <section data-for="public industry">
       <div class="hero" id="hero">
         <div class="hstat red"><b id="kCA">–</b><span>control areas</span></div>
         <div class="hstat"><b id="kCty">–</b><span>counties</span></div>

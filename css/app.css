@@ -465,3 +465,7 @@ body.pshut #panel { margin-left: -390px; }
 body.pshut #panelToggle { left: 0; }
 body.pshut #panelToggle svg { transform: rotate(180deg); }
 @media (max-width: 760px) { #panelToggle { display: none; } body.pshut #panel { margin-left: 0; } }
+
+.pending { margin: 0 0 12px; padding: 12px 14px; border-radius: 16px; background: #fff5e6; border: 1px solid #f0cf9a; font-size: 14px; line-height: 1.45; color: #5a3d0a; }
+.pending a { font-weight: 650; }
+@media (prefers-color-scheme: dark) { .pending { background: #2d2210; border-color: #6b4e1d; color: #f3dcb1; } }

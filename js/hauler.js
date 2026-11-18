@@ -48,9 +48,9 @@ window.HPAI.modules.push(function (ctx) {
   };
   $("pinOrg").onclick = () => armPin("org"); $("pinDst").onclick = () => armPin("dst");
   ctx.on("pick", (mp) => { if (!pinFor) return false; const w = pinFor; pinFor = null; view.container.style.cursor = ""; document.querySelectorAll(".pinbtn").forEach((b) => b.classList.remove("on")); setEnd(w, mp); ctx.sheetHalf(); return true; });
-  ctx.actions.tripFrom = (pt) => { ctx.setWorkspace("hauler"); setEnd("org", pt); };
-  ctx.actions.tripTo = (pt) => { ctx.setWorkspace("hauler"); setEnd("dst", pt); };
-  ctx.on("card", () => S.ws === "hauler" ? `<!--more--><div class="pacts"><button class="pb" data-act="tripFrom">Start trip here</button><button class="pb" data-act="tripTo">End trip here</button></div>` : "");
+  ctx.actions.tripFrom = (pt) => { setEnd("org", pt); };
+  ctx.actions.tripTo = (pt) => { setEnd("dst", pt); };
+  ctx.on("card", () => S.ws === "industry" ? `<!--more--><div class="pacts"><button class="pb" data-act="tripFrom">Start trip here</button><button class="pb" data-act="tripTo">End trip here</button></div>` : "");
 
   // ---- road closures (MDOT CHART via Maryland Open Data) ----
   let closures = [];
@@ -63,7 +63,7 @@ window.HPAI.modules.push(function (ctx) {
         symbol: { type: "simple-marker", style: c.full ? "x" : "triangle", size: c.full ? 11 : 10, color: c.full ? [200, 40, 30, 1] : [230, 161, 0, 1], outline: { color: c.full ? [200, 40, 30, 1] : [60, 60, 60, 1], width: c.full ? 3 : 1 } } })));
     } catch (e) { closures = []; }
   }
-  ctx.on("ws", (w) => { if ((w === "hauler" || w === "regulator") && !closures.length) loadClosures(); if (w === "hauler") { loadTrips(); loadPermits(); } });
+  ctx.on("ws", (w) => { if ((w === "industry" || w === "regulator") && !closures.length) loadClosures(); if (w === "industry") { loadTrips(); loadPermits(); } });
 
   // ---- C&D stations (sample until MDA lists real ones) ----
   let stations = [];

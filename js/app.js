@@ -477,11 +477,11 @@ require([
     { id: "lake", t: "Lakes and ponds", n: "USGS NHD · zoom in", sw: "lake", ls: () => [env.water], off: true },
     { id: "riv", t: "Rivers and streams", n: "USGS NHD · zoom in", sw: "riv", ls: () => [env.rivers], off: true },
     { id: "wsh", t: "Watersheds (drainage)", n: "USGS WBD HUC-12", sw: "wsh", ls: () => [env.sheds], off: true },
-    { sec: "Farms and roads", roles: ["regulator", "hauler"] },
+    { sec: "Farms and roads", roles: ["regulator", "industry"] },
     { id: "reg", staff: 1, t: "Registered premises", n: "solid = MDA validated, dashed = review", sw: "reg", ls: () => [ctx.layers.registry] },
     { id: "hou", staff: 1, t: "Poultry houses", n: "FEMA/ORNL footprints · zoom in", sw: "hou", ls: () => [ctx.layers.houses] },
     { id: "farm", staff: 1, t: "Poultry farms", n: "estimated, USGS study", sw: "farm", ls: () => [ctx.layers.farms], off: true },
-    { id: "road", roles: ["regulator", "hauler"], t: "Road closures", n: "MDOT CHART", sw: "road", ls: () => [closuresLyr], off: true },
+    { id: "road", roles: ["regulator", "industry"], t: "Road closures", n: "MDOT CHART", sw: "road", ls: () => [closuresLyr], off: true },
     { sec: "Map" },
     { id: "names", t: "County names", sw: "cty", ls: () => [countyLyr] }
   ];
@@ -563,7 +563,7 @@ require([
   }
 
   // ---------------- roles and sign-in ----------------
-  const WS = { public: "Public", regulator: "MDA staff", hauler: "Hauler", industry: "Poultry industry" };
+  const WS = { public: "Public", regulator: "MDA staff", industry: "Industry partner" };
   function setWorkspace(w) {
     S.ws = w; document.body.dataset.ws = w;
     document.querySelectorAll("[data-for]").forEach((el) => (el.hidden = !el.dataset.for.split(" ").includes(w)));
@@ -574,21 +574,25 @@ require([
   // the account button + dropdown live in menu.js; it re-renders on these events
   function renderAcct() { emit("acct"); }
   ctx.WS = WS;
-  ctx.signIn = (kind) => { try { sessionStorage.setItem("hpaiWs", kind === "partner" ? "hauler" : "regulator"); } catch (e) {} esriId.getCredential(sharing).then(initUser).catch(() => {}); };
+  ctx.signIn = (kind) => { try { sessionStorage.setItem("hpaiWs", kind === "partner" ? "industry" : "regulator"); } catch (e) {} esriId.getCredential(sharing).then(initUser).catch(() => {}); };
   ctx.signOut = () => { esriId.destroyCredentials(); try { sessionStorage.removeItem("hpaiWs"); } catch (e) {} location.reload(); };
   async function initUser() {
     const portal = new Portal({ url: C.portalUrl, authMode: "immediate" });
     await portal.load(); S.user = portal.user;
     const groups = await portal.user.fetchGroups().catch(() => []);
     S.groups = groups.map((g) => g.title);
-    S.roles = [];
-    if (S.groups.includes(C.regulatorGroup)) S.roles.push("regulator");
-    if (S.groups.includes(C.haulerGroup)) S.roles.push("hauler");
-    if (S.groups.includes(C.industryGroup)) S.roles.push("industry");
-    if (!S.roles.length) S.roles.push("industry");   // signed in but in no group yet: industry tools, own data only
-    let want = null; try { want = sessionStorage.getItem("hpaiWs"); } catch (e) {}
-    const isReg = S.roles.includes("regulator");
-    setWorkspace(want && (S.roles.includes(want) || isReg) ? want : S.roles[0]);
+    // what someone sees depends only on who they are (their group), never on a choice
+    S.role = S.groups.includes(C.regulatorGroup) ? "regulator"
+      : (S.groups.includes(C.industryGroup) || S.groups.includes(C.haulerGroup)) ? "industry" : "pending";
+    S.roles = S.role === "pending" ? [] : [S.role];
+    try { sessionStorage.removeItem("hpaiWs"); } catch (e) {}
+    const note = $("pendingNote");
+    if (S.role === "pending") {
+      note.hidden = false;
+      note.innerHTML = `<b>Your access is waiting for MDA approval.</b> You're signed in, but MDA hasn't added your account to the industry partners yet. Until then you see the public map. <a href="#" id="pendReq">Send an access request</a> if you haven't already.`;
+      $("pendReq").onclick = (e) => { e.preventDefault(); (ctx.actions.signup || (() => {}))(); };
+    } else note.hidden = true;
+    setWorkspace(S.role === "pending" ? "public" : S.role);
     emit("signin", S.user);
   }
   document.querySelectorAll(".role").forEach((b) => (b.onclick = () => { $("modal").hidden = true; ctx.signIn(b.dataset.ws); }));
@@ -634,7 +638,7 @@ require([
   setWorkspace("public");
   esriId.checkSignInStatus(sharing).then(initUser).catch(() => {
     let want = null; try { want = sessionStorage.getItem("hpaiWs"); } catch (e) {}
-    if (want && want !== "public") esriId.getCredential(sharing).then(initUser).catch(() => {});
+    if (want === "regulator" || want === "industry") esriId.getCredential(sharing).then(initUser).catch(() => {});
   });
   if (location.hash.startsWith("#verify=")) on("signin", () => (ctx.actions.verify || (() => {}))(decodeURIComponent(location.hash.slice(8))));
 });
