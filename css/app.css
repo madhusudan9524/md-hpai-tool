@@ -630,3 +630,6 @@ a.btnlink { display: block; text-align: center; text-decoration: none; }
 .rkstrip .t0 { background: #e6f1dc; color: #3d6b10; } .rkstrip .t1 { background: #fcefd9; color: #8a5a0c; }
 .rkstrip .t2 { background: #f9e1d8; color: #a33d17; } .rkstrip .t3 { background: #A32D2D; color: #fff; }
 @media (prefers-color-scheme: dark) { .rkstrip .t0 { background: #1f3312; color: #a7d67c; } .rkstrip .t1 { background: #3a2a0f; color: #f4c27a; } .rkstrip .t2 { background: #3d1d12; color: #f2a184; } }
+/* phones: the map's bottom padding (the sheet's 150 px peek, set in app.js) already lifts the map controls above the
+   bottom sheet, so the old extra offset is removed; Layers & key sits at the bottom right, just above the sheet */
+@media (max-width: 760px) { .esri-ui-bottom-right { bottom: 0; } }
