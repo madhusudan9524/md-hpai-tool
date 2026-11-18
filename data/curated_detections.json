@@ -19,9 +19,12 @@
       "date": "2026-11-11",
       "source": "Maryland Department of Agriculture",
       "title": "Preliminary testing finds HPAI in a commercial broiler flock in Worcester County",
-      "url": "https://www.wmdt.com/2026/11/1case-of-avian-influenza-detected-in-worcester-county/",
-      "via": "reported by WMDT",
-      "kind": "commercial", "status": "preliminary", "county": "Worcester", "state": "Maryland"
+      "url": "https://mda.maryland.gov/Pages/AvianFlu.aspx",
+      "via": "replace with MDA press release link",
+      "kind": "commercial",
+      "status": "preliminary",
+      "county": "Worcester",
+      "state": "Maryland"
     },
     {
       "date": "2026-11-16",
@@ -29,7 +32,10 @@
       "title": "DDA reminds residents of poultry safety tips as avian influenza season arrives",
       "url": "https://www.morningagclips.com/dda-reminds-residents-of-poultry-safety-tips-as-avian-influenza-season-arrives/",
       "via": "republished by Morning Ag Clips",
-      "kind": "general", "status": null, "county": null, "state": "Delaware"
+      "kind": "general",
+      "status": null,
+      "county": null,
+      "state": "Delaware"
     }
   ]
 }

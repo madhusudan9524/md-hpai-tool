@@ -48,50 +48,6 @@
    "url": "https://mda.maryland.gov/Pages/AvianFlu.aspx",
    "note": "Entered from MDA's Nov 11, 2026 announcement as reported by WMDT, WGMD and Lancaster Farming. Replace the link with MDA's press release and update status when USDA confirms.",
    "auto": false
-  },
-  {
-   "id": "auto-a33387fe",
-   "state": "Delaware",
-   "county": "Kent",
-   "date": "2026-01-10",
-   "flock": "Commercial flock",
-   "status": "preliminary",
-   "source": "Delaware Department of Agriculture",
-   "url": "https://news.delaware.gov/2026/01/10/delaware-announces-presumptive-positive-avian-influenza-case-in-kent-county-commercial-flock/",
-   "auto": true
-  },
-  {
-   "id": "auto-e9da8c48",
-   "state": "Delaware",
-   "county": "Kent",
-   "date": "2025-01-05",
-   "flock": "Commercial flock",
-   "status": "preliminary",
-   "source": "Delaware Department of Agriculture",
-   "url": "https://news.delaware.gov/2025/01/05/update-on-delaware-h5-avian-influenza-case-on-kent-county-farm/",
-   "auto": true
-  },
-  {
-   "id": "auto-ed27eed3",
-   "state": "Delaware",
-   "county": "Kent",
-   "date": "2025-01-03",
-   "flock": "Commercial flock",
-   "status": "preliminary",
-   "source": "Delaware Department of Agriculture",
-   "url": "https://news.delaware.gov/2025/01/03/delaware-announces-first-presumptive-positive-h5-avian-influenza-case-detected-on-kent-county-farm-in-2025/",
-   "auto": true
-  },
-  {
-   "id": "auto-0d21ea4f",
-   "state": "Delaware",
-   "county": "Kent",
-   "date": "2022-03-17",
-   "flock": "Commercial flock",
-   "status": "confirmed",
-   "source": "Delaware Department of Agriculture",
-   "url": "https://news.delaware.gov/2022/03/17/first-case-of-avian-influenza-detected-on-kent-county-delaware-farm/",
-   "auto": true
   }
  ],
  "problems": [

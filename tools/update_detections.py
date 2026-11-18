@@ -197,7 +197,7 @@ def main():
             continue
         seen.add(n["url"]); uniq.append(n)
     result["notices"] = uniq[:KEEP_NOTICES]
-    result["commercial"] = sorted(commercial.values(), key=lambda x: x["date"], reverse=True)
+    result["commercial"] = sorted((c for c in commercial.values() if (today - dt.date.fromisoformat(c["date"])).days <= 60), key=lambda x: x["date"], reverse=True)   # only recent detections are kept
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(result, open(OUT, "w"), indent=1)
     print(f"wild {len(result['wild'])}, notices {len(result['notices'])}, commercial {len(result['commercial'])}; problems: {problems or 'none'}")
