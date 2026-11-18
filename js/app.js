@@ -79,7 +79,7 @@ require([
   const map = new EsriMap({ basemap: dark ? "dark-gray-vector" : "topo-vector",
     layers: [maskLyr, env.land, env.wma, env.waterfowl, env.refuges, riskLyr, birdsLyr, tintLyr, countyLyr, histLyr] });
   const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, constraints: { minZoom: 7, snapToZoom: false },
-    popup: { dockEnabled: false, dockOptions: { buttonEnabled: false }, collapseEnabled: false, visibleElements: { closeButton: true, featureNavigation: false, actionBar: false, heading: false, collapseButton: false, spinner: false }, highlightEnabled: false, actions: [] }, ui: { components: ["zoom", "attribution"] } });
+    popup: { dockEnabled: false, dockOptions: { buttonEnabled: false }, collapseEnabled: false, visibleElements: { closeButton: true, featureNavigation: false, actionBar: false, heading: false, collapseButton: false, spinner: false }, highlightEnabled: false, actions: [], alignment: "bottom-center" }, popupEnabled: false, ui: { components: ["zoom", "attribution"] } });
   view.ui.move("zoom", "top-left");
   view.ui.add(new Home({ view }), "top-left");
   // on phones the bottom sheet covers the lower ~150 px: centre the map (and fit Maryland) in the part people can see
@@ -410,16 +410,16 @@ require([
     surveillance: ["Watch your birds closely and report illness.", "Movements may need testing. Check with MDA before moving birds.", "Clean and disinfect vehicles and boots."],
     none: ["No movement restrictions here today.", "Keep birds away from wild waterfowl.", "Report sick or dead birds."]
   };
+  // the card opens BELOW the clicked spot: if it would run off the bottom (or behind the phone's bottom sheet), slide the map up
   async function fitCard(pt, h) {
     const sp = view.toScreen(pt); if (!sp) return;
-    const need = Math.min(h || 270, view.height - 40);
-    if (sp.y < need || sp.x < 160 || sp.x > view.width - 160) {
-      const dy = Math.max(0, need - sp.y), dx = sp.x < 160 ? 160 - sp.x : sp.x > view.width - 160 ? view.width - 160 - sp.x : 0;
-      const c = view.toScreen(view.center); await view.goTo(view.toMap({ x: c.x - dx, y: c.y - dy }), { duration: 250 }).catch(() => {});
-    }
+    const bottom = view.height - ((view.padding && view.padding.bottom) || 0), need = Math.min(h || 290, bottom - 70);
+    const dy = sp.y + need + 20 > bottom ? sp.y + need + 20 - bottom : sp.y < 40 ? sp.y - 40 : 0;
+    const dx = sp.x < 160 ? 160 - sp.x : sp.x > view.width - 160 ? view.width - 160 - sp.x : 0;
+    if (dy || dx) { const c = view.toScreen(view.center); await view.goTo(view.toMap({ x: c.x - dx, y: c.y + dy }), { duration: 250 }).catch(() => {}); }
   }
   ctx.fitCard = fitCard;
-  async function locationCard(pt, title) {
+  async function locationCard(pt, title, place) {
     if (pt.spatialReference && pt.spatialReference.isWGS84) pt = wmu.geographicToWebMercator(pt);   // accept either coordinate system
     if (!ctx.inArea(pt)) return;
     marks.removeAll(); marks.add(new Graphic({ geometry: pt, symbol: { type: "simple-marker", size: 14, color: [10, 108, 255, 1], outline: { color: [255, 255, 255, 1], width: 3 } } }));
@@ -439,7 +439,8 @@ require([
     if (wildN) chips.push(`<i class="c teal">${wildN} wild bird${wildN === 1 ? "" : "s"} · 4 wk</i>`);
     else if (wildY) chips.push(`<i class="c teal">${wildY} wild bird${wildY === 1 ? "" : "s"} · 12 mo</i>`);
     if (sr.tier) chips.push(`<i class="c violet">${R.TIERS[sr.tier]} seasonal risk</i>`);
-    if (hist.n) chips.push(`<i class="c">${hist.n} past · ${fmtShort(hist.last)}</i>`);
+    if (hist.n) chips.push(`<i class="c">${hist.sample ? "Sample past area" : "Past outbreak area"} · ${fmtShort(hist.last)}</i>`);
+    if (place) chips.push(`<i class="c green">${esc(place)}</i>`);
     const tip = { control: "MDA permit needed to move birds, eggs, feed or litter.", surveillance: "Watch birds closely. Check with MDA before moving birds.", none: "Keep birds away from wild waterfowl. Report sick birds." }[z.zone || "none"];
     // modules add buttons to the card; ones marked <!--more--> go inside the expanded Details part
     const parts = emit("card", { pt, zone: z, county: cty }).filter(Boolean);
@@ -462,9 +463,9 @@ require([
 
   // past outbreak areas at a point (released zones + real county history)
   async function pastAt(pt) {
-    let n = 0, last = 0;
-    histLyr.graphics.forEach((g) => { if (geometryEngine.intersects(g.geometry, pt.spatialReference.isWebMercator ? pt : wmu.geographicToWebMercator(pt))) { n++; last = Math.max(last, g.attributes.start || 0); } });
-    return { n, last };
+    let n = 0, last = 0, real = 0;
+    histLyr.graphics.forEach((g) => { if (geometryEngine.intersects(g.geometry, pt.spatialReference.isWebMercator ? pt : wmu.geographicToWebMercator(pt))) { n++; if (g.attributes.kind !== "sample") real++; last = Math.max(last, g.attributes.start || 0); } });
+    return { n, last, sample: n > 0 && !real };
   }
 
   // ---------------- waterfowl habitat (for seasonal risk) ----------------
@@ -605,14 +606,13 @@ require([
   view.on("click", async (e) => {
     if (emit("pick", e.mapPoint).some(Boolean)) return;            // a module is waiting for a map pick
     if (!ctx.inArea(e.mapPoint)) return;                           // outside Maryland / Delmarva: do nothing
-    const include = [wild, L.markers, L.prem, closuresLyr, histLyr.visible ? histLyr : null].concat(emit("hitLayers").flat()).filter(Boolean);
+    const include = [wild, L.markers, L.prem, closuresLyr].concat(emit("hitLayers").flat()).filter(Boolean);
     const hit = await view.hitTest(e, { include }).catch(() => null);
     const g = hit && hit.results.find((r) => r.graphic && r.graphic.layer);
     if (g) {
       if (g.graphic.layer === wild) return wildCard(g.graphic);
       if (g.graphic.layer === L.markers) return markerCard(g.graphic, e.mapPoint);
       if (g.graphic.layer === closuresLyr) return simpleCard(e.mapPoint, "info", "Road closure", g.graphic.attributes.incident, [["Lanes", g.graphic.attributes.lanes], ["Updated", g.graphic.attributes.updated]]);
-      if (g.graphic.layer === histLyr) return simpleCard(e.mapPoint, "info", g.graphic.attributes.kind === "sample" ? "Past area · SAMPLE" : "Past outbreak", g.graphic.attributes.label, [["From", fmtDate(g.graphic.attributes.start)]]);
       if (emit("hit", { g: g.graphic, pt: e.mapPoint }).some(Boolean)) return;
     }
     if (birdsLyr.visible && S.birdsOk && view.zoom >= 10) {
@@ -620,7 +620,11 @@ require([
       const f = r && r.features[0];
       if (f) return simpleCard(f.geometry, "ebird", "Waterfowl sighting · eBird", f.attributes.place || "Sighting", [["Birds counted", f.attributes.birds], ["Species", f.attributes.species], ["Last seen", f.attributes.last]], `<div class="do">Healthy wild waterfowl can carry HPAI. Source: eBird, Cornell Lab of Ornithology.</div>`);
     }
-    locationCard(e.mapPoint, "This location");
+    // inside a refuge, wildlife management area or waterfowl area that's switched on: name it on the place card
+    const envOn = [env.refuges, env.wma, env.waterfowl].filter((l) => l.visible);
+    const eh = envOn.length ? await view.hitTest(e, { include: envOn }).catch(() => null) : null, eg = eh && eh.results.find((r) => r.graphic);
+    const place = eg ? (eg.graphic.layer === env.refuges ? (eg.graphic.attributes.ORGNAME || "National wildlife refuge") : eg.graphic.layer === env.wma ? (eg.graphic.attributes.DNRName || "Wildlife management area") : "Waterfowl concentration area") : "";
+    locationCard(e.mapPoint, "This location", place);
   });
   function simpleCard(pt, band, small, big, rows, extra) {
     const el = document.createElement("div"); el.className = "pop";

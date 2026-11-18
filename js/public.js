@@ -187,6 +187,13 @@ window.HPAI.modules.push(function (ctx) {
   // ================= grower farm risk =================
   // Works for one farm or dozens: a summary by level, the few highest farms, a full table, dots on the map.
   // Everything is computed and kept on the grower's device; nothing is sent to MDA.
+  // what each level means: points from R.farmRisk (README "Risk models"), and what a grower should do at that level
+  const TIER_PTS = ["0–2 points", "3–4 points", "5–7 points", "8+ points"];
+  const TIER_MEAN = ["Few or no risk factors right now. Keep up routine biosecurity.",
+    "Some risk factors, e.g. wild-bird cases nearby or peak migration. Tighten biosecurity and limit visitors.",
+    "Several risk factors, e.g. near a control area or visits by vehicles from one. Restrict access, clean and disinfect every vehicle, check birds twice a day.",
+    "Many risk factors, usually inside or next to a control area. Follow MDA's movement rules, allow essential visits only, and call MDA about any sick birds."];
+  const scaleHtml = (open) => `<details class="rkscale"${open ? " open" : ""}><summary>What do the levels mean?</summary><div class="rklev">${[0, 1, 2, 3].map((t) => `<div><span class="pill ${TIER_C[t]}">${TIER_N[t]}</span><small><b>${TIER_PTS[t]}.</b> ${TIER_MEAN[t]}</small></div>`).join("")}</div><p class="hint">The score adds up points for each risk factor near the farm. It's a screening aid, not a diagnosis.</p></details>`;
   const TIER_C = ["green", "amber", "red", "dred"], TIER_N = ["Low", "Moderate", "High", "Very high"], TIER_RGB = [[99, 153, 34], [239, 159, 39], [216, 90, 48], [163, 45, 45]];
   const myFarms = new ctx.esri.GraphicsLayer({ title: "My farms", listMode: "hide", visible: false });
   view.map.add(myFarms);
@@ -249,6 +256,7 @@ window.HPAI.modules.push(function (ctx) {
       <div class="rklist">${top.map((x) => riskRow(x)).join("") || `<p class="hint">No farms match.</p>`}</div>
       ${list.length > top.length ? `<p class="hint">${list.length - top.length} more farm${list.length - top.length > 1 ? "s" : ""} in the full list.</p>` : ""}
       <div class="btns">${n > 1 ? `<button class="ghost" id="rkAll">See all ${n} farms</button>` : ""}<button class="ghost" id="rkMap">${myFarms.visible ? "Hide from map" : "Show on map"}</button></div>
+      ${scaleHtml(false)}
       <p class="hint" style="margin-top:8px">Screening score, not a diagnosis. Based on <a href="${R.SOURCES.aphis2015.u}" target="_blank" rel="noopener">USDA APHIS</a> data and peer-reviewed studies. Wildlife detections are published by county, so their distances are approximate. Call MDA about any sick birds.</p>
       <p class="hint"><b>Private to you.</b> Your farms and their scores are kept only on this device. MDA doesn't see them.</p>`;
     box.querySelectorAll("[data-lv]").forEach((b) => (b.onclick = () => { const t = +b.dataset.lv; riskLevel = riskLevel === t ? null : t; drawRisk(); }));
@@ -270,8 +278,9 @@ window.HPAI.modules.push(function (ctx) {
     const p = x.p;
     sheet(p.name, `<div class="form"><div class="rkt"><span>${x.county ? esc(x.county) + " County" : ""}</span>${pillOf(x)}</div>
       <span class="meter"><i style="left:${Math.min(96, (x.r.points / 14) * 100)}%"></i></span>
+      <p class="rkmean"><b>${TIER_N[x.r.tier]} (${TIER_PTS[x.r.tier]}).</b> ${TIER_MEAN[x.r.tier]}</p>
       ${x.prev != null && x.prev !== x.r.tier ? `<p class="hint">${x.r.tier > x.prev ? "Up" : "Down"} from ${TIER_N[x.prev].toLowerCase()} since your last visit.</p>` : ""}
-      <ul class="why">${x.r.reasons.map((y) => `<li>${y.n > 0 ? "+" : ""}${y.n} ${esc(y.why)} <a href="${R.SOURCES[y.src].u}" target="_blank" rel="noopener" title="${esc(R.SOURCES[y.src].t)}">source</a></li>`).join("") || "<li>No risk factors found</li>"}</ul>
+      <h4 class="subhead">Why ${x.r.points} point${x.r.points === 1 ? "" : "s"}</h4><ul class="why">${x.r.reasons.map((y) => `<li>${y.n > 0 ? "+" : ""}${y.n} ${esc(y.why)} <a href="${R.SOURCES[y.src].u}" target="_blank" rel="noopener" title="${esc(R.SOURCES[y.src].t)}">source</a></li>`).join("") || "<li>No risk factors found</li>"}</ul>
       <div class="btns"><button class="ghost" id="rdMap">Show on map</button><button class="ghost" id="rdDel">Remove farm</button><button class="ghost" id="rdAudit">${p.audit ? "Last audit " + fmtShort(p.audit.date) + (p.audit.passed ? " · passed" : " · not passed") : "Add last biosecurity audit"}</button></div></div>`);
     $("rdMap").onclick = () => { closeSheet(); view.goTo({ target: ptOf(p), zoom: 13 }); ctx.locationCard(ptOf(p), p.name); };
     $("rdAudit").onclick = () => auditForm(p);

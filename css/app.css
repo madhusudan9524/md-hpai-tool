@@ -567,3 +567,18 @@ a.btnlink { display: block; text-align: center; text-decoration: none; }
   .lk:not(.shut) { width: 260px; }
   .lk .body { max-height: min(50vh, 460px); }
 }
+
+/* ---------- info card: rounded on every side (ArcGIS 4.31 draws its own square panel inside the card, so clip the whole card) ---------- */
+.esri-popup__main-container { border-radius: 18px !important; clip-path: inset(0 round 18px); overflow: hidden !important; }
+.esri-popup__main-container .esri-features, .esri-popup__main-container calcite-flow, .esri-popup__main-container calcite-flow-item, .esri-popup__main-container calcite-panel { border-radius: 18px; overflow: hidden;
+  --calcite-corner-radius: 18px; --calcite-panel-corner-radius: 18px; --calcite-color-foreground-1: transparent; --calcite-panel-background-color: transparent; }
+.esri-popup__position-container { filter: drop-shadow(0 10px 24px rgba(15, 25, 40, .2)); }   /* the shadow, since clip-path cuts box-shadow */
+.esri-popup .pop .band { border-radius: 18px 18px 0 0; }
+.esri-popup__pointer { z-index: 1; }
+/* farm risk: what each level means */
+.rkscale { margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: var(--panel); }
+.rkscale summary { cursor: pointer; font-size: 14px; font-weight: 650; }
+.rklev { display: grid; gap: 8px; margin: 8px 0 4px; }
+.rklev > div { display: grid; grid-template-columns: 92px 1fr; gap: 8px; align-items: start; }
+.rklev .pill { justify-self: start; } .rklev small { font-size: 13px; color: var(--mute); line-height: 1.4; }
+.rkmean { margin: 2px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--soft); font-size: 14px; line-height: 1.45; }
