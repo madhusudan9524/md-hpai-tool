@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-18T06:20:15+00:00",
+ "updated": "2026-11-18T06:22:01+00:00",
  "wild": [],
  "notices": [
   {
@@ -24,7 +24,7 @@
    "state": "Delaware",
    "flock_type": null,
    "birds": null,
-   "summary": "Delaware Department of Agriculture urges poultry safety and biosecurity as avian influenza risk rises with the 2026-27 migratory season.",
+   "summary": "Delaware Department of Agriculture urges residents to follow poultry safety practices as avian influenza risk rises with migratory bird season.",
    "method": "ai"
   },
   {
@@ -55,12 +55,7 @@
   }
  ],
  "problems": [
-  "VDACS: no VDACS list page reachable",
-  "AI reading failed for 'Update on Delaware H5 Avian Influenza Case on Kent': Expecting value: line 1 column 1 (char 0); reply began '{\"is_detection\": true, \"kind\": \"general\", \"status\": \"confirmed\", \"state\": \"Delaw'; used keyword rules",
-  "AI reading failed for 'Two Additional Cases Of Avian Influenza Confirmed ': Expecting value: line 1 column 1 (char 0); reply began '{\"is_detection\": true, \"kind\": \"general\", \"status\": \"confirmed\", \"state\": \"Delaw'; used keyword rules",
-  "AI reading failed for 'Update on Delaware H5 Avian Influenza Case on Kent': Expecting value: line 1 column 1 (char 0); reply began '{\"is_detection\": true, \"kind\": \"general\", \"status\": \"confirmed\", \"state\": \"Delaw'; used keyword rules",
-  "AI reading failed for 'Two Additional Cases Of Avian Influenza Confirmed ': Expecting value: line 1 column 1 (char 0); reply began '{\"model\": \"claude-haiku-5-5\", \"id\": \"msg_011Ch9uo1CM3WADEiFbrmVKv\", \"type\": \"mes'; used keyword rules",
-  "AI reading failed for 'Avian Influenza Found In Delaware Chicken Flock; P': Expecting value: line 1 column 1 (char 0); reply began '{\"model\": \"claude-haiku-5-5\", \"id\": \"msg_011Ch9uoPpNkLt9skqGZc8sy\", \"type\": \"mes'; used keyword rules"
+  "VDACS: no VDACS list page reachable"
  ],
  "wild_year": [
   {
@@ -620,7 +615,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "Preliminary testing found H5 avian influenza in a commercial broiler flock in Kent County; the premises is quarantined and birds are being depopulated.",
+   "status_text": "Preliminary testing found presumptive H5 HPAI in a Kent County commercial broiler flock; the premises is quarantined and birds are being depopulated.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2026/01/10/delaware-announces-presumptive-positive-avian-influenza-case-in-kent-county-commercial-flock/",
    "auto": true,
@@ -648,7 +643,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "Delaware reports a presumptive positive H5 avian influenza case in a Kent County commercial broiler flock, with samples sent to USDA NVSL for confirmation.",
+   "status_text": "Preliminary testing found presumptive positive H5 avian influenza in a commercial broiler flock in Kent County, Delaware, with NVSL confirmation pending.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2025/01/03/delaware-announces-first-presumptive-positive-h5-avian-influenza-case-detected-on-kent-county-farm-in-2025/",
    "auto": true,
@@ -662,7 +657,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "A commercial broiler flock in Caroline County, Maryland preliminarily tested positive for HPAI; USDA NVSL confirmation is pending.",
+   "status_text": "A commercial broiler flock in Caroline County, Maryland, preliminarily tested positive for HPAI, pending USDA NVSL confirmation.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2023/11/21/delaware-poultry-owners-urged-to-take-precautions-due-to-hpai-on-delmarva/",
    "auto": true,
@@ -676,7 +671,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "confirmed",
-   "status_text": "Federal testing confirmed H5N1 highly pathogenic avian influenza at a commercial broiler farm in Kent County, Delaware.",
+   "status_text": "Federal testing confirmed highly pathogenic H5N1 avian influenza at a commercial broiler farm in Kent County, Delaware.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2022/03/17/first-case-of-avian-influenza-detected-on-kent-county-delaware-farm/",
    "auto": true,
