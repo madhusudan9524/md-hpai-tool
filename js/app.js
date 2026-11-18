@@ -286,7 +286,12 @@ require([
     renderNews(Ld); loadWild(); paintCounties(); emit("live", Ld);
   });
 
-  fetch((C.birdsUrl || "data/birds.json") + "?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).then(async (B) => {
+  // always listed in the layers panel; the note says why it is empty (no sightings yet, key not set, eBird unreachable)
+  S.birdsNote = "eBird · loading…";
+  const birdsNote = (B) => !B ? "eBird · no sightings loaded yet" : B.status === "nokey" ? "eBird · not connected yet" : B.status === "error" && !(B.places || []).length ? "eBird · couldn't reach eBird at the last update"
+    : !(B.places || []).length ? "eBird · no waterfowl reported this week" : `eBird · ${B.places.length} places · updated ${new Date(B.updated).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+  fetch((C.birdsUrl || "data/birds.json") + "?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).catch(() => null).then(async (B) => {
+    S.birdsNote = birdsNote(B); renderKey();
     if (!B || !B.places || !B.places.length) return;
     S.birdsOk = true; S.birds = B;
     await birdsLyr.applyEdits({ addFeatures: B.places.map((p) => new Graphic({ geometry: { type: "point", x: p.lon, y: p.lat, spatialReference: { wkid: 4326 } }, attributes: { birds: p.birds, place: p.place, last: p.last, species: (p.species || []).map((s) => s[0] + " " + s[1]).join(", ") } })) }).catch(() => {});
@@ -524,7 +529,7 @@ require([
     { sec: "Wildlife" },
     { id: "wb", t: "Wildlife with HPAI", n: "birds and mammals · USDA APHIS", sw: "wb", ls: () => [wild], seg: true },
     { id: "risk", t: "Seasonal risk", n: "migration + detections + habitat", sw: "risk", ls: () => [riskLyr], off: true },
-    { id: "ebd", t: "Waterfowl sightings, 7 days", n: "eBird · Cornell Lab", sw: "ebd", ls: () => (S.birdsOk ? [birdsLyr] : []), off: true, link: [C.birdcastUrl, "Tonight's migration (BirdCast)"] },
+    { id: "ebd", t: "Waterfowl sightings, 7 days", n: S.birdsNote || "eBird · Cornell Lab", sw: "ebd", ls: () => [birdsLyr], off: true, link: [C.birdcastUrl, "Tonight's migration (BirdCast)"] },
     { id: "wf", t: "Waterfowl areas", n: "MD DNR", sw: "wf", ls: () => [env.waterfowl], off: true },
     { id: "nwr", t: "Wildlife refuges", n: "USFWS", sw: "nwr", ls: () => [env.refuges], off: true },
     { id: "wma", t: "Wildlife management areas", n: "MD DNR", sw: "wma", ls: () => [env.wma], off: true },

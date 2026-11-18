@@ -21,11 +21,20 @@ def get(path, key):
         return json.loads(r.read().decode())
 
 
+def write(places, problems, status):
+    json.dump({"updated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "days": DAYS, "source": "eBird, Cornell Lab of Ornithology",
+               "status": status, "places": places, "problems": problems}, open(OUT, "w"))
+
+
 def main():
+    # always writes data/birds.json, so the map can say why the layer is empty
     key = os.environ.get("EBIRD_API_KEY")
     if not key:
-        print("birds: EBIRD_API_KEY not set, skipping"); return 0
-    tax = get("/ref/taxonomy/ebird?fmt=json&cat=species", key)
+        print("birds: EBIRD_API_KEY not set"); write([], ["EBIRD_API_KEY is not set"], "nokey"); return 0
+    try:
+        tax = get("/ref/taxonomy/ebird?fmt=json&cat=species", key)
+    except Exception as e:
+        print(f"birds: couldn't reach eBird: {e}"); write([], [f"taxonomy: {e}"], "error"); return 0
     water = {t["speciesCode"]: t["comName"] for t in tax if t.get("familyComName") == FAMILY}
     places, problems = {}, []
     for reg in REGIONS:
@@ -50,8 +59,7 @@ def main():
             time.sleep(0.2)   # be gentle with the API
     out = [dict(p, species=sorted(p["species"].items(), key=lambda x: -x[1])[:6]) for p in places.values()]
     out.sort(key=lambda p: -p["birds"])
-    json.dump({"updated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "days": DAYS, "source": "eBird, Cornell Lab of Ornithology",
-               "places": out, "problems": problems}, open(OUT, "w"))
+    write(out, problems, "ok" if out or not problems else "error")
     print(f"birds: {len(out)} places, {sum(p['birds'] for p in out)} waterfowl; problems: {problems or 'none'}")
     return 0
 
