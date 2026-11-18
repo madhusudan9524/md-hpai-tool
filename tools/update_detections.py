@@ -184,7 +184,9 @@ def mda_notices():
         title = clean(label)
         slug = href.rsplit("/", 1)[-1].replace("-", " ")
         # match the headline, or the address of the release (/news/press-releases/<slug>) when the link text is short
-        if "/press-releases/" not in href and not KW.search(title):
+        full = href if href.startswith("http") else "https://mda.maryland.gov" + href
+        # only MDA's own news and press-release pages (not links out to CDC, USDA, or PDFs)
+        if not full.startswith("https://mda.maryland.gov/") or "/news/" not in full or full.lower().endswith(".pdf"):
             continue
         if not (KW.search(title) or KW.search(slug)) or href in seen:
             continue
