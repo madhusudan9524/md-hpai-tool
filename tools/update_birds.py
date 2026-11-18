@@ -3,7 +3,8 @@
 
 Runs with the twice-daily update. Needs the repository secret EBIRD_API_KEY (free: https://ebird.org/api/keygen);
 without it the script does nothing. Data: eBird, Cornell Lab of Ornithology (eBird API Terms of Use and eBird Data Access Terms apply).
-Sightings at the same place are combined (total birds, species list). Standard library only.
+Each place shows its busiest day in the period (total waterfowl that day and the species), the same way for the
+last 7 days and for each past week, so weeks compare fairly and one flock isn't counted on every day. Standard library only.
 
 Also keeps data/birds_weeks.json: the last 26 full weeks (Monday to Sunday), one compact list per week of
 [lat, lon, birds, top species] per place, for the map's week slider. "birds" is the highest count at that place on any day
@@ -15,7 +16,7 @@ import json, os, sys, time, urllib.request, datetime as dt
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "birds.json")
 WEEKS_OUT = os.path.join(ROOT, "data", "birds_weeks.json")
-WEEKS, MAX_FILL = 26, 6
+WEEKS, MAX_FILL, METHOD = 26, 6, 2
 API = "https://api.ebird.org/v2"
 REGIONS = ["US-MD", "US-DE", "US-VA-001", "US-VA-131"]   # Maryland, Delaware, Accomack, Northampton
 DAYS = 7
@@ -43,29 +44,11 @@ def main():
     except Exception as e:
         print(f"birds: couldn't reach eBird: {e}"); write([], [f"taxonomy: {e}"], "error"); return 0
     water = {t["speciesCode"]: t["comName"] for t in tax if t.get("familyComName") == FAMILY}
-    places, problems = {}, []
-    for reg in REGIONS:
-        try:
-            # which waterfowl species were seen recently in this region, then every recent sighting of each
-            seen = [o["speciesCode"] for o in get(f"/data/obs/{reg}/recent?back={DAYS}&cat=species", key) if o.get("speciesCode") in water]
-        except Exception as e:
-            problems.append(f"{reg}: {e}"); continue
-        for sp in sorted(set(seen)):
-            try:
-                obs = get(f"/data/obs/{reg}/recent/{sp}?back={DAYS}", key)
-            except Exception as e:
-                problems.append(f"{reg} {sp}: {e}"); continue
-            for o in obs:
-                if o.get("obsReviewed") is False and o.get("obsValid") is False:
-                    continue
-                k = o.get("locId") or f'{o["lat"]:.3f},{o["lng"]:.3f}'
-                p = places.setdefault(k, {"lat": round(o["lat"], 4), "lon": round(o["lng"], 4), "place": o.get("locName", "")[:80], "birds": 0, "species": {}, "last": ""})
-                n = o.get("howMany") or 1
-                p["birds"] += n; p["species"][water[sp]] = p["species"].get(water[sp], 0) + n
-                p["last"] = max(p["last"], o.get("obsDt", "")[:10])
-            time.sleep(0.2)   # be gentle with the API
-    out = [dict(p, species=sorted(p["species"].items(), key=lambda x: -x[1])[:6]) for p in places.values()]
-    out.sort(key=lambda p: -p["birds"])
+    problems, today = [], dt.date.today()
+    found = peak_places(REGIONS, water, key, [today - dt.timedelta(days=i) for i in range(DAYS)])
+    out = [{"lat": p["lat"], "lon": p["lon"], "place": p["place"], "birds": p["birds"], "last": p["last"], "species": sorted(p["sp"].items(), key=lambda x: -x[1])[:6]} for p in found]
+    if not out:
+        problems.append("no waterfowl records returned")
     write(out, problems, "ok" if out or not problems else "error")
     print(f"birds: {len(out)} places, {sum(p['birds'] for p in out)} waterfowl; problems: {problems or 'none'}")
     try:
@@ -75,34 +58,42 @@ def main():
     return 0
 
 
-def week_of(regs, water, key, monday):
-    """Peak waterfowl count per place over one Monday-Sunday week, from eBird historic records."""
+def peak_places(regs, water, key, days):
+    """Each place's busiest day over the given dates: total waterfowl that day and the species seen. eBird historic records."""
     best = {}
-    for i in range(7):
-        d = monday + dt.timedelta(days=i)
+    for d in days:
         day = {}
         for reg in regs:
             try:
-                obs = get(f"/data/obs/{reg}/historic/{d.year}/{d.month}/{d.day}?cat=species&detail=simple&rank=mrec&maxResults=10000", key)
+                obs = get(f"/data/obs/{reg}/historic/{d.year}/{d.month}/{d.day}?cat=species&detail=simple&rank=mrec&includeProvisional=true&maxResults=10000", key)
             except Exception:
                 continue
             for o in obs:
                 if o.get("speciesCode") not in water or o.get("lat") is None:
                     continue
                 k = o.get("locId") or f'{o["lat"]:.3f},{o["lng"]:.3f}'
-                p = day.setdefault(k, {"lat": round(o["lat"], 3), "lon": round(o["lng"], 3), "n": 0, "sp": {}})
+                p = day.setdefault(k, {"lat": round(o["lat"], 4), "lon": round(o["lng"], 4), "place": (o.get("locName") or "")[:80], "birds": 0, "sp": {}, "last": d.isoformat()})
                 n = o.get("howMany") or 1
-                p["n"] += n; p["sp"][water[o["speciesCode"]]] = p["sp"].get(water[o["speciesCode"]], 0) + n
+                p["birds"] += n; p["sp"][water[o["speciesCode"]]] = p["sp"].get(water[o["speciesCode"]], 0) + n
             time.sleep(0.15)
-        for k, p in day.items():   # keep each place's busiest day of the week
-            if k not in best or p["n"] > best[k]["n"]:
-                best[k] = p
-    return [[p["lat"], p["lon"], p["n"], max(p["sp"], key=p["sp"].get)] for p in sorted(best.values(), key=lambda x: -x["n"])]
+        for k, p in day.items():   # keep each place's busiest day
+            if k not in best or p["birds"] > best[k]["birds"]:
+                last = max(best[k]["last"], p["last"]) if k in best else p["last"]
+                best[k] = dict(p, last=last)
+            else:
+                best[k]["last"] = max(best[k]["last"], p["last"])
+    return sorted(best.values(), key=lambda x: -x["birds"])
+
+
+def week_of(regs, water, key, monday):
+    return [[round(p["lat"], 3), round(p["lon"], 3), p["birds"], max(p["sp"], key=p["sp"].get)] for p in peak_places(regs, water, key, [monday + dt.timedelta(days=i) for i in range(7)])]
 
 
 def update_weeks(key, water):
     try:
         arch = json.load(open(WEEKS_OUT))
+        if arch.get("method") != METHOD:
+            arch = {"weeks": []}   # counted another way before: rebuild
     except Exception:
         arch = {"weeks": []}
     today = dt.date.today()
@@ -117,7 +108,7 @@ def update_weeks(key, water):
         filled += 1
     weeks = sorted((have[m.isoformat()] for m in want if m.isoformat() in have), key=lambda w: w["start"])
     json.dump({"updated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "source": "eBird, Cornell Lab of Ornithology",
-               "note": "birds = highest count at a place on any day of the week", "weeks": weeks}, open(WEEKS_OUT, "w"), separators=(",", ":"))
+               "note": "birds = highest count at a place on any day of the week", "method": METHOD, "weeks": weeks}, open(WEEKS_OUT, "w"), separators=(",", ":"))
     print(f"birds: weekly archive {len(weeks)} of {WEEKS} weeks ({filled} filled this run)")
 
 
