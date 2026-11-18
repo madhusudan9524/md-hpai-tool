@@ -229,13 +229,16 @@ require([
   }
   document.querySelectorAll(".act").forEach((b) => (b.onclick = () => showAct(b.classList.contains("on") ? null : b.dataset.t)));
 
-  // MDA staff: Detections / Permits / Premises
+  // MDA staff: the three tiles (premises / reports / permits) are the tabs
   function showPane(p) {
-    document.querySelectorAll("#staffTabs button").forEach((b) => b.classList.toggle("on", b.dataset.p === p));
+    document.querySelectorAll("#staffTabs .stat").forEach((b) => b.classList.toggle("on", b.dataset.p === p));
     ["rep", "per", "prem"].forEach((k) => ($("pane-" + k).hidden = k !== p));
     if (p === "rep") loadQueue("rep"); if (p === "per") loadQueue("per");
   }
-  document.querySelectorAll("#staffTabs button").forEach((b) => (b.onclick = () => showPane(b.dataset.p)));
+  document.querySelectorAll("#staffTabs .stat").forEach((b) => (b.onclick = () => showPane(b.dataset.p)));
+  document.querySelectorAll("#commChips .cc").forEach((b) => (b.onclick = () => {
+    document.querySelectorAll("#commChips .cc").forEach((x) => x.classList.toggle("on", x === b)); $("commodity").value = b.dataset.v;
+  }));
 
   // ---- floating layers + key widget on the map ----
   const sw = (cls) => `<span class="sw ${cls}"></span>`;
@@ -273,10 +276,9 @@ require([
   function setWorkspace(w) {
     ws = w; pickMode = null; updatePickButtons(); marks.removeAll(); view.closePopup();
     document.body.dataset.ws = w;
-    $("sec-route").hidden = w !== "hauler";
-    $("sec-acts").hidden = !(w === "hauler" || w === "industry");
-    $("sec-staff").hidden = w !== "regulator";
+    document.querySelectorAll("[data-for]").forEach((el) => (el.hidden = !el.dataset.for.split(" ").includes(w)));   // each audience gets its own panel
     showAct(null);
+    if (w === "public") loadPublicKpis();
     routeLyr.visible = w === "hauler";
     if (isStaff() && !regAdded) {   // private layers are added only for MDA staff, so the public never hits a sign-in prompt
       regAdded = true;
@@ -286,7 +288,7 @@ require([
     }
     STAFF_LAYERS.forEach((l) => { if (!isStaff()) l.visible = false; else if (l !== farmsLyr) l.visible = true; });
     renderKey(); fadeCounties();
-    if (isStaff()) { refreshBadges(); showPane("rep"); }
+    if (isStaff()) { refreshBadges(); showPane("prem"); }
   }
 
   async function initRole() {
@@ -365,6 +367,12 @@ require([
     const el = document.createElement("div");
     el.className = "pop " + cls;
     el.innerHTML = `<div class="banner">${ICON[cls]}<div><div class="big">${big}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div></div>${body || ""}`;
+    if (cls !== "info" && cls !== "bird") {
+      const rd = document.createElement("div"); rd.className = "rad";
+      rd.innerHTML = `Nearby ${[5, 10, 20].map((k) => `<button data-r="${k}" class="${radius === k ? "on" : ""}">${k} km</button>`).join("")}`;
+      rd.querySelectorAll("button").forEach((b) => (b.onclick = () => { radius = radius === +b.dataset.r ? 0 : +b.dataset.r; if (lastCheck) checkLocation(lastCheck.pt, lastCheck.name); }));
+      el.appendChild(rd);
+    }
     view.openPopup({ location: pt, title: " ", content: el });
     const sp = view.toScreen(pt); if (sp && sp.y < 360) view.goTo({ center: pt }, { duration: 350 }).catch(() => {});   // keep the card on screen
   }
@@ -551,17 +559,17 @@ require([
       if (orgIn) reasons.push("origin is inside a control area");
       if (dstIn) reasons.push("destination is inside a control area");
       if (caKm > 0.05) reasons.push(`route passes ${caKm.toFixed(1)} km through a control area`);
-      const mins = r.minutes != null ? `${Math.round(r.minutes)} min` : "";
-      let html = `<div class="big">${permit ? "Permit required" : "No permit needed"}</div>`;
-      html += `<p><b>${r.km.toFixed(1)} km</b>${mins ? ", about " + mins : ""}${mode ? " (truck routing)" : ""}.</p><ul>`;
-      html += `<li>In control areas: <b>${caKm.toFixed(1)} km</b></li>`;
-      if (direct && Math.abs(direct.km - r.km) > 0.5) html += `<li>Detour around control areas: +${(r.km - direct.km).toFixed(1)} km (red dashed = direct)</li>`;
-      if (!avoided) html += `<li>No road avoids every control area.</li>`;
-      html += roadLine("Origin", roadO) + roadLine("Destination", roadD);
-      html += `</ul>`;
-      if (r.steps && r.steps.length) html += `<details class="dirs"><summary>Turn-by-turn directions</summary><ol>${r.steps.map((d) => `<li>${esc(d.text)}${d.km > 0.05 ? " (" + d.km.toFixed(1) + " km)" : ""}</li>`).join("")}</ol></details>`;
+      const mins = r.minutes != null ? Math.round(r.minutes) : null;
+      const hm = mins == null ? "–" : mins >= 60 ? `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, "0")}` : `${mins} min`;
+      const pct = Math.min(100, Math.max(0, (caKm / r.km) * 100));
+      let html = `<div class="verdict ${permit ? "ca" : "free"}">${permit ? '<svg viewBox="0 0 24 24"><path d="M12 2.5 4 6v6c0 5 3.4 8.5 8 9.5 4.6-1 8-4.5 8-9.5V6z"/><path d="M12 8v5M12 16v.5"/></svg>Permit needed' : '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>Clear to go'}</div>`;
+      html += `<div class="rstats"><div><b>${r.km.toFixed(0)}</b><span>km</span></div><div><b>${hm}</b><span>drive</span></div><div><b>${caKm.toFixed(0)}</b><span>km in area</span></div></div>`;
+      html += `<div class="rbar"><i class="g" style="width:${100 - pct}%"></i><i class="r" style="width:${pct}%"></i></div>`;
+      if (direct && Math.abs(direct.km - r.km) > 0.5) html += `<p class="rnote">Detour +${(r.km - direct.km).toFixed(0)} km to avoid control areas (red dashes = direct)</p>`;
+      if (!avoided) html += `<p class="rnote">Every road crosses a control area</p>`;
+      if (permit) html += `<p class="rnote">${reasons.join(" · ")}</p>`;
+      if (r.steps && r.steps.length) html += `<details class="dirs"><summary>Directions</summary><ol>${r.steps.map((d) => `<li>${esc(d.text)}${d.km > 0.05 ? " (" + d.km.toFixed(1) + " km)" : ""}</li>`).join("")}</ol></details>`;
       if (permit) {
-        html += `<p>${reasons.join("; ")}.</p>`;
         if (C.permitFormUrl && !C.permitFormUrl.startsWith("REPLACE")) {
           const q = new URLSearchParams({
             "field:origin": stops.org.name || label(stops.org.pt), "field:destination": stops.dst.name || label(stops.dst.pt),
@@ -569,11 +577,11 @@ require([
             "field:ca_km": caKm.toFixed(1), "field:permit_reason": reasons.join("; ")
           });
           const og = webMercatorUtils.webMercatorToGeographic(stops.org.pt);
-          q.set("center", `${og.y.toFixed(6)},${og.x.toFixed(6)}`); // places the request point at the origin
-          html += `<a class="cta red" target="_blank" rel="noopener" href="${C.permitFormUrl}?${q.toString()}">Request a movement permit</a>`;
-        } else html += `<p><i>Permit request form not configured yet.</i></p>`;
+          q.set("center", `${og.y.toFixed(6)},${og.x.toFixed(6)}`);
+          html += `<a class="cta red" target="_blank" rel="noopener" href="${C.permitFormUrl}?${q.toString()}">Request permit</a>`;
+        }
       }
-      box.className = "result"; box.innerHTML = `<div class="res ${permit ? "ca" : "free"}">${html}</div>`;
+      box.className = "result"; box.innerHTML = html;
     } catch (err) {
       box.className = "result"; box.innerHTML = `<div class="res info"><p>Couldn't plan the route: ${esc(err.message)}</p></div>`;
     }
@@ -583,11 +591,16 @@ require([
   // ---- Officials: review queues ----
   const pendingWhere = (kind) => kind === "rep" ? "review_status IS NULL OR review_status = 'New'" : "review_status IS NULL OR review_status = 'Pending'";
   async function refreshBadges() {
-    for (const [kind, lyr] of [["rep", repLyr], ["per", perLyr]]) {
-      const n = await lyr.queryFeatureCount({ where: pendingWhere(kind) }).catch(() => 0);
-      const bd = document.querySelector(`#staffTabs button[data-p="${kind}"] .badge`);
-      bd.textContent = n; bd.hidden = !n;
-    }
+    const set = (id, n) => { const e = $(id); if (e) e.textContent = n == null ? "–" : n; };
+    set("kPrem", await premises.queryFeatureCount({ where: "status = 'Active'" }).catch(() => null));
+    set("kRep", await repLyr.queryFeatureCount({ where: pendingWhere("rep") }).catch(() => null));
+    set("kPer", await perLyr.queryFeatureCount({ where: pendingWhere("per") }).catch(() => null));
+  }
+  async function loadPublicKpis() {
+    const set = (id, n) => { $(id).textContent = n == null ? "–" : n; };
+    set("kCA", await zonesQ.queryFeatureCount({ where: "zone_type = 'Control Area' AND status = 'Active'" }).catch(() => null));
+    set("kWild", await wild.queryFeatureCount().catch(() => null));
+    set("kCty", outbreakAreas.length || null);
   }
   async function loadQueue(kind) {
     const lyr = kind === "rep" ? repLyr : perLyr, box = $(kind === "rep" ? "repQueue" : "perQueue");
@@ -600,12 +613,16 @@ require([
       if (!rows.length) { box.innerHTML = `<p class="hint">Nothing submitted yet.</p>`; return; }
       box.innerHTML = rows.map(({ f, st }, i) => {
         const a = f.attributes, pend = !done.includes(st);
+        const day = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
         const head = kind === "rep" ? esc(a.species || "Report") : esc(a.company || "Permit request");
-        const l1 = kind === "rep" ? `${(a.sick_dead ?? "?").toLocaleString()} sick/dead of ${(a.flock_size ?? "?").toLocaleString()}${a.onset_date ? " · onset " + fmtDate(a.onset_date) : ""}` : `${esc(a.commodity || "")} · ${esc(a.origin || "?")} → ${esc(a.destination || "?")}`;
-        const l2 = kind === "rep" ? esc(a.premises_address || "") + (a.symptoms ? "<br>" + esc(a.symptoms) : "") : `${a.route_km != null ? a.route_km + " km" : ""}${a.ca_km ? ", " + a.ca_km + " km in control area" : ""}${a.move_date ? " · " + fmtDate(a.move_date) : ""}<br>${esc(a.permit_reason || "")}`;
-        const who = kind === "rep" ? `${esc(a.reporter_name || "")} ${esc(a.phone || "")}` : `${esc(a.contact_name || "")} ${esc(a.phone || "")}`;
-        return `<div class="qi ${pend ? "" : "done"}" data-i="${i}"><div class="qh"><b>${head}</b><span class="tag ${pend ? "Active" : "Released"}">${esc(st)}</span></div><div class="q1">${l1}</div><div class="q2">${l2}</div><div class="q3">${who}</div>
-          <div class="qa"><button data-a="loc">Locate</button>${pend ? `<button class="ok" data-a="yes">${yes[0]}</button><button class="no" data-a="no">${no[0]}</button>` : ""}</div></div>`;
+        const sub = kind === "rep" ? esc(a.premises_address || "") : `${esc(a.origin || "?")} → ${esc(a.destination || "?")}`;
+        const chips = kind === "rep"
+          ? `<span class="hot">${a.sick_dead ?? "?"} of ${(a.flock_size ?? "?").toLocaleString()} sick</span>${a.onset_date ? `<span>onset ${day(a.onset_date)}</span>` : ""}`
+          : `<span>${esc(a.commodity || "")}</span>${a.route_km != null ? `<span>${a.route_km} km</span>` : ""}${a.ca_km ? `<span class="hot">${a.ca_km} km in area</span>` : ""}${a.move_date ? `<span>${day(a.move_date)}</span>` : ""}`;
+        const icon = kind === "rep" ? '<svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z"/><path d="M12 10v5M12 17.6v.4"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 14l2 2 4-4"/></svg>';
+        return `<div class="qi ${pend ? "" : "done"}" data-i="${i}"><div class="qtop"><span class="qic ${kind}">${icon}</span><div><b>${head}</b><small>${sub}</small></div><span class="tag ${pend ? "Active" : "Released"}">${esc(st)}</span></div>
+          <div class="qchips">${chips}</div>
+          <div class="qa"><button class="loc" data-a="loc" title="Show on map"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button>${pend ? `<button class="ok" data-a="yes">${yes[0]}</button><button class="no" data-a="no">${no[0]}</button>` : ""}</div></div>`;
       }).join("");
       box.querySelectorAll(".qi").forEach((el) => el.querySelectorAll("button").forEach((btn) => btn.onclick = async () => {
         const { f } = rows[+el.dataset.i], act = btn.dataset.a;
@@ -622,11 +639,13 @@ require([
 
   // ---- Active control areas list (transporters, industry, officials) ----
   function renderAreas() {
-    const html = outbreakAreas.length ? outbreakAreas.map((a, i) => `<button class="area" data-i="${i}"><b>${esc(a.county)}</b><span>since ${fmtDate(a.since)}</span></button>`).join("") : `<p class="hint">No active control areas.</p>`;
+    const day = (t) => Math.max(1, Math.floor((Date.now() - t) / 864e5) + 1);
+    const html = outbreakAreas.length ? outbreakAreas.map((a, i) => `<button class="area" data-i="${i}"><b>${esc(a.county)}</b><span>Day ${day(a.since)}</span></button>`).join("") : `<p class="hint">No active control areas</p>`;
     document.querySelectorAll(".areaList").forEach((el) => {
       el.innerHTML = html;
       el.querySelectorAll(".area").forEach((b) => (b.onclick = () => view.goTo(outbreakAreas[+b.dataset.i].ext.clone().expand(2.2))));
     });
+    if (ws === "public") loadPublicKpis();
   }
   async function loadPremisesList() {
     const div = document.getElementById("premList");
