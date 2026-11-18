@@ -73,10 +73,14 @@ require([
       visualVariables: [{ type: "opacity", field: "age", stops: [{ value: 0, opacity: 1 }, { value: 28, opacity: 0.95 }, { value: 365, opacity: 0.55 }, { value: 1500, opacity: 0.35 }] }] },
     popupEnabled: false
   });
+  const birdsLyr = new FeatureLayer({ title: "Waterfowl sightings (eBird)", source: [], objectIdField: "OID", geometryType: "point", spatialReference: { wkid: 4326 }, outFields: ["*"], visible: false, popupEnabled: false,
+    fields: [{ name: "OID", type: "oid" }, { name: "birds", type: "integer" }, { name: "place", type: "string" }, { name: "species", type: "string" }, { name: "last", type: "string" }],
+    renderer: { type: "heatmap", field: "birds", radius: 14, maxDensity: 0.04, minDensity: 0,
+      colorStops: [{ ratio: 0, color: "rgba(64,120,200,0)" }, { ratio: 0.2, color: "rgba(64,120,200,0.35)" }, { ratio: 0.5, color: "rgba(40,90,190,0.6)" }, { ratio: 0.8, color: "rgba(30,60,160,0.8)" }, { ratio: 1, color: "rgba(20,30,120,0.9)" }] } });
   const routeLyr = new GraphicsLayer({ listMode: "hide" }), marks = new GraphicsLayer({ listMode: "hide" });
 
   const map = new EsriMap({ basemap: dark ? "dark-gray-vector" : "topo-vector",
-    layers: [maskLyr, env.land, env.wetlands, env.water, env.rivers, env.sheds, env.wma, env.waterfowl, env.refuges, riskLyr, tintLyr, countyLyr, histLyr] });
+    layers: [maskLyr, env.land, env.wetlands, env.water, env.rivers, env.sheds, env.wma, env.waterfowl, env.refuges, riskLyr, birdsLyr, tintLyr, countyLyr, histLyr] });
   const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, constraints: { minZoom: 7, snapToZoom: false },
     popup: { dockEnabled: false, dockOptions: { buttonEnabled: false }, collapseEnabled: false, visibleElements: { closeButton: true, featureNavigation: false, actionBar: false, heading: false, collapseButton: false, spinner: false }, highlightEnabled: false, actions: [] }, ui: { components: ["zoom", "attribution"] } });
   view.ui.move("zoom", "bottom-right");
@@ -226,6 +230,12 @@ require([
     renderNews(Ld); loadWild(); paintCounties(); emit("live", Ld);
   });
 
+  fetch((C.birdsUrl || "data/birds.json") + "?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).then(async (B) => {
+    if (!B || !B.places || !B.places.length) return;
+    S.birdsOk = true; S.birds = B;
+    await birdsLyr.applyEdits({ addFeatures: B.places.map((p) => new Graphic({ geometry: { type: "point", x: p.lon, y: p.lat, spatialReference: { wkid: 4326 } }, attributes: { birds: p.birds, place: p.place, last: p.last, species: (p.species || []).map((s) => s[0] + " " + s[1]).join(", ") } })) }).catch(() => {});
+    renderKey();
+  }).catch(() => {});
   const KIND = { commercial: ["Commercial flock", "red"], backyard: ["Backyard flock", "amber"], wild: ["Wild birds", "teal"], general: ["Notice", ""] };
   const short = (s) => (s || "").replace("Maryland Department of Agriculture", "MDA").replace("Delaware Department of Agriculture", "DDA").replace("Virginia Department of Agriculture and Consumer Services", "VDACS");
   function renderNews(Ld) {
@@ -410,6 +420,7 @@ require([
     { sec: "Wildlife" },
     { id: "wb", t: "Wildlife with HPAI", n: "birds and mammals · USDA APHIS", sw: "wb", ls: () => [wild], seg: true },
     { id: "risk", t: "Seasonal risk", n: "migration + detections + habitat", sw: "risk", ls: () => [riskLyr], off: true },
+    { id: "ebd", t: "Waterfowl sightings, 7 days", n: "eBird · Cornell Lab", sw: "ebd", ls: () => (S.birdsOk ? [birdsLyr] : []), off: true, link: [C.birdcastUrl, "Tonight's migration (BirdCast)"] },
     { id: "wf", t: "Waterfowl areas", n: "MD DNR", sw: "wf", ls: () => [env.waterfowl], off: true },
     { id: "nwr", t: "Wildlife refuges", n: "USFWS", sw: "nwr", ls: () => [env.refuges], off: true },
     { id: "wma", t: "Wildlife management areas", n: "MD DNR", sw: "wma", ls: () => [env.wma], off: true },
@@ -437,6 +448,7 @@ require([
       const on = vis[r.id] != null ? vis[r.id] : !r.off;
       ls.forEach((l) => (l.visible = on));
       html += `<label class="lrow"><span class="sw ${r.sw}"></span><span class="nm">${esc(r.t)}${r.n ? `<small>${esc(r.n)}</small>` : ""}</span><input type="checkbox" class="tg" data-id="${r.id}" ${on ? "checked" : ""}></label>`;
+      if (r.link && on) html += `<a class="lklink" href="${esc(r.link[0])}" target="_blank" rel="noopener">${esc(r.link[1])} ↗</a>`;
       if (r.seg) html += `<div class="seg" id="wildSeg"><button data-d="28" class="${S.wildRange === 28 ? "on" : ""}">4 weeks</button><button data-d="365" class="${S.wildRange === 365 ? "on" : ""}">12 months</button><button data-d="9999" class="${S.wildRange === 9999 ? "on" : ""}">All years</button></div><div class="wlg"><span><img src="${ICONS.bird}" alt="">Bird</span><span><img src="${ICONS.mammal}" alt="">Mammal</span></div>`;
     });
     html += `<button class="tbtn" id="timeBtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Look back in time</button></div>`;
@@ -461,6 +473,11 @@ require([
       if (g.graphic.layer === closuresLyr) return simpleCard(e.mapPoint, "info", "Road closure", g.graphic.attributes.incident, [["Lanes", g.graphic.attributes.lanes], ["Updated", g.graphic.attributes.updated]]);
       if (g.graphic.layer === histLyr) return simpleCard(e.mapPoint, "info", g.graphic.attributes.kind === "sample" ? "Past area · SAMPLE" : "Past outbreak", g.graphic.attributes.label, [["From", fmtDate(g.graphic.attributes.start)]]);
       if (emit("hit", { g: g.graphic, pt: e.mapPoint }).some(Boolean)) return;
+    }
+    if (birdsLyr.visible && S.birdsOk && view.zoom >= 10) {
+      const r = await birdsLyr.queryFeatures({ geometry: e.mapPoint, distance: 1.2 * view.resolution * 12, units: "meters", outFields: ["*"], returnGeometry: true }).catch(() => null);
+      const f = r && r.features[0];
+      if (f) return simpleCard(f.geometry, "ebird", "Waterfowl sighting · eBird", f.attributes.place || "Sighting", [["Birds counted", f.attributes.birds], ["Species", f.attributes.species], ["Last seen", f.attributes.last]], `<div class="do">Healthy wild waterfowl can carry HPAI. Source: eBird, Cornell Lab of Ornithology.</div>`);
     }
     locationCard(e.mapPoint, "This location");
   });

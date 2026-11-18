@@ -52,6 +52,8 @@ window.HPAI_CONFIG = {
 
   // ---- live data written twice a day by tools/update_detections.py (official sources only) ----
   dataUrl: "data/detections.json",
+  birdsUrl: "data/birds.json",                    // eBird waterfowl sightings, last 7 days (tools/update_birds.py)
+  birdcastUrl: "https://birdcast.org/live-migration-maps/",   // BirdCast live migration (radar); linked, not embedded
   sampleHistoryUrl: "data/sample_history.json",   // SAMPLE past zone shapes for the time slider (exercise data)
   stationsUrl: "data/cd_stations.json",           // cleaning & disinfection stations (SAMPLE until MDA lists real ones)
 
