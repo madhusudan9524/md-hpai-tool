@@ -60,7 +60,9 @@ window.HPAI = window.HPAI || { modules: [] };
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([body], { type: "text/csv" })); a.download = name; a.click();
   }
 
+  // distances are stored in km (regulatory definitions) and shown in miles
+  const mi = (km, d) => { const v = km * 0.621371; return v >= 10 || d === 0 ? Math.round(v).toString() : v.toFixed(d == null ? 1 : d).replace(/\.0$/, ""); };
   const uid = (p) => (p || "") + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
 
-  Object.assign(H, { $, esc, DAY, fmtDate, fmtShort, fmtTime, daysAgo, ago, toast, store, sheet, closeSheet, shrinkImage, qrSvg, csv, uid });
+  Object.assign(H, { mi, $, esc, DAY, fmtDate, fmtShort, fmtTime, daysAgo, ago, toast, store, sheet, closeSheet, shrinkImage, qrSvg, csv, uid });
 })(window.HPAI);

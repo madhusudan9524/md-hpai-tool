@@ -4,10 +4,10 @@
 require([
   "esri/config", "esri/Map", "esri/views/MapView", "esri/layers/FeatureLayer", "esri/layers/GraphicsLayer", "esri/layers/MapImageLayer",
   "esri/layers/WMSLayer", "esri/Graphic", "esri/geometry/geometryEngine", "esri/geometry/support/webMercatorUtils", "esri/geometry/Point",
-  "esri/geometry/Polygon", "esri/geometry/Extent", "esri/widgets/Search", "esri/widgets/Home", "esri/widgets/TimeSlider",
+  "esri/geometry/Polygon", "esri/geometry/Extent", "esri/widgets/Search", "esri/widgets/Home",
   "esri/identity/OAuthInfo", "esri/identity/IdentityManager", "esri/portal/Portal", "esri/core/reactiveUtils", "esri/widgets/Sketch/SketchViewModel"
 ], (esriConfig, EsriMap, MapView, FeatureLayer, GraphicsLayer, MapImageLayer, WMSLayer, Graphic, geometryEngine, wmu, Point, Polygon, Extent,
-    Search, Home, TimeSlider, OAuthInfo, esriId, Portal, reactiveUtils, SketchViewModel) => {
+    Search, Home, OAuthInfo, esriId, Portal, reactiveUtils, SketchViewModel) => {
   const H = window.HPAI, C = window.HPAI_CONFIG, R = window.HPAIRisk;
   const { $, esc, DAY, fmtDate, fmtShort, toast, store } = H;
   const has = (u) => typeof u === "string" && u.length > 8;
@@ -321,7 +321,7 @@ require([
     const more = `<div class="more" hidden>
       ${since ? `<div class="r"><span>Zone since</span><b>${fmtDate(since)}</b></div>` : ""}
       ${aff ? `<div class="r"><span>County status</span><b>${aff.items.every((i) => i.sample) ? "Sample zone" : aff.items.some((i) => i.status === "preliminary") ? "Preliminary detection" : "HPAI reported"} · ${fmtShort(aff.since)}</b></div>` : ""}
-      <div class="r"><span>Wildlife, 10 km</span><b>${wildN} in 4 wk · ${wildY} in 12 mo</b></div>
+      <div class="r"><span>Wildlife within 6 mi</span><b>${wildN} in 4 wk · ${wildY} in 12 mo</b></div>
       <div class="r"><span>Seasonal risk</span><b>${R.TIERS[sr.tier]}</b></div>
       <div class="r"><span>Past outbreaks</span><b>${hist.n ? hist.n + " · last " + fmtShort(hist.last) : "None on record"}</b></div>
       <div class="do"><b>What to do</b><ul>${DO[z.zone || "none"].map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div></div>`;
@@ -393,30 +393,25 @@ require([
       symbol: i.kind === "county" ? fill(ROSE, 0.14, ROSE.concat(0.8), 1, "dash") : fill(SLATE, i.kind === "zone" ? 0.3 : 0.22, SLATE.concat(0.95), 1.2, i.kind === "sample" ? "dash" : "solid") })));
     return items;
   });
-  let slider = null;
-  function openTime() {
-    $("timebar").hidden = false; histLyr.visible = true;
-    if (slider) return;
-    histReady.then((items) => {
-      const start = Math.min(Date.parse("2022-01-01"), ...items.map((i) => i.start)), end = Date.now();
-      slider = new TimeSlider({ container: "timeSlider", mode: "time-window", fullTimeExtent: { start: new Date(start), end: new Date(end) },
-        timeExtent: { start: new Date(end - 365 * DAY), end: new Date(end) }, stops: { interval: { value: 1, unit: "months" } }, playRate: 900 });
-      const apply = (te) => { const a = +te.start, b = +te.end; histLyr.graphics.forEach((g) => (g.visible = g.attributes.end >= a && g.attributes.start <= b)); };
-      reactiveUtils.watch(() => slider.timeExtent, (te) => te && apply(te), { initial: true });
-    });
+  // look back in time: a "Past outbreaks" row in the layers panel with a month slider
+  S.timeAt = null; let timeT0 = null, playing = null;
+  function applyTime() {
+    const t = S.timeAt == null ? Date.now() : S.timeAt;
+    histLyr.graphics.forEach((g) => (g.visible = g.attributes.start <= t && g.attributes.end >= t - 30 * DAY));
+    const lab = $("timeLab"); if (lab) lab.textContent = new Date(t).toLocaleDateString("en-US", { month: "short", year: "numeric" });
   }
-  $("timeClose").onclick = () => { $("timebar").hidden = true; histLyr.visible = false; renderKey(); };
-
+  histReady.then((items) => { timeT0 = Math.min(Date.parse("2022-01-01"), ...items.map((i) => i.start)); renderKey(); });
   // ---------------- floating layers & key (minimizable) ----------------
   const keyEl = document.createElement("div"); keyEl.className = "lk glass" + (window.innerWidth < 760 || store.get("keyShut", false) ? " shut" : "");
   view.ui.add(keyEl, "top-right");
   const ROWS = () => [
     { sec: "Outbreak" },
-    { id: "ca", t: "Control area", n: `0–${C.zones.controlKm} km from the premises edge`, sw: "ca", ls: () => [L.ca] },
-    { id: "sz", t: "Surveillance zone", n: "appears as you zoom in", sw: "sz", ls: () => [L.sz] },
+    { id: "ca", t: "Control area", n: `within ${H.mi(C.zones.controlKm, 0)} miles of infected premises`, sw: "ca", ls: () => [L.ca] },
+    { id: "sz", t: "Surveillance zone", n: `${H.mi(C.zones.controlKm, 0)}–${H.mi(C.zones.surveillanceKm, 0)} miles · shows as you zoom in`, sw: "sz", ls: () => [L.sz] },
     { id: "pm", t: ctx.isStaff() ? "Infected premises (public view)" : "Infected premises", n: C.privacy.markerShiftKm[1] ? "approximate location" : "", sw: "barn", ls: () => [L.markers], off: ctx.isStaff() },
     { id: "ex", staff: 1, t: "Infected premises (exact)", n: "premises boundary · MDA only", sw: "perim", ls: () => [L.prem, L.perim] },
     { id: "cty", t: "Affected county", n: "detection or MDA notice", sw: "cty", ls: () => [tintLyr] },
+    { id: "past", t: "Past outbreaks", n: "slide to look back in time", sw: "past", ls: () => [histLyr], off: true, time: true },
     { sec: "Wildlife" },
     { id: "wb", t: "Wildlife with HPAI", n: "birds and mammals · USDA APHIS", sw: "wb", ls: () => [wild], seg: true },
     { id: "risk", t: "Seasonal risk", n: "migration + detections + habitat", sw: "risk", ls: () => [riskLyr], off: true },
@@ -449,14 +444,28 @@ require([
       ls.forEach((l) => (l.visible = on));
       html += `<label class="lrow"><span class="sw ${r.sw}"></span><span class="nm">${esc(r.t)}${r.n ? `<small>${esc(r.n)}</small>` : ""}</span><input type="checkbox" class="tg" data-id="${r.id}" ${on ? "checked" : ""}></label>`;
       if (r.link && on) html += `<a class="lklink" href="${esc(r.link[0])}" target="_blank" rel="noopener">${esc(r.link[1])} ↗</a>`;
+      if (r.time && on && timeT0) {
+        const months = Math.max(1, Math.round((Date.now() - timeT0) / (30.44 * DAY))), cur = S.timeAt == null ? months : Math.round((S.timeAt - timeT0) / (30.44 * DAY));
+        html += `<div class="tline"><button class="tplay" id="timePlay" aria-label="Play">${playing ? "❚❚" : "▶"}</button><input type="range" id="timeRange" min="0" max="${months}" value="${cur}" aria-label="Month"><b id="timeLab"></b></div>`;
+      }
       if (r.seg) html += `<div class="seg" id="wildSeg"><button data-d="28" class="${S.wildRange === 28 ? "on" : ""}">4 weeks</button><button data-d="365" class="${S.wildRange === 365 ? "on" : ""}">12 months</button><button data-d="9999" class="${S.wildRange === 9999 ? "on" : ""}">All years</button></div><div class="wlg"><span><img src="${ICONS.bird}" alt="">Bird</span><span><img src="${ICONS.mammal}" alt="">Mammal</span></div>`;
     });
-    html += `<button class="tbtn" id="timeBtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Look back in time</button></div>`;
+    html += `</div>`;
     keyEl.innerHTML = html;
     $("keyHead").onclick = () => { keyEl.classList.toggle("shut"); store.set("keyShut", keyEl.classList.contains("shut")); };
-    keyEl.querySelectorAll(".tg").forEach((t) => (t.onchange = () => { const r = ROWS().find((x) => x.id === t.dataset.id); vis[r.id] = t.checked; store.set("vis", vis); r.ls().filter(Boolean).forEach((l) => (l.visible = t.checked)); }));
+    keyEl.querySelectorAll(".tg").forEach((t) => (t.onchange = () => { const r = ROWS().find((x) => x.id === t.dataset.id); vis[r.id] = t.checked; store.set("vis", vis); r.ls().filter(Boolean).forEach((l) => (l.visible = t.checked)); if (r.time || r.link) renderKey(); }));
     const seg = $("wildSeg"); if (seg) seg.querySelectorAll("button").forEach((b) => (b.onclick = () => { S.wildRange = +b.dataset.d; store.set("wildRange", S.wildRange); seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); loadWild(); }));
-    $("timeBtn").onclick = openTime;
+    const tr = $("timeRange");
+    if (tr) {
+      const set = () => { S.timeAt = Math.min(Date.now(), timeT0 + +tr.value * 30.44 * DAY); applyTime(); };
+      tr.oninput = set; set();
+      $("timePlay").onclick = () => {
+        if (playing) { clearInterval(playing); playing = null; $("timePlay").textContent = "▶"; return; }
+        if (+tr.value >= +tr.max) tr.value = 0;
+        $("timePlay").textContent = "❚❚";
+        playing = setInterval(() => { if (+tr.value >= +tr.max) { clearInterval(playing); playing = null; const p = $("timePlay"); if (p) p.textContent = "▶"; return; } tr.value = +tr.value + 1; set(); }, 450);
+      };
+    }
   }
   ctx.renderKey = renderKey;
 
@@ -560,6 +569,14 @@ require([
     ctx.sheetPeek = () => window.innerWidth <= 760 && set(0);
     ctx.sheetHalf = () => window.innerWidth <= 760 && set(1);
   })();
+
+  // first visit: one gentle hint, then never again
+  if (!store.get("hinted", false)) {
+    const b = document.createElement("div"); b.className = "hintbub glass"; b.innerHTML = `<span>Tap anywhere on the map to check a place</span><button aria-label="Dismiss">×</button>`;
+    $("viewDiv").appendChild(b);
+    const bye = () => { b.remove(); store.set("hinted", true); };
+    b.querySelector("button").onclick = bye; view.on("click", bye); setTimeout(bye, 12000);
+  }
 
   // ---------------- start ----------------
   (H.modules || []).forEach((m) => { try { m(ctx); } catch (e) { console.error("module", e); } });

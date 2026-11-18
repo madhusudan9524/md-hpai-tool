@@ -62,12 +62,12 @@
     const pts = [], add = (n, why, src) => pts.push({ n, why, src });
     if (i.zone === "control") add(4, "Inside a control area", "aphis2015");
     else if (i.zone === "surveillance") add(2, "Inside a surveillance zone", "aphis2015");
-    else if (i.kmToArea != null && i.kmToArea <= 10) add(1, `Control area ${i.kmToArea.toFixed(0)} km away`, "aphis2015");
+    else if (i.kmToArea != null && i.kmToArea <= 10) add(1, `Control area ${(i.kmToArea * 0.621371).toFixed(0)} mi away`, "aphis2015");
     if (i.zoneVisits > 0) add(3, `${i.zoneVisits} visit${i.zoneVisits > 1 ? "s" : ""} by vehicles from a control area (14 days)`, "aphis2015");
     else if (i.visits >= 5) add(1, `${i.visits} vehicle visits in 14 days`, "aphis2015");
-    if (i.wildNear > 0) add(2, `${i.wildNear} wild-bird detection${i.wildNear > 1 ? "s" : ""} within 10 km (4 weeks)`, "usgs2025");
+    if (i.wildNear > 0) add(2, `${i.wildNear} wild-bird detection${i.wildNear > 1 ? "s" : ""} within 6 mi (4 weeks)`, "usgs2025");
     else if (i.wildCounty) add(1, "Wild-bird detection in the county (4 weeks)", "usgs2025");
-    if (i.habitatKm != null && i.habitatKm <= 1) add(1, "Waterfowl habitat or open water within 1 km", "schreuder2022");
+    if (i.habitatKm != null && i.habitatKm <= 1) add(1, "Waterfowl habitat or open water within ½ mile", "schreuder2022");
     if (i.season >= 0.5) add(1, "Peak migration season", "aphisWild");
     if (i.audit && i.audit.passed && now - i.audit.date <= 365 * DAY) add(-1, "Passed a biosecurity audit in the last year", "aphis2015");
     else if (i.audit && !i.audit.passed) add(1, "Last biosecurity audit not passed", "aphis2015");

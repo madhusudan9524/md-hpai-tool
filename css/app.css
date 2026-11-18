@@ -270,3 +270,15 @@ section { margin-bottom: 14px; }
 .sw.ebd { background: radial-gradient(circle, rgba(30,60,160,.85) 0 30%, rgba(64,120,200,.35) 60%, transparent 70%); }
 .lklink { display: block; margin: -2px 8px 6px 42px; font-size: 12.5px; color: var(--accent); text-decoration: none; font-weight: 600; }
 .pop .band.ebird { background: #2c5aa0; }
+
+/* past outbreaks: month slider inside the layers panel */
+.tline { display: flex; align-items: center; gap: 8px; margin: -2px 8px 8px 10px; }
+.tline input[type=range] { flex: 1; accent-color: var(--ws); }
+.tline b { font-size: 12.5px; min-width: 64px; text-align: right; }
+.tplay { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); font-size: 11px; line-height: 1; }
+
+/* keyboard focus + first-visit hint */
+:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+.hintbub { position: absolute; left: 50%; top: 16px; transform: translateX(-50%); z-index: 5; padding: 10px 14px 10px 16px; border-radius: 99px; font-size: 14.5px; font-weight: 600; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.hintbub button { border: 0; background: rgba(127,127,127,.18); width: 24px; height: 24px; border-radius: 50%; font-size: 15px; line-height: 1; }
+@media (max-width: 760px) { .hintbub { top: 10px; font-size: 13.5px; } }

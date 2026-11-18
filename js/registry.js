@@ -62,7 +62,7 @@
       const houses = feats.map((f) => Polygon.fromJSON(Object.assign({ spatialReference: { wkid: 102100 } }, f.geometry)))
         .filter((p) => { const A = ge.geodesicArea(p, "square-meters"), P = ge.geodesicLength(p, "meters"); return isPoultryHouse(P, A); });
       if (!houses.length) {
-        return { perimeter: ge.geodesicBuffer(pt.spatialReference.isWGS84 ? wmu.geographicToWebMercator(pt) : pt, 0.15, "kilometers"), houses: [], source: "default 150 m (no poultry houses found)" };
+        return { perimeter: ge.geodesicBuffer(pt.spatialReference.isWGS84 ? wmu.geographicToWebMercator(pt) : pt, 0.15, "kilometers"), houses: [], source: "default boundary (no poultry houses found)" };
       }
       // keep the group of houses nearest the point (each within 100 m of another), so a neighboring farm is not merged in
       const p0 = pt.spatialReference.isWGS84 ? wmu.geographicToWebMercator(pt) : pt;
@@ -90,7 +90,7 @@
     // ---- registry pane (inside the MDA "Premises" tab) ----
     let filter = "all", term = "", batchStop = false;
     ctx.registryPane = async (box) => {
-      if (!ok()) { box.innerHTML = `<p class="hint">Registry layer not connected (config.js core.registry).</p>`; return; }
+      if (!ok()) { box.innerHTML = `<p class="hint">The premises registry is unavailable right now.</p>`; return; }
       addLayers();
       box.innerHTML = `<div class="kv" id="rgStats"><div><b>–</b><span>registered</span></div><div><b>–</b><span>MDA validated</span></div></div>
         <div class="btns" style="margin-top:0"><button class="primary" id="rgAdd">+ Add premises</button></div>
@@ -217,7 +217,7 @@
         if (tab === "bd") el.innerHTML = `<div class="two">${sel("production_type", "Production type", PROD)}${field("species", "Species (e.g. chicken, turkey)")}</div>
           ${field("bird_class", "Bird size / age class (e.g. broilers 6–8 wk, ~6 lb)")}<div class="two">${field("capacity", "Capacity (birds)", "number")}${field("current_birds", "Birds on site now", "number")}</div>
           <div class="two">${field("placement_date", "Flock placed", "date")}${field("market_date", "Expected market", "date")}</div>
-          <div class="two">${field("houses", "Poultry houses", "number")}<label>House floor area<input disabled value="${vals.house_area_m2 ? Math.round(vals.house_area_m2).toLocaleString() + " m²" : "–"}"></label></div>`;
+          <div class="two">${field("houses", "Poultry houses", "number")}<label>House floor area<input disabled value="${vals.house_area_m2 ? Math.round(vals.house_area_m2 * 10.7639).toLocaleString() + " sq ft" : "–"}"></label></div>`;
         if (tab === "co") {
           let audits = "";
           if (has(C.core.biosecurity) && a.farm_id) { try { audits = (await Q(C.core.biosecurity, { where: `farm_id = '${String(a.farm_id).replace(/'/g, "''")}'`, orderByFields: "audit_date DESC" })).features.map((x) => `<div class="prow"><span class="tx"><b>${fmtDate(x.attributes.audit_date)}</b><small>${esc(x.attributes.auditor || "")} ${esc(x.attributes.notes || "")}</small></span><span class="pill ${x.attributes.passed ? "green" : "red"}">${x.attributes.passed ? "Passed" : "Not passed"}</span></div>`).join(""); } catch (e) {} }
@@ -240,7 +240,7 @@
           };
         }
         if (tab === "ol") {
-          el.innerHTML = `<p class="hint">Source: ${esc(a.outline_source || "–")}. ${a.houses ? a.houses + " poultry houses, " + Math.round(a.house_area_m2 || 0).toLocaleString() + " m²." : ""}</p>
+          el.innerHTML = `<p class="hint">Source: ${esc(a.outline_source || "–")}. ${a.houses ? a.houses + " poultry houses, " + Math.round((a.house_area_m2 || 0) * 10.7639).toLocaleString() + " sq ft." : ""}</p>
             <div class="btns" style="margin-top:0"><button class="ghost" id="olAuto" style="flex:1">Suggest from buildings</button><button class="ghost" id="olEdit" style="flex:1">Edit shape</button><button class="ghost" id="olDraw" style="flex:1">Draw new</button></div><p class="hint" id="olMsg"></p>`;
           const saveGeom = async (g, src, hs) => {
             await edit(C.core.registry, { updates: JSON.stringify([{ geometry: g.toJSON(), attributes: Object.assign({ OBJECTID: oid, outline_source: src, validation: "Auto" }, hs ? { houses: hs.length || null, house_area_m2: Math.round(hs.reduce((s, h) => s + ge.geodesicArea(h, "square-meters"), 0)) || null } : {}) }]) });

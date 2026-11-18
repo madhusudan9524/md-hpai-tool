@@ -18,7 +18,7 @@ window.HPAI.modules.push(function (ctx) {
     const flags = [];
     if (z.zone === "control") flags.push(["red", "In control area"]);
     else if (z.zone === "surveillance") flags.push(["amber", "In surveillance zone"]);
-    else if (d != null && d <= 10) flags.push(["amber", `Control area ${d.toFixed(0)} km away`]);
+    else if (d != null && d <= 10) flags.push(["amber", `Control area ${H.mi(d, 0)} mi away`]);
     if (aff && !z.zone) flags.push(["red", "HPAI in county"]);
     if (wild) flags.push(["teal", `${wild} wild bird${wild > 1 ? "s" : ""} nearby`]);
     return { zone: z.zone, dist: d, aff: !!aff, wild, flags, key: flags.map((f) => f[1]).join("|") };
@@ -73,7 +73,7 @@ window.HPAI.modules.push(function (ctx) {
       <label>Email<input id="alEmail" type="email" autocomplete="email" placeholder="you@example.com"></label>
       <label>Place<div id="alSearch"></div></label>
       <p class="hint" id="alWhere">${first ? "Using: " + esc(first.name) : "Type your address."}</p>
-      <label>Alert me within<select id="alKm"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option></select></label>
+      <label>Alert me within<select id="alKm"><option value="4.828">3 miles</option><option value="9.656" selected>6 miles</option><option value="19.312">12 miles</option></select></label>
       <button class="primary" id="alGo" ${first ? "" : "disabled"}>Subscribe</button>
       <p class="hint">Only MDA can read your email. Every alert has a link to unsubscribe.</p></div>`);
     let loc = first ? { longitude: first.lon, latitude: first.lat } : null;
@@ -81,7 +81,7 @@ window.HPAI.modules.push(function (ctx) {
     $("alGo").onclick = async () => {
       const email = $("alEmail").value.trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast("Enter a valid email");
-      if (!ctx.has(C.submit.alerts)) return toast("Email alerts are not switched on yet");
+      if (!ctx.has(C.submit.alerts)) return toast(`Email alerts are temporarily unavailable. Call MDA at ${C.mdaPhone}.`);
       $("alGo").disabled = true;
       try {
         await ctx.rest(C.submit.alerts + "/addFeatures", { features: JSON.stringify([{ geometry: { x: loc.longitude, y: loc.latitude, spatialReference: { wkid: 4326 } },
@@ -125,7 +125,7 @@ window.HPAI.modules.push(function (ctx) {
     $("rpDrop").onclick = () => $("rpFile").click();
     $("rpFile").onchange = async () => { const f = $("rpFile").files[0]; if (!f) return; try { blob = await shrinkImage(f); $("rpDrop").innerHTML = `<img src="${URL.createObjectURL(blob)}" alt="Photo">`; } catch (e) { toast(e.message); } };
     $("rpGo").onclick = async () => {
-      if (!ctx.has(C.submit.reports)) return toast("Reporting is not switched on yet. Please call MDA.");
+      if (!ctx.has(C.submit.reports)) return toast(`Online reporting is temporarily unavailable. Please call MDA at ${C.mdaPhone}.`);
       $("rpGo").disabled = true; $("rpGo").textContent = "Sending…";
       try {
         const r = await ctx.rest(C.submit.reports + "/addFeatures", { features: JSON.stringify([{ geometry: { x: loc.longitude, y: loc.latitude, spatialReference: { wkid: 4326 } }, attributes: {
@@ -158,7 +158,7 @@ window.HPAI.modules.push(function (ctx) {
     $("suGo").onclick = async () => {
       const email = $("suEmail").value.trim(), name = $("suName").value.trim();
       if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast("Enter your name and a valid email");
-      if (!ctx.has(C.submit.accounts)) return toast("Sign-up is not switched on yet");
+      if (!ctx.has(C.submit.accounts)) return toast(`Requests are temporarily unavailable. Call MDA at ${C.mdaPhone}.`);
       $("suGo").disabled = true;
       try {
         await ctx.rest(C.submit.accounts + "/addFeatures", { features: JSON.stringify([{ attributes: { name, email, phone: $("suPhone").value, org: $("suOrg").value, county: $("suCty").value, role, ref_id: $("suId").value, status: "New", created: Date.now() } }]) }, { anon: true });

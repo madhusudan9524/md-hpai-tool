@@ -53,7 +53,7 @@ window.HPAI.modules.push(function (ctx) {
       <div><b>${c.rep == null ? "–" : c.rep}</b><span>new reports</span></div><div><b>${c.per == null ? "–" : c.per}</b><span>permits pending</span></div></div>
       <div class="btns" style="margin-top:0"><button class="primary" id="sumBtn">Daily situation summary</button></div>
       <div class="btns"><button class="ghost" id="pubBtn" style="flex:1">Publish public map</button><button class="ghost" id="declBtn" style="flex:1">Declare a county</button></div>
-      ${!live(C.core.premises) ? `<p class="hint" style="margin-top:10px">Using the prototype sample layers. Configure <code>core</code> in config.js for live operations.</p>` : ""}`;
+`;
     $("sumBtn").onclick = summary; $("pubBtn").onclick = publish; $("declBtn").onclick = declare;
   };
 
@@ -90,7 +90,7 @@ window.HPAI.modules.push(function (ctx) {
     }[qkind];
     async function load() {
       const box = $("qList");
-      if (!has(cfg.u)) { box.innerHTML = `<p class="hint">This queue is not connected yet.</p>`; return; }
+      if (!has(cfg.u)) { box.innerHTML = `<p class="hint">This list is unavailable right now. Try again shortly.</p>`; return; }
       try {
         const r = await Q(cfg.u, { where: all ? "1=1" : cfg.open, orderByFields: (qkind === "per" ? "requested" : "created") + " DESC", resultRecordCount: 100, returnGeometry: qkind !== "acc", outSR: 4326 });
         rows = r.features;
@@ -103,7 +103,7 @@ window.HPAI.modules.push(function (ctx) {
           const img = att[a.OBJECTID] ? `<img class="photo" src="${cfg.u}/${a.OBJECTID}/attachments/${att[a.OBJECTID].id}${tk ? "?token=" + tk : ""}" alt="Photo">` : "";
           const title = qkind === "rep" ? `${a.report_type === "flock" ? "Sick flock" : "Dead wild bird"} · ${esc(a.species || "")} × ${a.count || 1}` : qkind === "per" ? `${esc(a.permit_id)} · ${esc((C.commodities[a.commodity] || {}).label || a.commodity)}` : `${esc(a.name)} · ${a.role === "hauler" ? "Hauler" : "Industry"}`;
           const sub = qkind === "rep" ? `${fmtShort(a.observed || a.created)} · ${esc(a.name || "anonymous")} ${esc(a.phone || "")}<br>${esc(a.description || "")}`
-            : qkind === "per" ? `${esc((a.origin || "").split(",")[0])} → ${esc((a.destination || "").split(",")[0])}<br>${fmtDate(a.depart)}–${fmtShort(a.valid_to)} · ${esc(a.company)} · ${a.zone_km || 0} km in zone`
+            : qkind === "per" ? `${esc((a.origin || "").split(",")[0])} → ${esc((a.destination || "").split(",")[0])}<br>${fmtDate(a.depart)}–${fmtShort(a.valid_to)} · ${esc(a.company)} · ${H.mi(a.zone_km || 0)} mi in zone`
             : `${esc(a.email)} · ${esc(a.org || "")} · ${esc(a.county || "")}${a.ref_id ? " · " + esc(a.ref_id) : ""}`;
           return `<div class="qi" data-i="${i}">${img}<span class="tx"><b>${title}</b><small>${sub}</small></span>${done ? `<span class="pill">${esc(a.status)}</span>` : `<span style="display:grid;gap:4px"><button class="mini ok" data-a="yes" data-i="${i}">${cfg.yes[0]}</button><button class="mini no" data-a="no" data-i="${i}">${cfg.no[0]}</button></span>`}</div>`;
         }).join("");
@@ -169,12 +169,12 @@ window.HPAI.modules.push(function (ctx) {
   function newPremises() {
     const year = new Date().getFullYear();
     sheet("New infected premises", `<div class="form">
-      <p class="hint">1. Mark the premises. 2. Draw its boundary (or use a 150 m default). Zones are drawn outward from the boundary.</p>
+      <p class="hint">1. Mark the premises. 2. Use its registered boundary or draw one. Zones are drawn outward from the boundary.</p>
       <div class="btns" style="margin:0"><button class="ghost" id="npPick" style="flex:1">1 · Mark premises</button><button class="ghost" id="npDraw" style="flex:1" disabled>2 · Draw boundary</button></div>
       <p class="hint" id="npWhere">Not marked yet.</p>
       <div class="two"><label>Premises ID<input id="npId" value="MD-${year}-${String(Math.floor(Math.random() * 900) + 100)}"></label><label>Confirmed<input id="npDate" type="date" value="${new Date().toISOString().slice(0, 10)}"></label></div>
       <div class="two"><label>Flock type<select id="npFlock"><option>Commercial broiler</option><option>Commercial layer</option><option>Commercial turkey</option><option>Broiler breeder</option><option>Commercial duck</option><option>Backyard</option></select></label><label>Birds<input id="npBirds" type="number" min="0"></label></div>
-      <div class="two"><label>Control area km<input id="npCA" type="number" step="0.5" value="${C.zones.controlKm}"></label><label>Surveillance km<input id="npSZ" type="number" step="0.5" value="${C.zones.surveillanceKm}"></label></div>
+      <div class="two"><label>Control area (miles)<input id="npCA" type="number" step="0.1" value="${H.mi(C.zones.controlKm)}"></label><label>Surveillance zone (miles)<input id="npSZ" type="number" step="0.1" value="${H.mi(C.zones.surveillanceKm)}"></label></div>
       <label class="lrow" style="padding:0"><input type="checkbox" id="npPub" class="tg" checked><span>Publish to the public map now</span></label>
       <button class="danger" id="npGo" disabled>Create premises and zones</button></div>`);
     let pt = null, boundary = null, farmId = null;
@@ -189,7 +189,7 @@ window.HPAI.modules.push(function (ctx) {
         preview(); $("npDraw").disabled = false; $("npGo").disabled = false; return;
       }
       try { const r = await farms.queryFeatures({ geometry: mp, distance: 300, units: "meters", outFields: ["farm_id", "houses"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }); if (r.features.length) { pt = r.features[0].geometry; farmId = r.features[0].attributes.farm_id; } } catch (e) {}
-      const c = ctx.countyAt(pt); $("npWhere").textContent = `${c ? c.name + " County" : "Marked"}${farmId ? " · farm " + farmId : ""}. Default boundary: 150 m.`;
+      const c = ctx.countyAt(pt); $("npWhere").textContent = `${c ? c.name + " County" : "Marked"}${farmId ? " · farm " + farmId : ""}. Draw the boundary, or keep the default (about 500 ft).`;
       boundary = ge.geodesicBuffer(pt, 0.15, "kilometers"); preview(); $("npDraw").disabled = false; $("npGo").disabled = false; }; };
     $("npDraw").onclick = () => {
       $("sheet").hidden = true; toast("Draw the premises boundary: tap corners, double-tap to finish", 5000);
@@ -199,7 +199,7 @@ window.HPAI.modules.push(function (ctx) {
     };
     function preview() {
       marks.removeAll();
-      const ca = ge.geodesicBuffer(boundary, +$("npCA").value, "kilometers"), sz = ge.difference(ge.geodesicBuffer(boundary, +$("npSZ").value, "kilometers"), ca);
+      const ca = ge.geodesicBuffer(boundary, +$("npCA").value, "miles"), sz = ge.difference(ge.geodesicBuffer(boundary, +$("npSZ").value, "miles"), ca);
       marks.addMany([new Graphic({ geometry: sz, symbol: { type: "simple-fill", color: [217, 138, 0, 0.12], outline: { color: [217, 138, 0, 1], width: 1.5, style: "dash" } } }),
         new Graphic({ geometry: ca, symbol: { type: "simple-fill", color: [200, 40, 30, 0.22], outline: { color: [200, 40, 30, 1], width: 2 } } }),
         new Graphic({ geometry: boundary, symbol: { type: "simple-fill", color: [122, 15, 15, 0.6], outline: { color: [122, 15, 15, 1], width: 2 } } })]);
@@ -209,7 +209,7 @@ window.HPAI.modules.push(function (ctx) {
     $("npGo").onclick = async () => {
       $("npGo").disabled = true; $("npGo").textContent = "Creating…";
       const id = $("npId").value.trim(), when = Date.parse($("npDate").value + "T12:00:00"), c = ctx.countyAt(pt);
-      const ca = ge.geodesicBuffer(boundary, +$("npCA").value, "kilometers"), sz = ge.difference(ge.geodesicBuffer(boundary, +$("npSZ").value, "kilometers"), ca);
+      const ca = ge.geodesicBuffer(boundary, +$("npCA").value, "miles"), sz = ge.difference(ge.geodesicBuffer(boundary, +$("npSZ").value, "miles"), ca);
       const g = (x) => x.toJSON();
       try {
         await edit(url.prem(), { adds: JSON.stringify([{ geometry: g(pt.type === "point" ? pt : boundary.centroid), attributes: { premises_id: id, county: c ? c.name : "", flock_type: $("npFlock").value, birds: +$("npBirds").value || null, status: "Active", confirmed_date: when, farm_id: farmId } }]) });
@@ -217,7 +217,7 @@ window.HPAI.modules.push(function (ctx) {
         await edit(url.zones(), { adds: JSON.stringify([
           { geometry: g(ca), attributes: { premises_id: id, zone_type: "Control Area", status: "Active", confirmed_date: when, created_date: Date.now() } },
           { geometry: g(sz), attributes: { premises_id: id, zone_type: "Surveillance Zone", status: "Active", confirmed_date: when, created_date: Date.now() } }]) });
-        ctx.audit("premises:create", id, `${c ? c.name : ""} · CA ${$("npCA").value} km · SZ ${$("npSZ").value} km`);
+        ctx.audit("premises:create", id, `${c ? c.name : ""} · control area ${$("npCA").value} mi · surveillance ${$("npSZ").value} mi`);
         const pub = $("npPub").checked; closeSheet(); marks.removeAll(); toast("Premises and zones created");
         ctx.buildOutbreakLayers(); loaders.z(); if (pub) publish();
       } catch (e) { $("npGo").disabled = false; $("npGo").textContent = "Create premises and zones"; toast("Couldn't create: " + e.message); }
@@ -246,7 +246,7 @@ window.HPAI.modules.push(function (ctx) {
     let cty = null;
     $("dcPick").onclick = () => { $("sheet").hidden = true; picker = (mp) => { $("sheet").hidden = false; cty = ctx.countyAt(mp); $("dcWhere").textContent = cty ? `${cty.name} County, ${cty.state}` : "Not a Delmarva county"; $("dcGo").disabled = !cty; }; };
     $("dcGo").onclick = async () => {
-      if (!has(C.core.declarations)) return toast("Connect the declarations layer first (config.js core.declarations)");
+      if (!has(C.core.declarations)) return toast("County declarations are unavailable right now. Try again shortly.");
       try {
         await edit(C.core.declarations, { adds: JSON.stringify([{ geometry: cty.geom.toJSON(), attributes: { county: cty.name, state: cty.state, declared: Date.parse($("dcDate").value + "T12:00:00"), status: "Declared", status_text: $("dcSt").value, source_url: $("dcUrl").value } }]) });
         ctx.audit("declaration:add", cty.name + ", " + cty.state, $("dcSt").value); closeSheet(); toast(cty.name + " County declared"); ctx.buildOutbreakLayers();
@@ -256,7 +256,7 @@ window.HPAI.modules.push(function (ctx) {
 
   // ---------------- publish the public map (merged areas + approximate markers, with a privacy check) ----------------
   async function publish(released) {
-    if (!has(C.core.pubAreas) || !has(C.core.pubMarkers)) return toast("Public layers not connected yet; the public sees MDA's sample layers only after sign-in.");
+    if (!has(C.core.pubAreas) || !has(C.core.pubMarkers)) return toast("The public map can't be updated right now. Try again shortly.");
     toast("Publishing public map…");
     try {
       const [zr, pr] = await Promise.all([
@@ -360,7 +360,7 @@ window.HPAI.modules.push(function (ctx) {
       <div class="seg" id="baR"><button data-v="1" class="on">Passed</button><button data-v="0">Not passed</button></div><label>Notes<textarea id="baN" rows="3"></textarea></label><button class="primary" id="baGo">Save audit</button></div>`);
     let passed = 1; document.querySelectorAll("#baR button").forEach((x) => (x.onclick = () => { passed = +x.dataset.v; document.querySelectorAll("#baR button").forEach((y) => y.classList.toggle("on", y === x)); }));
     $("baGo").onclick = async () => {
-      if (!has(C.core.biosecurity)) return toast("Connect the biosecurity table first");
+      if (!has(C.core.biosecurity)) return toast("Audit records are unavailable right now. Try again shortly.");
       try { await edit(C.core.biosecurity, { adds: JSON.stringify([{ attributes: { farm_id: fid, audit_date: Date.parse($("baD").value + "T12:00:00"), passed, auditor: $("baBy").value, notes: $("baN").value } }]) }); ctx.audit("biosecurity:add", fid, passed ? "passed" : "not passed"); closeSheet(); toast("Audit saved"); }
       catch (e) { toast("Couldn't save: " + e.message); }
     };
@@ -424,7 +424,7 @@ window.HPAI.modules.push(function (ctx) {
   // ---------------- audit log ----------------
   loaders.au = async () => {
     const box = $("pane-au");
-    if (!has(C.core.audit)) { box.innerHTML = `<p class="hint">The audit log layer is not connected yet.</p>`; return; }
+    if (!has(C.core.audit)) { box.innerHTML = `<p class="hint">The audit log is unavailable right now.</p>`; return; }
     try {
       const r = await Q(C.core.audit, { orderByFields: "at DESC", resultRecordCount: 150 });
       box.innerHTML = `<div class="qtools"><button class="mini" id="auCsv">Export CSV</button></div>` + (r.features.map((f) => f.attributes).map((a) => `<div class="prow"><span class="tx"><b>${esc(a.action)} · ${esc(a.target)}</b><small>${fmtTime(a.at)} · ${esc(a.who)}${a.details ? " · " + esc(a.details).slice(0, 140) : ""}</small></span></div>`).join("") || `<p class="hint">No entries yet.</p>`);
