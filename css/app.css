@@ -183,6 +183,9 @@ section { margin-bottom: 14px; }
 .esri-time-slider { background: transparent !important; box-shadow: none !important; }
 
 /* map card (popup) */
+.esri-popup__main-container, .esri-popup .esri-features { max-height: none !important; }
+.esri-popup .esri-features__container, .esri-popup .esri-feature__content-element { padding: 0 !important; }
+.esri-popup .esri-features__footer, .esri-popup .esri-features__header .esri-features__heading, .esri-popup calcite-action[title="Zoom to"], .esri-popup calcite-action[title="Dock"] { display: none !important; }
 .esri-popup__main-container { border-radius: 18px !important; overflow: hidden; box-shadow: var(--shadow) !important; background: var(--glass) !important; -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); max-width: 360px !important; }
 .esri-popup__header { display: none !important; }
 .esri-popup__content { margin: 0 !important; }

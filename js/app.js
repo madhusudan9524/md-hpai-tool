@@ -70,7 +70,7 @@ require([
   const map = new EsriMap({ basemap: dark ? "dark-gray-vector" : "topo-vector",
     layers: [maskLyr, env.land, env.wetlands, env.water, env.rivers, env.sheds, env.wma, env.waterfowl, env.refuges, riskLyr, tintLyr, countyLyr, histLyr] });
   const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, constraints: { minZoom: 7, snapToZoom: false },
-    popup: { dockEnabled: false, collapseEnabled: false, visibleElements: { closeButton: true, featureNavigation: false }, highlightEnabled: false }, ui: { components: ["zoom", "attribution"] } });
+    popup: { dockEnabled: false, dockOptions: { buttonEnabled: false }, collapseEnabled: false, visibleElements: { closeButton: true, featureNavigation: false, actionBar: false, heading: false, collapseButton: false, spinner: false }, highlightEnabled: false, actions: [] }, ui: { components: ["zoom", "attribution"] } });
   view.ui.move("zoom", "bottom-right");
   view.ui.add(new Home({ view }), "bottom-right");
 
