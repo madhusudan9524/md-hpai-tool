@@ -180,6 +180,14 @@ window.HPAI.modules.push(function (ctx) {
     let pt = null, boundary = null, farmId = null;
     $("npPick").onclick = () => { $("sheet").hidden = true; toast("Tap the premises (a farm dot or the map)"); picker = async (mp) => {
       $("sheet").hidden = false; pt = mp;
+      const rg = ctx.registryAt ? await ctx.registryAt(mp) : null;
+      if (rg) {
+        boundary = rg.geometry; pt = rg.geometry.centroid; farmId = rg.attributes.farm_id; $("npId").value = rg.attributes.premises_id;
+        if (rg.attributes.production_type) { const o = [...$("npFlock").options].find((x) => x.text.toLowerCase().includes(rg.attributes.production_type.toLowerCase().split(" ")[0])); if (o) $("npFlock").value = o.text; }
+        if (rg.attributes.current_birds || rg.attributes.capacity) $("npBirds").value = rg.attributes.current_birds || rg.attributes.capacity;
+        $("npWhere").textContent = `${rg.attributes.name || rg.attributes.premises_id} · registered boundary${rg.attributes.validation === "Validated" ? " (MDA validated)" : " (not yet validated)"}`;
+        preview(); $("npDraw").disabled = false; $("npGo").disabled = false; return;
+      }
       try { const r = await farms.queryFeatures({ geometry: mp, distance: 300, units: "meters", outFields: ["farm_id", "houses"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }); if (r.features.length) { pt = r.features[0].geometry; farmId = r.features[0].attributes.farm_id; } } catch (e) {}
       const c = ctx.countyAt(pt); $("npWhere").textContent = `${c ? c.name + " County" : "Marked"}${farmId ? " · farm " + farmId : ""}. Default boundary: 150 m.`;
       boundary = ge.geodesicBuffer(pt, 0.15, "kilometers"); preview(); $("npDraw").disabled = false; $("npGo").disabled = false; }; };
@@ -309,8 +317,15 @@ window.HPAI.modules.push(function (ctx) {
     try { (await Q(C.core.biosecurity, { orderByFields: "audit_date DESC", resultRecordCount: 4000 })).features.forEach((f) => { const a = f.attributes; if (!bio[a.farm_id]) bio[a.farm_id] = a; }); } catch (e) {}
   }
   const bioPill = (fid) => { const b = bio[fid]; if (!b) return `<span class="pill">No audit</span>`; const old = Date.now() - b.audit_date > 365 * DAY; return `<span class="pill ${b.passed ? (old ? "amber" : "green") : "red"}">${b.passed ? (old ? "Audit overdue" : "Passed " + fmtShort(b.audit_date)) : "Failed " + fmtShort(b.audit_date)}</span>`; };
-  loaders.pr = async () => {
-    const box = $("pane-pr"); box.innerHTML = `<p class="hint">Counting farms in each zone…</p>`;
+  let prSub = "reg";
+  loaders.pr = () => {
+    const pane = $("pane-pr");
+    pane.innerHTML = `<div class="seg" id="prSeg"><button data-s="reg">Registry</button><button data-s="zones">In zones</button></div><div id="prBody"></div>`;
+    pane.querySelectorAll("#prSeg button").forEach((b) => { b.classList.toggle("on", b.dataset.s === prSub); b.onclick = () => { prSub = b.dataset.s; loaders.pr(); }; });
+    if (prSub === "reg" && ctx.registryPane) ctx.registryPane($("prBody")); else inZones($("prBody"));
+  };
+  async function inZones(box) {
+    box.innerHTML = `<p class="hint">Counting farms in each zone…</p>`;
     await loadBio();
     try {
       const z = await Q(url.zones(), { where: "status = 'Active'", returnGeometry: true, outSR: 102100 });
@@ -330,7 +345,7 @@ window.HPAI.modules.push(function (ctx) {
         el.querySelectorAll(".prow").forEach((r) => (r.onclick = () => { const x = o.list[+r.dataset.j]; view.goTo({ target: x.geometry, zoom: 14 }); }));
       }));
     } catch (e) { box.innerHTML = `<p class="hint">Couldn't count: ${esc(e.message)}</p>`; }
-  };
+  }
 
   async function farmCard(g, pt) {
     await loadBio(); const a = g.attributes, b = bio[a.farm_id];

@@ -265,3 +265,5 @@ section { margin-bottom: 14px; }
 
 .sw.barn { background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%234a0d0d' d='M2.5 21.5V11l3.2-4.3L12 2.8l6.3 3.9 3.2 4.3v10.5z'/%3E%3Cpath fill='%23fff' d='M9 21.5v-5.2h6v5.2h-1.4v-3.8h-3.2v3.8zM10.4 10.4h3.2v2.4h-3.2z'/%3E%3C/svg%3E") center/20px no-repeat; }
 .sw.perim { background: repeating-linear-gradient(45deg, rgba(74,13,13,.7) 0 2px, transparent 2px 5px), repeating-linear-gradient(-45deg, rgba(74,13,13,.7) 0 2px, transparent 2px 5px); border: 2px solid #4a0d0d; }
+.sw.reg { border: 2px solid #1e3c5a; background: rgba(30,60,90,.1); } .sw.hou { background: rgba(120,85,45,.6); border: 1px solid #5a3c1e; }
+#pmTabs button { font-size: 12.5px; padding: 7px 4px; }

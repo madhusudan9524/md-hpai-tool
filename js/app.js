@@ -420,6 +420,8 @@ require([
     { id: "riv", t: "Rivers and streams", n: "USGS NHD · zoom in", sw: "riv", ls: () => [env.rivers], off: true },
     { id: "wsh", t: "Watersheds (drainage)", n: "USGS WBD HUC-12", sw: "wsh", ls: () => [env.sheds], off: true },
     { sec: "Farms and roads", roles: ["regulator", "hauler"] },
+    { id: "reg", staff: 1, t: "Registered premises", n: "solid = MDA validated, dashed = review", sw: "reg", ls: () => [ctx.layers.registry] },
+    { id: "hou", staff: 1, t: "Poultry houses", n: "FEMA/ORNL footprints · zoom in", sw: "hou", ls: () => [ctx.layers.houses] },
     { id: "farm", staff: 1, t: "Poultry farms", n: "estimated, USGS study", sw: "farm", ls: () => [ctx.layers.farms], off: true },
     { id: "road", roles: ["regulator", "hauler"], t: "Road closures", n: "MDOT CHART", sw: "road", ls: () => [closuresLyr], off: true },
     { sec: "Map" },

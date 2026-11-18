@@ -23,3 +23,10 @@ const high = R.farmRisk({ zone: "control", wildNear: 2, habitatKm: 0.5, season: 
 assert.strictEqual(high.label, "Very high");
 assert.ok(high.reasons.every((r) => R.SOURCES[r.src]));
 console.log("risk tests passed", { low: low.points, high: high.points, jan: jan.value.toFixed(2) });
+
+// poultry-house shape test (registry auto-outline)
+const G = require("../js/registry.js");
+assert.ok(G.isPoultryHouse(2 * (152 + 15), 152 * 15));     // 500 ft x 50 ft house
+assert.ok(!G.isPoultryHouse(2 * (20 + 15), 20 * 15));      // a house-sized building
+assert.ok(!G.isPoultryHouse(2 * (40 + 40), 1600));         // big square barn / warehouse
+console.log("registry shape tests passed", G.houseShape(2 * (152 + 15), 152 * 15).ratio.toFixed(1));

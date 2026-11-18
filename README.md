@@ -37,6 +37,17 @@ The prototype is kept as `v1.html`.
 
 The current zones are the prototype's **sample** data, migrated and labeled as samples ("Sample zones" badge in the header). Release them from the MDA panel before real use.
 
+## MDA premises registry
+
+MDA staff → Premises → Registry:
+- **Add premises**: tap a farm; the boundary is suggested from FEMA/ORNL USA Structures building footprints (buildings ≥ 800 m² and ≥ 3.5× longer than wide are treated as poultry houses; houses within 100 m of each other form one premises; boundary = outline around them + 40 m).
+- **Auto-outline farms in view**: batch version for every estimated farm in view (up to 200 at a time, with progress and Stop).
+- **Import file**: GeoJSON (polygons or points) or CSV with latitude/longitude; known columns (name, operator, npip_id, capacity…) are filled in.
+- **Each premises**: Overview (operator, integrator, contacts, USDA PIN, NPIP no., status), Birds (production type, species, size/age class, capacity, birds on site, placement and market dates, houses and floor area), History (HPAI records at the site plus inspections, tests, quarantine, depopulation, C&D, restocking), Compliance (biosecurity plan, NPIP status, audits), Outline (suggest from buildings, edit, redraw).
+- Everything starts as **Needs review**; only **Validate** marks it as MDA validated. Every change goes to the audit log.
+- Creating an infected premises inside a registered boundary uses that boundary for the zones.
+- Layers: MD_HPAI_Core 9 Registry, 10 Houses, 11 PremisesEvents (MDA only).
+
 ## Privacy (Dr. Ghanem's requirement)
 
 - The public never receives exact premises. MDA's "Publish public map" builds merged control-area and surveillance-zone shapes and **approximate markers** moved 1.5–3 km in a random direction (kept inside the control area).

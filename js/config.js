@@ -13,6 +13,7 @@ window.HPAI_CONFIG = {
     premises: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/0", perimeters: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/1", zones: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/2",
     audit: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/7", biosecurity: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/8",
     // the editable layers behind the public view
+    registry: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/9", houses: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/10", events: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/11",   // MDA premises registry: validated perimeters, poultry houses, history
     pubAreas: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/3", pubMarkers: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/4", declarations: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/5", history: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/6"
   },
   // ---- public read-only view of the core service: merged areas, generalized markers, declarations, history ----
@@ -34,6 +35,8 @@ window.HPAI_CONFIG = {
     premises: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Response/FeatureServer/0",
     perimeters: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Response/FeatureServer/2"
   },
+  // FEMA / ORNL USA Structures (building footprints) used to suggest premises outlines from poultry houses
+  structuresUrl: "https://services2.arcgis.com/FiaPA4ga0iQKduv3/ArcGIS/rest/services/USA_Structures_View/FeatureServer/0",
   farmsUrl: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Poultry_Farms/FeatureServer/0",
 
   // ---- environmental reference layers (official public services) ----
