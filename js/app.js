@@ -203,7 +203,7 @@ require([
       L.ca = zoneLayer(areasUrl, "Control Area", { title: "Control area" });
       map.addMany([L.sz, L.ca], map.layers.indexOf(histLyr) + 1);
     }
-    if (has(C.pub.markers)) {
+    if (S.ws !== "public" && has(C.pub.markers)) {   // premises locations (even approximate) aren't shown to the public tier
       L.markers = new FeatureLayer({ url: C.pub.markers, title: "Infected premises (approximate)", outFields: ["*"], popupEnabled: false, definitionExpression: "status = 'Active'",
         renderer: { type: "simple", symbol: { type: "picture-marker", url: ICONS.barn, width: "28px", height: "28px" } } });
       map.add(L.markers);
@@ -518,7 +518,7 @@ require([
     { sec: "Outbreak" },
     { id: "ca", t: "Control area", n: `within ${H.mi(C.zones.controlKm)} miles of infected premises`, sw: "ca", ls: () => [L.ca] },
     { id: "sz", t: "Surveillance zone", n: `${H.mi(C.zones.controlKm)}–${H.mi(C.zones.surveillanceKm)} miles · shows as you zoom in`, sw: "sz", ls: () => [L.sz] },
-    { id: "pm", t: ctx.isStaff() ? "Infected premises (public view)" : "Infected premises", n: C.privacy.markerShiftKm[1] ? "approximate location" : "", sw: "barn", ls: () => [L.markers], off: ctx.isStaff() },
+    { id: "pm", roles: ["regulator", "hauler", "industry"], t: ctx.isStaff() ? "Infected premises (public view)" : "Infected premises", n: C.privacy.markerShiftKm[1] ? "approximate location" : "", sw: "barn", ls: () => [L.markers], off: ctx.isStaff() },
     { id: "ex", staff: 1, t: "Infected premises (exact)", n: "premises boundary · MDA only", sw: "perim", ls: () => [L.prem, L.perim] },
     { id: "cty", t: "Affected county", n: "detection or MDA notice", sw: "cty", ls: () => [tintLyr] },
     { id: "past", t: "Past outbreaks", n: "slide to look back in time", sw: "past", ls: () => [histLyr], off: true, time: true },
