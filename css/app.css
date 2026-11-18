@@ -496,3 +496,16 @@ body.pshut #panelToggle svg { transform: rotate(180deg); }
 .docs img { width: 120px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
 .docs .doc { padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); font-weight: 600; } .docs .doc small { color: var(--mute); font-weight: 400; }
 @media (prefers-color-scheme: dark) { .ck.ok { background: #173524; color: #7fd8a3; } .ck.fail { background: #3e1a1f; color: #ff9aa5; } .ck.warn { background: #3a2a12; color: #f4c27a; } .ck.manual { background: #18273f; color: #9cc0ff; } }
+
+/* ---------- account menu: one vertical column ---------- */
+.mega.vertical, .mega.vertical:not(.small) { display: block; width: 340px; max-width: calc(100vw - 16px); padding: 8px 10px 10px; grid-template-columns: none; }
+.mega.vertical .macct { border: 0; padding: 0 0 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line); grid-column: auto; grid-row: auto; }
+.mega.vertical .mg { padding: 2px 0; }
+.mega.vertical .mg + .mg { border-top: 1px solid var(--line); }
+.mega.vertical details.mg > summary { display: flex; align-items: center; justify-content: space-between; cursor: pointer; list-style: none; border-radius: 10px; padding-right: 8px; }
+.mega.vertical details.mg > summary::-webkit-details-marker { display: none; }
+.mega.vertical details.mg > summary:hover { background: var(--hover); }
+.mega.vertical details.mg > summary .chev { width: 18px; height: 18px; color: var(--mute); transition: transform .15s; }
+.mega.vertical details.mg[open] > summary .chev { transform: rotate(180deg); }
+.mega.vertical .mi { padding: 8px 10px; }
+@media (max-width: 760px) { .mega.vertical, .mega.vertical:not(.small) { left: 8px !important; right: 8px !important; width: auto; } }

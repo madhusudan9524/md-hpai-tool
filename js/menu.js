@@ -90,7 +90,7 @@ window.HPAI.modules.push(function (ctx) {
   function build() {
     actions = [];
     if (!S.user) {
-      menu.className = "mega small";
+      menu.className = "mega vertical";
       menu.innerHTML = `<div class="mg"><h4>Sign in</h4>${item("user", "MDA staff", "Maryland Department of Agriculture", () => ctx.signIn("regulator"))}${item("truck", "Industry partners", "Haulers, growers and poultry businesses", () => ctx.signIn("partner"))}
         <div class="msep"></div>${item("plus", "Register as an industry partner", "MDA reviews every request", () => ctx.actions.signup())}</div>`;
       return;
@@ -102,8 +102,13 @@ window.HPAI.modules.push(function (ctx) {
         : S.role === "regulator" ? item("truck", "Demo: sign in as an industry partner", "Code is always 123456", () => ctx.actions.industrySignIn()) + item("plus", "Demo: register an industry partner", "Then review it under Reviews", () => ctx.actions.signup()) : "") : ""}
       <div class="msep"></div>${item("log", "Sign out", "", () => ctx.signOut())}</div>`;
     const groups = S.ws === "regulator" ? GROUPS : ROLE[S.ws] || [];
-    menu.className = "mega" + (S.ws === "regulator" ? "" : " small");
-    menu.innerHTML = groups.map(([g, items]) => `<div class="mg"><h4>${esc(g)}</h4>${items.map(([i, t, d, fn]) => item(i, t, d, fn)).join("")}</div>`).join("") + acct;
+    // one column: who you are first, then each section; MDA's longer menu folds into sections (remembers which are open)
+    const openSet = H.store.get("menuOpen", ["Operations", "Reviews"]), fold = S.ws === "regulator";
+    menu.className = "mega vertical";
+    menu.innerHTML = acct + groups.map(([g, items]) => fold
+      ? `<details class="mg" data-g="${esc(g)}"${openSet.includes(g) ? " open" : ""}><summary><h4>${esc(g)}</h4><svg class="li chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></summary>${items.map(([i, t, d, fn]) => item(i, t, d, fn)).join("")}</details>`
+      : `<div class="mg"><h4>${esc(g)}</h4>${items.map(([i, t, d, fn]) => item(i, t, d, fn)).join("")}</div>`).join("");
+    menu.querySelectorAll("details.mg").forEach((el) => el.addEventListener("toggle", () => H.store.set("menuOpen", [...menu.querySelectorAll("details.mg[open]")].map((x) => x.dataset.g))));
   }
   const firstName = () => { const n = (S.user.fullName || "").trim().split(/\s+/)[0]; return n || S.user.username.split(/[_@.]/)[0]; };
   const ini = () => (S.user.fullName || S.user.username).split(/\s+/).map((x) => x[0]).join("").slice(0, 2).toUpperCase();
