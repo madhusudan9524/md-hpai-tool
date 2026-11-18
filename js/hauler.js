@@ -13,8 +13,8 @@ window.HPAI.modules.push(function (ctx) {
   // ---- inputs ----
   let org = null, dst = null, commodity = store.get("commodity", "feed"), last = null;
   const wgs = (g) => (g.spatialReference && !g.spatialReference.isWGS84 ? wmu.webMercatorToGeographic(g) : g);
-  const orgS = ctx.makeSearch("orgBox", "From: farm, mill or address", (g, n) => { org = { pt: wgs(g), name: n }; pin(); });
-  const dstS = ctx.makeSearch("dstBox", "To: destination", (g, n) => { dst = { pt: wgs(g), name: n }; pin(); });
+  const orgS = ctx.makeSearch("orgBox", "From (address or farm)", (g, n) => { org = { pt: wgs(g), name: n }; pin(); });
+  const dstS = ctx.makeSearch("dstBox", "To (address or farm)", (g, n) => { dst = { pt: wgs(g), name: n }; pin(); });
   const chips = $("commChips");
   chips.innerHTML = Object.entries(C.commodities).map(([k, v]) => `<button class="chip ctile ${k === commodity ? "on" : ""}" data-k="${k}">${ICON[k]}<span>${esc(v.label)}</span></button>`).join("");
   chips.querySelectorAll(".chip").forEach((b) => (b.onclick = () => { commodity = b.dataset.k; store.set("commodity", commodity); chips.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x === b)); }));
