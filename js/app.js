@@ -56,6 +56,7 @@ require([
   const histLyr = new GraphicsLayer({ title: "Past outbreak areas", visible: false });
   const closuresLyr = new GraphicsLayer({ title: "Road closures (MDOT CHART)", visible: false });
   // solid wildlife icons (bird / mammal) with a white halo so they read on any background
+  const svgBadge = (inner, color) => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="${color}" stroke="#fff" stroke-width="1.5"/>${inner}</svg>`);
   const svgIcon = (path, color) => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="${color}" stroke="#fff" stroke-width="1.6" paint-order="stroke" stroke-linejoin="round">${path}</g></svg>`);
   const BIRD = '<path d="M2.5 14.2c2.6.5 4.6-.5 6-2.5C10 9.4 12 7.8 14.7 7.8c1.5 0 2.7.5 3.5 1.4l3.3-.9-2 2.6c.2 4-2.8 7.5-7.8 7.5-3.6 0-6.4-1.4-9.2-4.2z"/><path d="M9.5 12.2c1.6-.2 3.4.3 4.8 1.6-2 .2-3.7-.3-4.8-1.6z"/>';
   const PAW = '<ellipse cx="12" cy="16" rx="4.6" ry="3.9"/><circle cx="5.8" cy="10.6" r="2.1"/><circle cx="9.6" cy="6.9" r="2.1"/><circle cx="14.4" cy="6.9" r="2.1"/><circle cx="18.2" cy="10.6" r="2.1"/>';
@@ -70,10 +71,19 @@ require([
       visualVariables: [{ type: "opacity", field: "age", stops: [{ value: 0, opacity: 1 }, { value: 28, opacity: 0.95 }, { value: 365, opacity: 0.55 }, { value: 1500, opacity: 0.35 }] }] },
     popupEnabled: false
   });
+  // waterfowl sightings (eBird; healthy birds, not HPAI cases): a round blue duck badge per place, sized by birds counted;
+  // zoomed out, nearby places merge into one badge with the total ("1.2k"), so hundreds of places never clutter the map
+  const DUCK = svgBadge('<path fill="#fff" d="M13.6 9.4c-.8 1.2-1 1.6-2.6 1.6H7.5c-1.9 0-3 1.3-3 2.6 0 2.4 2.7 3.9 6.5 3.9 4.6 0 7.2-1.8 7.2-4.5 0-1.4-.8-2.4-1.6-2.8z"/><circle fill="#fff" cx="15.5" cy="8.2" r="2.3"/><path fill="#fff" d="M17.6 7.5 20.4 8.4 17.6 9.3z"/>', "#2c5aa0");
+  const duckSize = (field, stops) => ({ type: "size", field, stops: stops.map(([value, size]) => ({ value, size })) });
   const birdsLyr = new FeatureLayer({ title: "Waterfowl sightings (eBird)", source: [], objectIdField: "OID", geometryType: "point", spatialReference: { wkid: 4326 }, outFields: ["*"], visible: false, popupEnabled: false,
     fields: [{ name: "OID", type: "oid" }, { name: "birds", type: "integer" }, { name: "place", type: "string" }, { name: "species", type: "string" }, { name: "last", type: "string" }],
-    renderer: { type: "heatmap", field: "birds", radius: 14, maxDensity: 0.04, minDensity: 0,
-      colorStops: [{ ratio: 0, color: "rgba(64,120,200,0)" }, { ratio: 0.2, color: "rgba(64,120,200,0.35)" }, { ratio: 0.5, color: "rgba(40,90,190,0.6)" }, { ratio: 0.8, color: "rgba(30,60,160,0.8)" }, { ratio: 1, color: "rgba(20,30,120,0.9)" }] } });
+    renderer: { type: "simple", symbol: { type: "picture-marker", url: DUCK, width: "18px", height: "18px" }, visualVariables: [duckSize("birds", [[1, 15], [50, 20], [500, 26], [3000, 32]])] },
+    featureReduction: { type: "cluster", clusterRadius: "64px", maxScale: 60000,
+      fields: [{ name: "total_birds", alias: "Birds", onStatisticField: "birds", statisticType: "sum" }],
+      renderer: { type: "simple", symbol: { type: "picture-marker", url: DUCK, width: "26px", height: "26px" }, visualVariables: [duckSize("total_birds", [[20, 22], [1000, 32], [10000, 44], [40000, 54]])] },
+      labelingInfo: [{ deconflictionStrategy: "none", labelPlacement: "below-center",
+        labelExpressionInfo: { expression: "var n = $feature.total_birds; IIf(n >= 1000, Text(Round(n / 1000, 1)) + 'k', Text(n))" },
+        symbol: { type: "text", color: dark ? [225, 235, 250, 1] : [28, 58, 112, 1], haloColor: dark ? [13, 17, 23, 0.95] : [255, 255, 255, 0.95], haloSize: 1.5, font: { size: 10.5, weight: "bold" } } }] } });
   const routeLyr = new GraphicsLayer({ listMode: "hide" }), marks = new GraphicsLayer({ listMode: "hide" });
 
   const map = new EsriMap({ basemap: dark ? "dark-gray-vector" : "topo-vector",
@@ -304,10 +314,24 @@ require([
   fetch((C.birdsUrl || "data/birds.json") + "?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).catch(() => null).then(async (B) => {
     S.birdsNote = birdsNote(B); renderKey();
     if (!B || !B.places || !B.places.length) return;
-    S.birdsOk = true; S.birds = B;
+    S.birdsOk = true; S.birds = B; S.birdWeek = null;
+    if (birdsLyr.visible) loadBirdWeeks().then(() => renderKey());   // layer already on from last visit: bring its slider
     await birdsLyr.applyEdits({ addFeatures: B.places.map((p) => new Graphic({ geometry: { type: "point", x: p.lon, y: p.lat, spatialReference: { wkid: 4326 } }, attributes: { birds: p.birds, place: p.place, last: p.last, species: (p.species || []).map((s) => s[0] + " " + s[1]).join(", ") } })) }).catch(() => {});
     renderKey();
   }).catch(() => {});
+  // ---- waterfowl week slider: one position per full week (eBird archive), the last position = the last 7 days ----
+  S.birdWeeks = null; let birdPlay = null;
+  const loadBirdWeeks = () => S.birdWeeks ? Promise.resolve(S.birdWeeks) : fetch("data/birds_weeks.json?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).then((j) => (S.birdWeeks = (j && j.weeks) || [])).catch(() => (S.birdWeeks = []));
+  async function showBirdWeek(i) {   // i = index into S.birdWeeks, or null for the last 7 days
+    S.birdWeek = i;
+    const old = await birdsLyr.queryFeatures({ where: "1=1", returnGeometry: false, outFields: ["OID"] }).catch(() => ({ features: [] }));
+    const g = (lon, lat, a) => new Graphic({ geometry: { type: "point", x: lon, y: lat, spatialReference: { wkid: 4326 } }, attributes: a });
+    const adds = i == null ? ((S.birds && S.birds.places) || []).map((p) => g(p.lon, p.lat, { birds: p.birds, place: p.place, last: p.last, species: (p.species || []).map((x) => x[0] + " " + x[1]).join(", ") }))
+      : S.birdWeeks[i].places.map(([lat, lon, n, sp]) => g(lon, lat, { birds: n, place: "", last: "", species: sp }));
+    await birdsLyr.applyEdits({ deleteFeatures: old.features, addFeatures: adds }).catch(() => {});
+    const lab = $("bwLab"); if (lab) lab.textContent = birdWeekLabel(i);
+  }
+  const birdWeekLabel = (i) => i == null ? "Last 7 days" : "Week of " + new Date(S.birdWeeks[i].start + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const KIND = { commercial: ["Commercial flock", "red"], backyard: ["Backyard flock", "amber"], wild: ["Wild birds", "teal"], general: ["Notice", ""] };
   const short = (s) => (s || "").replace("Maryland Department of Agriculture", "MDA").replace("Delaware Department of Agriculture", "DDA").replace("Virginia Department of Agriculture and Consumer Services", "VDACS");
   function renderNews(Ld) {
@@ -609,7 +633,7 @@ require([
     { sec: "Wildlife" },
     { id: "wb", t: "Wildlife with HPAI", n: "Birds and mammals", sw: "wb", ls: () => [wild], seg: true },
     { id: "risk", t: "Seasonal risk", n: "Advisory only, not a control zone", sw: "risk", ls: () => [riskLyr], off: true },
-    { id: "ebd", t: "Waterfowl sightings", n: S.birdsNote || "eBird, last 7 days", sw: "ebd", ls: () => [birdsLyr], off: true },
+    { id: "ebd", t: "Waterfowl sightings", n: S.birdsNote || "eBird · healthy birds", sw: "ebd", ls: () => [birdsLyr], off: true },
     { id: "wf", t: "Waterfowl areas", sw: "wf", ls: () => [env.waterfowl], off: true },
     { id: "nwr", t: "Wildlife refuges", sw: "nwr", ls: () => [env.refuges], off: true },
     { id: "wma", t: "Wildlife management areas", sw: "wma", ls: () => [env.wma], off: true },
@@ -635,6 +659,10 @@ require([
         const weeks = Math.max(1, Math.ceil((Date.now() - timeT0) / (7 * DAY))), cur = S.timeAt == null ? weeks : Math.round((S.timeAt - timeT0) / (7 * DAY));
         html += `<div class="tline"><button class="tplay" id="timePlay" aria-label="Play">${playing ? "❚❚" : "▶"}</button><input type="range" id="timeRange" min="0" max="${weeks}" value="${cur}" aria-label="Week"><b id="timeLab"></b></div><button class="mini ttoday" id="timeToday" hidden>Back to today</button>`;
       }
+      if (r.id === "ebd" && on && S.birdWeeks && S.birdWeeks.length) {
+        const n = S.birdWeeks.length, cur = S.birdWeek == null ? n : S.birdWeek;
+        html += `<div class="tline"><button class="tplay" id="bwPlay" aria-label="Play the weeks">${birdPlay ? "❚❚" : "▶"}</button><input type="range" id="bwRange" min="0" max="${n}" value="${cur}" aria-label="Week"><b id="bwLab">${birdWeekLabel(S.birdWeek)}</b></div>`;
+      }
       if (r.seg) html += `<div class="seg" id="wildSeg"><button data-d="28" class="${S.wildRange === 28 ? "on" : ""}">4 weeks</button><button data-d="365" class="${S.wildRange === 365 ? "on" : ""}">12 months</button><button data-d="9999" class="${S.wildRange === 9999 ? "on" : ""}">All years</button></div>`;
     });
     html += `</div>`;
@@ -642,7 +670,19 @@ require([
     $("keyHead").onclick = () => keyEl.classList.toggle("shut");
     $("keyHead").setAttribute("role", "button"); $("keyHead").setAttribute("tabindex", "0"); $("keyHead").setAttribute("aria-expanded", String(!keyEl.classList.contains("shut")));
     $("keyHead").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); keyEl.classList.toggle("shut"); } };
-    keyEl.querySelectorAll(".tg").forEach((t) => (t.onchange = () => { const r = ROWS().find((x) => x.id === t.dataset.id); vis[r.id] = t.checked; store.set("vis", vis); r.ls().filter(Boolean).forEach((l) => (l.visible = t.checked)); if (r.time && !t.checked) { if (playing) { clearInterval(playing); playing = null; } S.timeAt = null; applyTime(); } if (r.time) renderKey(); }));
+    keyEl.querySelectorAll(".tg").forEach((t) => (t.onchange = () => { const r = ROWS().find((x) => x.id === t.dataset.id); vis[r.id] = t.checked; store.set("vis", vis); r.ls().filter(Boolean).forEach((l) => (l.visible = t.checked)); if (r.time && !t.checked) { if (playing) { clearInterval(playing); playing = null; } S.timeAt = null; applyTime(); }
+      if (r.id === "ebd") { if (t.checked) loadBirdWeeks().then(() => renderKey()); else { if (birdPlay) { clearInterval(birdPlay); birdPlay = null; } if (S.birdWeek != null) showBirdWeek(null); } } if (r.time) renderKey(); }));
+    const bw = $("bwRange");
+    if (bw) {
+      const setW = () => showBirdWeek(+bw.value >= +bw.max ? null : +bw.value);
+      bw.oninput = setW;
+      $("bwPlay").onclick = () => {
+        if (birdPlay) { clearInterval(birdPlay); birdPlay = null; $("bwPlay").textContent = "▶"; return; }
+        if (+bw.value >= +bw.max) bw.value = 0;
+        $("bwPlay").textContent = "❚❚"; setW();
+        birdPlay = setInterval(() => { if (+bw.value >= +bw.max) { clearInterval(birdPlay); birdPlay = null; const p = $("bwPlay"); if (p) p.textContent = "▶"; return; } bw.value = +bw.value + 1; setW(); }, 700);
+      };
+    }
     const seg = $("wildSeg"); if (seg) seg.querySelectorAll("button").forEach((b) => (b.onclick = () => { S.wildRange = +b.dataset.d; store.set("wildRange", S.wildRange); seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); loadWild(); }));
     const tr = $("timeRange");
     if (tr) {
@@ -681,10 +721,21 @@ require([
       if (g.graphic.layer === closuresLyr) return simpleCard(e.mapPoint, "info", "Road closure", g.graphic.attributes.incident, [["Lanes", g.graphic.attributes.lanes], ["Updated", g.graphic.attributes.updated]]);
       if (emit("hit", { g: g.graphic, pt: e.mapPoint }).some(Boolean)) return;
     }
-    if (birdsLyr.visible && S.birdsOk && view.zoom >= 10) {
-      const r = await birdsLyr.queryFeatures({ geometry: e.mapPoint, distance: 1.2 * view.resolution * 12, units: "meters", outFields: ["*"], returnGeometry: true }).catch(() => null);
-      const f = r && r.features[0];
-      if (f) return simpleCard(f.geometry, "ebird", "Waterfowl sighting · eBird", f.attributes.place || "Sighting", [["Birds counted", f.attributes.birds], ["Species", f.attributes.species], ["Last seen", f.attributes.last]], `<div class="do">Healthy wild waterfowl can carry HPAI. Source: eBird, Cornell Lab of Ornithology.</div>`);
+    if (birdsLyr.visible && S.birdsOk) {
+      const bh = await view.hitTest(e, { include: [birdsLyr] }).catch(() => null), bg = bh && bh.results.find((r) => r.graphic);
+      if (bg) {
+        const gr = bg.graphic, when = birdWeekLabel(S.birdWeek), note = `<div class="do">Healthy wild waterfowl can carry HPAI. Source: eBird, Cornell Lab of Ornithology.</div>`;
+        if (gr.isAggregate) {   // a badge of several places: total, busiest places, zoom in
+          let top = [];
+          try { const lv = await view.whenLayerView(birdsLyr), q = lv.createQuery(); q.aggregateIds = [gr.getObjectId()]; q.outFields = ["*"]; top = (await lv.queryFeatures(q)).features.map((f) => f.attributes).sort((a, b) => b.birds - a.birds).slice(0, 3); } catch (x) {}
+          const el = simpleCard(gr.geometry, "ebird", `Waterfowl · ${when}`, `${gr.attributes.total_birds.toLocaleString()} birds at ${gr.attributes.cluster_count} places`,
+            top.map((a) => [a.place || a.species.split(",")[0].replace(/ \d+$/, ""), a.birds.toLocaleString()]), `<button class="cta" id="bzIn">Zoom in</button>${note}`);
+          el.querySelector("#bzIn").onclick = () => { closeCard(); view.goTo({ target: gr.geometry, zoom: Math.min(view.zoom + 2, 13) }).catch(() => {}); };
+          return;
+        }
+        const a = gr.attributes;
+        return simpleCard(gr.geometry, "ebird", `Waterfowl · ${when}`, a.place || "Waterfowl sighting", [["Birds counted", a.birds], ["Species", a.species], a.last ? ["Last seen", a.last] : null].filter(Boolean), note);
+      }
     }
     // inside a refuge, wildlife management area or waterfowl area that's switched on: name it on the place card
     const envOn = [env.refuges, env.wma, env.waterfowl].filter((l) => l.visible);
