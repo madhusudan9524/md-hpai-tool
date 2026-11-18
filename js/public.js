@@ -143,30 +143,6 @@ window.HPAI.modules.push(function (ctx) {
   ctx.actions.wildReport = () => reportForm("wild_bird");
   ctx.actions.flockReport = () => reportForm("flock");
 
-  // ================= access requests (self sign-up; MDA approves) =================
-  ctx.actions.signup = () => {
-    sheet("Register as an industry partner", `<div class="form">
-      <p class="hint">For haulers, growers and poultry businesses. MDA reviews each request and emails you an invitation to create your sign-in.</p>
-      <label>Your business<select id="suType"><option>Hauler / transporter</option><option>Grower / poultry farm</option><option>Integrator / poultry company</option><option>Feed mill</option><option>Rendering / disposal</option><option>Service provider (vet, crew, equipment)</option><option>Other poultry business</option></select></label>
-      <div class="two"><label>Full name<input id="suName" autocomplete="name"></label><label>Phone<input id="suPhone" type="tel" autocomplete="tel"></label></div>
-      <label>Work email<input id="suEmail" type="email" autocomplete="email"></label>
-      <div class="two"><label>Company<input id="suOrg" autocomplete="organization"></label><label>County<input id="suCty"></label></div>
-      <label>USDOT, NPIP or premises ID (optional)<input id="suId"></label>
-      <label>ArcGIS username, if you already have one (optional)<input id="suUser" autocomplete="username"></label>
-      <button class="primary" id="suGo">Send request</button></div>`);
-    $("suGo").onclick = async () => {
-      const email = $("suEmail").value.trim(), name = $("suName").value.trim();
-      if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast("Enter your name and a valid email");
-      if (!ctx.has(C.submit.accounts)) return toast(`Requests are temporarily unavailable. Call MDA at ${C.mdaPhone}.`);
-      $("suGo").disabled = true;
-      try {
-        await ctx.rest(C.submit.accounts + "/addFeatures", { features: JSON.stringify([{ attributes: { name, email, phone: $("suPhone").value, org: $("suOrg").value, county: $("suCty").value,
-          role: $("suType").value.slice(0, 20), ref_id: [$("suId").value, $("suUser").value ? "arcgis:" + $("suUser").value.trim() : ""].filter(Boolean).join(" · ").slice(0, 80), status: "New", created: Date.now() } }]) }, { anon: true });
-        closeSheet(); toast("Request sent. MDA will email you an invitation.", 5000);
-      } catch (e) { $("suGo").disabled = false; toast("Couldn't send: " + e.message); }
-    };
-  };
-
   // ================= grower farm risk =================
   async function renderRisk() {
     if (S.ws !== "industry") return;

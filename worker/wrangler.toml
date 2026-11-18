@@ -1,0 +1,38 @@
+# Industry partner sign-in service for the Maryland avian influenza map
+# Setup steps: worker/README.md
+name = "md-hpai-signin"
+main = "index.js"
+compatibility_date = "2026-11-01"
+
+# Codes, rate limits. Create with:  npx wrangler kv namespace create KV   then paste the id here
+[[kv_namespaces]]
+binding = "KV"
+id = "PASTE_KV_NAMESPACE_ID"
+
+[vars]
+APP_URL = "https://madhusudan9524.github.io/md-hpai-tool/"
+APP_ORIGINS = "https://madhusudan9524.github.io,http://localhost:8080"
+PORTAL_URL = "https://uofmd.maps.arcgis.com"
+REGULATOR_GROUP = "MD HPAI Regulators"
+MAIL_FROM = "Maryland avian influenza map <no-reply@PASTE_YOUR_DOMAIN>"
+MDA_PHONE = "410-841-5810"
+MDA_NOTIFY_EMAIL = ""
+SESSION_DAYS = "30"
+SPONSOR_AUTO_APPROVE = "false"   # "true": people a company administrator adds get access right away (MDA still sees them)
+ACCOUNTS_URL = "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Submissions/FeatureServer/2"
+REGISTRY_URL = "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/9"
+AUDIT_URL = "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/7"
+MOVEMENT_URL = "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Movement/FeatureServer"
+FARMS_URL = "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Poultry_Farms/FeatureServer/0"
+INDUSTRY_VISITS_URL = "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Visits_Industry/FeatureServer/0"
+ROUTE_URL = "https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World"
+
+# Secrets (never in this file). Add each with:  npx wrangler secret put NAME
+#  SESSION_SECRET     any random text, 32+ characters
+#  ARCGIS_USERNAME    service account that owns or can edit the MD_HPAI layers
+#  ARCGIS_PASSWORD
+#  RESEND_API_KEY     email codes (resend.com)
+#  TWILIO_SID         text codes (twilio.com) — optional
+#  TWILIO_TOKEN
+#  TWILIO_FROM        your Twilio number, e.g. +14105550100
+#  FMCSA_WEBKEY       automatic USDOT checks (mobile.fmcsa.dot.gov/QCDevsite) — optional

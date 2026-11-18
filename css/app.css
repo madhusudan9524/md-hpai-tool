@@ -469,3 +469,30 @@ body.pshut #panelToggle svg { transform: rotate(180deg); }
 .pending { margin: 0 0 12px; padding: 12px 14px; border-radius: 16px; background: #fff5e6; border: 1px solid #f0cf9a; font-size: 14px; line-height: 1.45; color: #5a3d0a; }
 .pending a { font-weight: 650; }
 @media (prefers-color-scheme: dark) { .pending { background: #2d2210; border-color: #6b4e1d; color: #f3dcb1; } }
+
+/* ---------- industry sign-in, registration, MDA review ---------- */
+.linkbtn { border: 0; background: none; color: var(--accent); padding: 4px 0; font: inherit; font-size: 14px; cursor: pointer; text-decoration: underline; }
+.secondary { border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-weight: 600; padding: 10px 14px; border-radius: 12px; }
+.secondary:hover { background: var(--soft); }
+.form .check { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; }
+.form .check input { width: auto; margin-top: 3px; }
+.form .tip { margin: 0; padding: 8px 10px; border-radius: 10px; background: var(--soft); color: var(--mute); font-size: 14px; }
+.confirm { display: flex; gap: 6px; align-items: center; margin: -4px 0 4px; flex-wrap: wrap; }
+.confirm .code { width: 8.5em; letter-spacing: .15em; }
+.okmark { color: var(--green); font-weight: 700; font-size: 14px; }
+.btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.ck { display: inline-block; font-size: 12.5px; font-weight: 700; padding: 1px 7px; border-radius: 99px; background: var(--soft); color: var(--mute); white-space: nowrap; }
+.ck.ok { background: #e3f3e9; color: #17663a; } .ck.fail { background: #fbe3e6; color: #a3172b; } .ck.warn { background: #fdf0dc; color: #8f4f0c; } .ck.manual { background: #e6eefb; color: #1f4f9a; }
+.ckn { color: var(--mute); font-size: 12.5px; }
+.review .box { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--panel); display: grid; gap: 6px; }
+.review .box h4 { margin: 0 0 2px; font-size: 15.5px; display: flex; justify-content: space-between; align-items: center; }
+.rvhead { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; } .rvhead b { font-size: 19px; } .rvhead small { grid-column: 1 / -1; color: var(--mute); }
+.kvt { width: 100%; border-collapse: collapse; font-size: 14px; } .kvt th { text-align: left; color: var(--mute); font-weight: 500; padding: 3px 8px 3px 0; width: 38%; vertical-align: top; } .kvt td { padding: 3px 0; }
+.ckrow { border-top: 1px solid var(--line); padding: 6px 0; } .ckrow:first-of-type { border-top: 0; }
+.ckrow summary { cursor: pointer; font-size: 14.5px; list-style: none; } .ckrow summary::-webkit-details-marker { display: none; }
+.ckrow .hint { margin: 4px 0 4px 2px; }
+.mcheck { border-top: 1px solid var(--line); padding-top: 6px; } .mcheck .hint { margin: 2px 0 4px 26px; } .mcheck .mnote { margin-left: 26px; width: calc(100% - 26px); font-size: 14px; }
+.docs { display: flex; flex-wrap: wrap; gap: 8px; } .docs a { display: grid; gap: 2px; max-width: 120px; font-size: 12px; color: var(--ink); text-decoration: none; }
+.docs img { width: 120px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+.docs .doc { padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); font-weight: 600; } .docs .doc small { color: var(--mute); font-weight: 400; }
+@media (prefers-color-scheme: dark) { .ck.ok { background: #173524; color: #7fd8a3; } .ck.fail { background: #3e1a1f; color: #ff9aa5; } .ck.warn { background: #3a2a12; color: #f4c27a; } .ck.manual { background: #18273f; color: #9cc0ff; } }

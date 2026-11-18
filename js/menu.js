@@ -95,9 +95,9 @@ window.HPAI.modules.push(function (ctx) {
         <div class="msep"></div>${item("plus", "Register as an industry partner", "MDA reviews every request", () => ctx.actions.signup())}</div>`;
       return;
     }
-    const roleName = S.role === "pending" ? "Waiting for MDA approval" : ctx.WS[S.role];
+    const roleName = S.role === "pending" ? "Not on MDA's staff list" : S.session ? [S.user.company, S.user.expires ? "access until " + H.fmtDate(S.user.expires) : ""].filter(Boolean).join(" · ") || ctx.WS[S.role] : ctx.WS[S.role];
     const acct = `<div class="mg macct"><div class="mwho"><span class="av ${S.ws}">${esc(ini())}</span><span><b>${esc(S.user.fullName || S.user.username)}</b><small>${esc(roleName)}</small></span></div>
-      ${S.role === "pending" ? item("plus", "Send an access request", "If you haven't already", () => ctx.actions.signup()) : ""}
+      ${S.session && S.user.companyAdmin ? item("group", "My company's people", "Add or remove drivers and staff", () => ctx.actions.companyPeople()) : ""}
       <div class="msep"></div>${item("log", "Sign out", "", () => ctx.signOut())}</div>`;
     const groups = S.ws === "regulator" ? GROUPS : ROLE[S.ws] || [];
     menu.className = "mega" + (S.ws === "regulator" ? "" : " small");
@@ -194,8 +194,10 @@ window.HPAI.modules.push(function (ctx) {
 
   // ---------------- users & groups ----------------
   async function usersForm() {
-    const titles = [[C.regulatorGroup, "MDA staff"], [C.haulerGroup, "Haulers & transporters"], [C.industryGroup, "Growers & poultry staff"]];
-    sheet("Users & groups", `<div class="form"><p class="hint">People sign in with ArcGIS accounts. What they see depends on their group. Approve new people under Reviews → Access requests.</p><div id="ugList"><p class="hint">Loading…</p></div></div>`);
+    const titles = [[C.regulatorGroup, "MDA staff (ArcGIS accounts)"]];
+    sheet("Users & groups", `<div class="form"><p class="hint">MDA staff sign in with ArcGIS accounts in the staff group. Industry partners sign in with an email or text code once MDA approves them (Reviews → Access requests).</p><div id="ugList"><p class="hint">Loading…</p></div>
+      <h4>Industry partners</h4><div class="seg" id="ipSeg"><button class="on" data-s="Approved">Active</button><button data-s="soon">Expiring in 30 days</button><button data-s="Revoked,Denied,Expired">Stopped</button></div><input id="ipQ" placeholder="Search name, company, email"><div id="ipList"><p class="hint">Loading…</p></div></div>`);
+    industryList();
     const out = await Promise.all(titles.map(async ([t, label]) => {
       try { const r = await ctx.rest(ctx.sharing + "/rest/community/groups", { q: `title:"${t}"`, num: 1 }); const g = r.results && r.results[0];
         if (!g) return `<div class="prow"><span class="tx"><b>${esc(label)}</b><small>Group “${esc(t)}” not found</small></span></div>`;
@@ -205,6 +207,40 @@ window.HPAI.modules.push(function (ctx) {
       } catch (e) { return `<div class="prow"><span class="tx"><b>${esc(label)}</b><small>${esc(e.message)}</small></span></div>`; }
     }));
     const el = $("ugList"); if (el) el.innerHTML = out.join("");
+  }
+
+  // approved industry partners: renew for a year, or stop access (they're told by email or text)
+  function industryList() {
+    let mode = "Approved", rows = [];
+    const u = C.submitMda.accounts;
+    const draw = () => {
+      const qq = ($("ipQ").value || "").toLowerCase(), now = Date.now();
+      const list = rows.filter((a) => !qq || [a.name, a.org, a.email, a.phone].join(" ").toLowerCase().includes(qq));
+      $("ipList").innerHTML = list.length ? list.map((a, i) => `<div class="prow"><span class="tx"><b>${esc(a.name)}${a.company_admin ? " · company admin" : ""}</b><small>${esc(a.org || "")} · ${esc(a.btype || a.role || "")} · ${esc(a.email || a.phone || "")}<br>${a.status === "Approved" ? (a.expires ? (a.expires < now ? "expired " : "until ") + H.fmtDate(a.expires) : "no end date") : esc(a.status)}${a.last_login ? " · last sign-in " + H.fmtDate(a.last_login) : " · never signed in"}${a.sponsor_name ? " · added by " + esc(a.sponsor_name) : ""}</small></span>
+        <span style="display:grid;gap:4px"><button class="mini" data-r="${i}">${a.status === "Approved" ? "Renew" : "Open"}</button>${a.status === "Approved" ? `<button class="mini no" data-x="${i}">Stop</button>` : ""}</span></div>`).join("") : `<p class="hint">No one here.</p>`;
+      $("ipList").querySelectorAll("[data-r]").forEach((b) => (b.onclick = () => { const a = list[+b.dataset.r]; a.status === "Approved" ? renew(a) : ctx.mda.review(a); }));
+      $("ipList").querySelectorAll("[data-x]").forEach((b) => (b.onclick = () => stop(list[+b.dataset.x])));
+    };
+    const load = async () => {
+      const now = Date.now();
+      const where = mode === "soon" ? `status = 'Approved' AND expires < ${"timestamp '" + new Date(now + 30 * 864e5).toISOString().slice(0, 19).replace("T", " ") + "'"}` : `status IN (${mode.split(",").map((x) => `'${x}'`).join(",")})`;
+      try { rows = (await ctx.rest(u + "/query", { where, outFields: "*", returnGeometry: false, orderByFields: "name", resultRecordCount: 2000 })).features.map((f) => f.attributes); draw(); }
+      catch (e) { $("ipList").innerHTML = `<p class="hint">Couldn't load: ${esc(e.message)}</p>`; }
+    };
+    const notify = (a, kind, message) => C.auth && C.auth.url ? fetch(C.auth.url.replace(/\/$/, "") + "/mda/notify", { method: "POST", headers: { authorization: "Bearer " + ctx.token(), "content-type": "application/json" }, body: JSON.stringify({ id: a.acct_id, kind, message }) }).catch(() => {}) : Promise.resolve();
+    async function renew(a) {
+      const exp = Math.max(Date.now(), a.expires || 0) + 365 * 864e5;
+      if (!confirm(`Renew ${a.name}'s access until ${H.fmtDate(exp)}?`)) return;
+      await ctx.rest(u + "/applyEdits", { updates: JSON.stringify([{ attributes: { OBJECTID: a.OBJECTID, expires: exp, decided: Date.now(), decided_by: S.user.username } }]) });
+      a.expires = exp; ctx.audit("access:renew", a.email || a.phone, H.fmtDate(exp)); notify(a, "renewed"); toast("Renewed"); load();
+    }
+    async function stop(a) {
+      const reason = prompt(`Stop ${a.name}'s access now? Reason (sent to them):`); if (reason === null) return;
+      await ctx.rest(u + "/applyEdits", { updates: JSON.stringify([{ attributes: { OBJECTID: a.OBJECTID, status: "Revoked", reason, decided: Date.now(), decided_by: S.user.username } }]) });
+      ctx.audit("access:revoke", a.email || a.phone, reason); notify(a, "revoked", reason); toast("Access stopped. It ends within a minute."); load();
+    }
+    $("ipSeg").querySelectorAll("button").forEach((b) => (b.onclick = () => { $("ipSeg").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); mode = b.dataset.s; load(); }));
+    $("ipQ").oninput = draw; load();
   }
 
   // ---------------- verify a permit ----------------

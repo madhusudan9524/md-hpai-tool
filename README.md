@@ -37,6 +37,12 @@ The prototype is kept as `v1.html`.
 
 The current zones are the prototype's **sample** data, migrated and labeled as samples ("Sample zones" badge in the header). Release them from the MDA panel before real use.
 
+## Who signs in
+
+- **Public**: no sign-in.
+- **MDA staff**: ArcGIS account in the "MD HPAI Regulators" group.
+- **Industry partners** (haulers, growers, poultry businesses, their drivers and staff): email or text code. They register with the credential for their type of business: premises registration, NPIP, USDOT or employer. Automatic checks run, then MDA reviews the request with documents, evidence and a checklist (Reviews → Access requests). Access lasts one year by default. Company administrators add and remove their own people. Setup: [worker/README.md](worker/README.md).
+
 ## MDA premises registry
 
 MDA staff → Premises → Registry:

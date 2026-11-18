@@ -95,8 +95,48 @@ require([
   ctx.signedIn = () => !!S.user;
   ctx.token = () => { const c = esriId.findCredential(sharing); return c && c.token; };
 
+  // ---------------- industry partners: sign-in service (worker/) ----------------
+  // they sign in with an email or text code; their map requests go through the service, which only shows them their own records
+  const IND_KEY = "hpai.session";
+  ctx.ind = {
+    token: () => { try { return localStorage.getItem(IND_KEY); } catch (e) { return null; } },
+    async api(path, body) {
+      if (!C.auth || !C.auth.url) throw new Error(`Industry sign-in is being set up. Call MDA at ${C.mdaPhone}.`);
+      const h = {}, t = ctx.ind.token(), form = body instanceof FormData;
+      if (t) h.authorization = "Bearer " + t;
+      if (body !== undefined && !form) h["content-type"] = "application/json";
+      let r; try { r = await fetch(C.auth.url.replace(/\/$/, "") + path, { method: body === undefined ? "GET" : "POST", headers: h, body: body === undefined ? undefined : form ? body : JSON.stringify(body) }); }
+      catch (e) { throw new Error("Can't reach the sign-in service. Check your connection."); }
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 401 && t && path !== "/verify") { ctx.ind.end(); }
+      if (!r.ok || j.error) throw new Error(j.error || "Something went wrong. Please try again.");
+      return j;
+    },
+    start(token, u) {
+      try { localStorage.setItem(IND_KEY, token); } catch (e) {}
+      ctx.ind.begin(u);
+    },
+    begin(u) {
+      S.session = u; S.user = { username: "industry:" + u.id, fullName: u.name, company: u.company, companyAdmin: u.companyAdmin, expires: u.expires, email: u.email, phone: u.phone };
+      S.role = "industry"; S.roles = ["industry"]; S.groups = [];
+      $("pendingNote").hidden = true;
+      setWorkspace("industry"); emit("signin", S.user);
+    },
+    end() { try { localStorage.removeItem(IND_KEY); } catch (e) {} if (S.session) { S.session = null; S.user = null; S.role = null; S.roles = []; setWorkspace("public"); emit("acct"); toast("Please sign in again.", 4000); } }
+  };
+  // which industry requests go through the service, and as what
+  const indTarget = (url) => {
+    const m = [[C.movement.trips, "trips"], [C.movement.visits, "visits"], [C.movement.permits, "permits"], [C.movementMda.trips, "trips"], [C.movementMda.visits, "visits"], [C.movementMda.permits, "permits"],
+      [C.farmsUrl, "farms"], [C.industryVisits, "industryVisits"], [C.routeUrl, "route"]].find(([u]) => u && (url === u || url.startsWith(u + "/")));
+    return m && { target: m[1], op: url.slice(m[0].length).replace(/^\//, "") };
+  };
+
   // ArcGIS REST helper (POST form, token added when signed in)
   ctx.rest = async (url, params, opts) => {
+    if (S.session && !(opts && opts.anon)) {
+      const t = indTarget(url);
+      if (t) return ctx.ind.api("/arcgis", { target: t.target, op: t.op, params: Object.fromEntries(Object.entries(params || {}).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)])) });
+    }
     const body = new URLSearchParams(Object.assign({ f: "json" }, params || {}));
     const t = ctx.token(); if (t && !(opts && opts.anon)) body.set("token", t);
     const r = await fetch(url, { method: "POST", body }); const j = await r.json();
@@ -574,8 +614,12 @@ require([
   // the account button + dropdown live in menu.js; it re-renders on these events
   function renderAcct() { emit("acct"); }
   ctx.WS = WS;
-  ctx.signIn = (kind) => { try { sessionStorage.setItem("hpaiWs", kind === "partner" ? "industry" : "regulator"); } catch (e) {} esriId.getCredential(sharing).then(initUser).catch(() => {}); };
-  ctx.signOut = () => { esriId.destroyCredentials(); try { sessionStorage.removeItem("hpaiWs"); } catch (e) {} location.reload(); };
+  // MDA staff sign in with ArcGIS; industry partners with an email or text code (industry.js)
+  ctx.signIn = (kind) => {
+    if (kind === "partner" || kind === "industry") return ctx.actions.industrySignIn();
+    try { sessionStorage.setItem("hpaiWs", "regulator"); } catch (e) {} esriId.getCredential(sharing).then(initUser).catch(() => {});
+  };
+  ctx.signOut = () => { esriId.destroyCredentials(); try { sessionStorage.removeItem("hpaiWs"); localStorage.removeItem(IND_KEY); } catch (e) {} location.reload(); };
   async function initUser() {
     const portal = new Portal({ url: C.portalUrl, authMode: "immediate" });
     await portal.load(); S.user = portal.user;
@@ -583,14 +627,14 @@ require([
     S.groups = groups.map((g) => g.title);
     // what someone sees depends only on who they are (their group), never on a choice
     S.role = S.groups.includes(C.regulatorGroup) ? "regulator"
-      : (S.groups.includes(C.industryGroup) || S.groups.includes(C.haulerGroup)) ? "industry" : "pending";
+      : (S.groups.includes(C.industryGroup) || S.groups.includes(C.haulerGroup)) ? "industry" : "pending";   // older ArcGIS industry accounts still work
     S.roles = S.role === "pending" ? [] : [S.role];
     try { sessionStorage.removeItem("hpaiWs"); } catch (e) {}
     const note = $("pendingNote");
     if (S.role === "pending") {
       note.hidden = false;
-      note.innerHTML = `<b>Your access is waiting for MDA approval.</b> You're signed in, but MDA hasn't added your account to the industry partners yet. Until then you see the public map. <a href="#" id="pendReq">Send an access request</a> if you haven't already.`;
-      $("pendReq").onclick = (e) => { e.preventDefault(); (ctx.actions.signup || (() => {}))(); };
+      note.innerHTML = `<b>This ArcGIS account isn't on MDA's staff list.</b> You see the public map. Industry partners sign in with their email or mobile number instead: <a href="#" id="pendReq">sign out and use a code</a>.`;
+      $("pendReq").onclick = (e) => { e.preventDefault(); esriId.destroyCredentials(); try { sessionStorage.removeItem("hpaiWs"); sessionStorage.setItem("hpaiInd", "1"); } catch (x) {} location.reload(); };
     } else note.hidden = true;
     setWorkspace(S.role === "pending" ? "public" : S.role);
     emit("signin", S.user);
@@ -636,9 +680,12 @@ require([
   // ---------------- start ----------------
   (H.modules || []).forEach((m) => { try { m(ctx); } catch (e) { console.error("module", e); } });
   setWorkspace("public");
-  esriId.checkSignInStatus(sharing).then(initUser).catch(() => {
-    let want = null; try { want = sessionStorage.getItem("hpaiWs"); } catch (e) {}
-    if (want === "regulator" || want === "industry") esriId.getCredential(sharing).then(initUser).catch(() => {});
+  if (ctx.ind.token() && C.auth && C.auth.url) {
+    // an industry partner who signed in before (30 days): check their access is still active
+    ctx.ind.api("/me").then((r) => ctx.ind.begin(r.user)).catch(() => {});
+  } else esriId.checkSignInStatus(sharing).then(initUser).catch(() => {
+    let want = null; try { want = sessionStorage.getItem("hpaiWs"); if (sessionStorage.getItem("hpaiInd")) { sessionStorage.removeItem("hpaiInd"); setTimeout(() => ctx.actions.industrySignIn(), 500); } } catch (e) {}
+    if (want === "regulator") esriId.getCredential(sharing).then(initUser).catch(() => {});
   });
   if (location.hash.startsWith("#verify=")) on("signin", () => (ctx.actions.verify || (() => {}))(decodeURIComponent(location.hash.slice(8))));
 });

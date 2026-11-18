@@ -40,7 +40,7 @@ window.HPAI.modules.push(function (ctx) {
   // ---------------- overview ----------------
   async function counts() {
     const n = async (u, where) => (has(u) ? (await ctx.rest(u + "/query", { where: where || "1=1", returnCountOnly: true }).catch(() => ({ count: null }))).count : null);
-    const [prem, rep, per, acc] = await Promise.all([n(url.prem(), "status = 'Active'"), n(C.submitMda.reports, "status = 'New'"), n(C.movementMda.permits, "status = 'Pending'"), n(C.submitMda.accounts, "status = 'New'")]);
+    const [prem, rep, per, acc] = await Promise.all([n(url.prem(), "status = 'Active'"), n(C.submitMda.reports, "status = 'New'"), n(C.movementMda.permits, "status = 'Pending'"), n(C.submitMda.accounts, "status IN ('New','Replied')")]);
     const q = (rep || 0) + (per || 0) + (acc || 0);
     $("tOv").textContent = prem == null ? "–" : prem; $("tQ").textContent = q; $("tZ").textContent = S.areas.length; $("tPr").textContent = "▦";
     return { prem, rep, per, acc };
@@ -86,7 +86,7 @@ window.HPAI.modules.push(function (ctx) {
     const cfg = {
       rep: { u: C.submitMda.reports, open: "status = 'New'", yes: ["Confirm", "Confirmed"], no: ["Dismiss", "Dismissed"] },
       per: { u: C.movementMda.permits, open: "status = 'Pending'", yes: ["Approve", "Approved"], no: ["Deny", "Denied"] },
-      acc: { u: C.submitMda.accounts, open: "status = 'New'", yes: ["Approve", "Approved"], no: ["Deny", "Denied"] }
+      acc: { u: C.submitMda.accounts, open: "status IN ('New','Info requested','Replied')", yes: ["Review", "Review"], no: ["Deny", "Denied"] }
     }[qkind];
     async function load() {
       const box = $("qList");
@@ -104,9 +104,11 @@ window.HPAI.modules.push(function (ctx) {
           const title = qkind === "rep" ? `${a.report_type === "flock" ? "Sick flock" : "Dead wild bird"} · ${esc(a.species || "")} × ${a.count || 1}` : qkind === "per" ? `${esc(a.permit_id)} · ${esc((C.commodities[a.commodity] || {}).label || a.commodity)}` : `${esc(a.name)} · ${esc(a.role || "Industry partner")}`;
           const sub = qkind === "rep" ? `${fmtShort(a.observed || a.created)} · ${esc(a.name || "anonymous")} ${esc(a.phone || "")}<br>${esc(a.description || "")}`
             : qkind === "per" ? `${esc((a.origin || "").split(",")[0])} → ${esc((a.destination || "").split(",")[0])}<br>${fmtDate(a.depart)}–${fmtShort(a.valid_to)} · ${esc(a.company)} · ${H.mi(a.zone_km || 0)} mi in zone`
-            : `${esc(a.email)} · ${esc(a.org || "")} · ${esc(a.county || "")}${a.ref_id ? " · " + esc(a.ref_id) : ""}`;
+            : `${esc(a.org || "")} · ${esc(a.email || a.phone || "")} · ${fmtShort(a.created)}${a.sponsor_name ? " · added by " + esc(a.sponsor_name) : ""}<br>${checkSummary(a)}`;
+          if (qkind === "acc") return `<div class="qi" data-i="${i}"><span class="tx"><b>${title}</b><small>${sub}</small></span>${["New", "Replied"].includes(a.status) ? `<button class="mini ok" data-rv="${i}">Review</button>` : `<span class="pill">${esc(a.status)}</span>`}</div>`;
           return `<div class="qi" data-i="${i}">${img}<span class="tx"><b>${title}</b><small>${sub}</small></span>${done ? `<span class="pill">${esc(a.status)}</span>` : `<span style="display:grid;gap:4px"><button class="mini ok" data-a="yes" data-i="${i}">${cfg.yes[0]}</button><button class="mini no" data-a="no" data-i="${i}">${cfg.no[0]}</button></span>`}</div>`;
         }).join("");
+        if (qkind === "acc") { box.querySelectorAll(".qi").forEach((el) => (el.onclick = () => review(rows[+el.dataset.i].attributes, () => { load(); counts(); }))); return; }
         box.querySelectorAll(".qi").forEach((el) => (el.onclick = (e) => {
           if (e.target.dataset.a) return; const f = rows[+el.dataset.i]; if (!f.geometry) return;
           marks.removeAll();
@@ -126,38 +128,151 @@ window.HPAI.modules.push(function (ctx) {
             await edit(cfg.u, { updates: JSON.stringify([{ attributes: attrs }]) });
             ctx.audit(`${qkind}:${st}`, f.attributes.permit_id || f.attributes.email || f.attributes.OBJECTID, reason);
             toast(st); load(); counts();
-            if (qkind === "acc" && yes) invite(f.attributes);
           } catch (e) { b.disabled = false; toast("Couldn't save: " + e.message); }
         }));
       } catch (e) { box.innerHTML = `<p class="hint">Couldn't load: ${esc(e.message)}</p>`; }
     }
     load();
   };
-  // approving an access request: invite the person to the right ArcGIS group
-  // approving an access request: add the person to the industry partners
-  //  - they gave an ArcGIS username → invite that account to the group directly
-  //  - otherwise → organization invitation by email as a Data Editor with a Contributor license, so they can submit permits and trips
-  //    (needs an administrator and a free license); otherwise the members page opens so MDA can invite them by hand
-  async function invite(a) {
-    const title = C.industryGroup;
-    try {
-      const r = await ctx.rest(ctx.sharing + "/rest/community/groups", { q: `title:"${title}"`, num: 1 });
-      const g = r.results && r.results[0]; if (!g) return toast(`Create the group “${title}” in ArcGIS first`, 6000);
-      const m = /arcgis:([^\s·]+)/.exec(a.ref_id || "");
-      if (m) {
-        const res = await ctx.rest(ctx.sharing + `/rest/community/groups/${g.id}/invite`, { users: m[1], role: "group_member", expiration: 20160 });
-        if (res.notInvited && res.notInvited.length) throw new Error("this account can't join (it may be a free public account)");
-        ctx.audit("access:invite", a.email, "group invitation to " + m[1]); return toast(`Invitation sent to ArcGIS user ${m[1]}`, 5000);
-      }
-      try {
-        await ctx.rest(ctx.sharing + "/rest/portals/self/invite", { invitationList: JSON.stringify({ invitations: [{ email: a.email, fullname: a.name, role: "iBBBBBBBBBBBBBBB", userLicenseType: "editorUT", groups: g.id, userType: "arcgisonly" }] }), message: "MDA approved your request to use the Maryland avian influenza map. Follow this link to create your sign-in." });
-        ctx.audit("access:invite", a.email, "organization invitation"); return toast(`Invitation emailed to ${a.email}`, 5000);
-      } catch (e) {
-        window.open(`${C.portalUrl}/home/organization.html?tab=members#invite`, "_blank");
-        toast(`Approved. Invite ${a.email} in the ArcGIS tab that opened, and add them to “${title}”.`, 8000);
-      }
-    } catch (e) { toast("Approved, but the invitation failed: " + e.message, 7000); }
+  // ================= access requests: MDA's review =================
+  // Everything MDA needs to decide in one place: what was checked automatically (with the evidence),
+  // documents, the official records to compare against, a checklist of manual checks, notes, and the decision.
+  const ST = { ok: ["✓", "ok"], warn: ["!", "warn"], fail: ["✗", "fail"], manual: ["?", "manual"], info: ["i", "info"] };
+  const parse = (x, d) => { try { return JSON.parse(x) || d; } catch (e) { return d; } };
+  function checkSummary(a) {
+    const c = parse(a.checks, []), n = (k) => c.filter((x) => x.state === k).length;
+    if (!c.length) return `<span class="ckn">not checked yet</span>`;
+    return [["ok", "checked"], ["fail", "problem"], ["warn", "to look at"], ["manual", "to check by hand"]].filter(([k]) => n(k)).map(([k, w]) => `<span class="ck ${k}">${ST[k][0]} ${n(k)} ${w}${n(k) > 1 && k === "fail" ? "s" : ""}</span>`).join(" ");
   }
+  const TYPE_LABEL = { grower: "Grower / poultry farm", breeder: "Breeder, hatchery or seller", hauler: "Hauling company", worker: "Driver or farm worker", integrator: "Integrator / poultry company", feed: "Feed mill", rendering: "Rendering / disposal", service: "Service provider", other: "Other poultry business" };
+  // the checks MDA does by hand, by type of business
+  function manualItems(a, checks) {
+    const by = Object.fromEntries(checks.map((c) => [c.k, c])), reg = by.md_reg_no && by.md_reg_no.data, dot = by.usdot && by.usdot.data;
+    const official = [reg && reg.phone ? `MDA registration record: ${reg.phone}` : "", dot && dot.link ? "the FMCSA record (SAFER)" : "", "the company's public website or directory listing"].filter(Boolean);
+    const L = [
+      ["callback", "Called back on an official number", `Not the number in the request. Use ${official.join(", or ")}. Ask them to confirm the request and their role.`],
+      ["docs", "Documents match the name, company and numbers", "Compare names, numbers, dates and addresses. Expired or edited-looking documents are a reason to ask for more."],
+      ["entity", "Business is registered and in good standing", `Search Maryland Business Express (or the home state's registry) for “${a.org || a.name}”.`, "https://egov.maryland.gov/BusinessExpress/EntitySearch"]
+    ];
+    if (a.btype === "grower" || a.btype === "breeder") L.push(["premreg", "Premises registration is current and belongs to them", "Compare with MDA Animal Health's registration list (owner, address, species, flock size)."]);
+    if (a.btype === "breeder" || a.npip_id) L.push(["npip", "NPIP participation confirmed", "Confirm the NPIP number and status with MDA's NPIP office (Salisbury Animal Health lab)."]);
+    if (a.btype === "hauler") L.push(["usdot", "USDOT record reviewed", "Name, address, active status, out-of-service orders and fleet size fit the request.", dot && dot.link]);
+    if (a.btype === "worker" && !a.sponsor_id) L.push(["employer", "Employer confirmed the person works for them", `Call ${a.employer || "the employer"} on an official number.`]);
+    if (a.licence_no) L.push(["licence", "Licence or permit confirmed", `Check no. ${a.licence_no} in MDA's licence records or with the issuing agency.`]);
+    if (checks.some((c) => c.k === "admin")) L.push(["admin", "Can speak for the company", "Owner, manager or someone the company names in writing. They'll add and remove the company's people."]);
+    if (checks.some((c) => c.k === "history")) L.push(["history", "Earlier denial or stop reviewed", "Read the earlier reason; approve only if it no longer applies."]);
+    return L;
+  }
+  const show = (geom, sym) => { marks.removeAll(); marks.add(new Graphic({ geometry: geom, symbol: sym })); view.goTo({ target: geom, zoom: 15 }).catch(() => {}); if (window.innerWidth <= 760) closeSheet(); };
+  const pin = (x, y, color) => show({ type: "point", x, y, spatialReference: { wkid: 4326 } }, { type: "simple-marker", style: "diamond", size: 18, color, outline: { color: [255, 255, 255, 1], width: 2 } });
+  const workerCall = async (path, body) => {
+    if (!C.auth || !C.auth.url) throw new Error("the sign-in service isn't set up yet");
+    const r = await fetch(C.auth.url.replace(/\/$/, "") + path, { method: "POST", headers: { authorization: "Bearer " + ctx.token(), "content-type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({})); if (!r.ok || j.error) throw new Error(j.error || "service error"); return j;
+  };
+  function evidence(c) {
+    const d = c.data || {}, rowsOf = (pairs) => `<table class="kvt">${pairs.filter(([, v]) => v !== undefined && v !== null && v !== "").map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join("")}</table>`;
+    if (c.k === "usdot" && d.legalName) return rowsOf([["Legal name", d.legalName], ["Doing business as", d.dbaName], ["Status", d.status === "A" ? "Active" : d.status], ["Allowed to operate", d.allowed === "Y" ? "Yes" : "No"], ["Address", d.address], ["Power units", d.powerUnits], ["Drivers", d.drivers], ["Out of service since", d.oosDate], ["Safety rating", d.rating]]) + `<a class="mini" href="${esc(d.link)}" target="_blank" rel="noopener">Open FMCSA record</a>`;
+    if (c.k === "usdot" && d.link) return `<a class="mini" href="${esc(d.link)}" target="_blank" rel="noopener">Open FMCSA record</a>`;
+    if ((c.k === "md_reg_no" || c.k === "npip_id") && d.premises_id) return rowsOf([["Premises", d.name], ["Operator", d.operator], ["Phone on record", d.phone], ["Address", d.address], ["County", d.county], ["Production", [d.production, d.species].filter(Boolean).join(", ")], ["Houses", d.houses], ["Capacity", d.capacity], ["NPIP", [d.npip, d.npip_status].filter(Boolean).join(" · ")], ["Registry record", [d.status, d.validation].filter(Boolean).join(" · ")]])
+      + `<span class="btnrow">${d.x ? `<button class="mini" data-pin="prem">Show premises</button>` : ""}<button class="mini" data-open="${esc(d.premises_id)}">Open premises record</button></span>`;
+    if (c.k === "address" && d.x) return `<button class="mini" data-pin="addr">Show address</button>`;
+    return "";
+  }
+  async function review(a, after) {
+    let checks = parse(a.checks, []); const man = parse(a.manual, {});
+    const u = C.submitMda.accounts;
+    sheet("Access request", `<div class="form review"><div id="rvBody"></div></div>`);
+    const draw = async () => {
+      const items = manualItems(a, checks), by = Object.fromEntries(checks.map((c) => [c.k, c]));
+      const sponsor = a.sponsor_name ? `<p class="tip">Added by <b>${esc(a.sponsor_name)}</b>, company administrator at ${esc(a.org || "")}.</p>` : "";
+      $("rvBody").innerHTML = `
+        <div class="rvhead"><b>${esc(a.name)}</b><span class="pill">${esc(a.status)}</span><small>${esc(TYPE_LABEL[a.btype] || a.role || "Industry partner")} · ${esc(a.org || "no company given")} · asked ${fmtShort(a.created)}</small></div>
+        ${sponsor}
+        <div class="box"><h4>Who they are</h4><table class="kvt">
+          <tr><th>Email</th><td>${esc(a.email || "-")} ${a.email_ok ? '<span class="ck ok">✓ confirmed</span>' : ""}</td></tr>
+          <tr><th>Mobile</th><td>${esc(a.phone || "-")} ${a.phone_ok ? '<span class="ck ok">✓ confirmed</span>' : a.phone ? '<span class="ck warn">not confirmed</span>' : ""}</td></tr>
+          <tr><th>Address</th><td>${esc(a.address || "-")}${a.county ? " · " + esc(a.county) : ""}</td></tr>
+          ${[["Premises registration", a.md_reg_no], ["NPIP", a.npip_id], ["USDOT", a.usdot], ["Employer", a.employer], ["Licence", a.licence_no]].filter(([, v]) => v).map(([k, v]) => `<tr><th>${k}</th><td>${esc(v)}</td></tr>`).join("")}
+        </table></div>
+        <div class="box"><h4>Automatic checks <button class="linkbtn" id="rvRe">Run again</button></h4>
+          ${checks.length ? checks.map((c, i) => `<details class="ckrow ${c.state}"${c.state === "fail" || c.state === "warn" ? " open" : ""}><summary><span class="ck ${c.state}">${ST[c.state] ? ST[c.state][0] : "·"}</span> ${esc(c.label)}</summary>${c.detail ? `<p class="hint">${esc(c.detail)}</p>` : ""}<div data-ev="${i}">${evidence(c)}</div></details>`).join("") : `<p class="hint">Not checked yet. Run the checks.</p>`}</div>
+        <div class="box"><h4>Documents</h4><div id="rvDocs" class="docs"><p class="hint">Loading…</p></div></div>
+        ${a.info_request || a.info_reply ? `<div class="box"><h4>Messages</h4>${a.info_request ? `<p class="hint"><b>MDA asked:</b> ${esc(a.info_request)}</p>` : ""}${a.info_reply ? `<p class="hint" style="white-space:pre-wrap"><b>They wrote:</b> ${esc(a.info_reply)}</p>` : ""}</div>` : ""}
+        <div class="box"><h4>Checked by MDA</h4>${items.map(([k, t, hint, link]) => `<div class="mcheck"><label class="check"><input type="checkbox" data-m="${k}"${man[k] && man[k].done ? " checked" : ""}> <b>${esc(t)}</b></label><p class="hint">${esc(hint)}${link ? ` <a href="${esc(link)}" target="_blank" rel="noopener">Open</a>` : ""}</p>
+          <input class="mnote" data-n="${k}" placeholder="Who you spoke to, what you saw…" value="${esc((man[k] && man[k].note) || "")}">${man[k] && man[k].by ? `<small class="fine">${esc(man[k].by)} · ${fmtShort(man[k].at)}</small>` : ""}</div>`).join("")}
+          <label>Notes for MDA only<textarea id="rvNotes" rows="3">${esc(a.mda_notes || "")}</textarea></label>
+          <button class="mini" id="rvSave">Save checklist</button></div>
+        <div class="box"><h4>Decision</h4>
+          <p class="hint">Access to</p>
+          <label class="check"><input type="checkbox" id="rvS1" checked> Trip planning and movement permits</label>
+          <label class="check"><input type="checkbox" id="rvS2" checked> Farm check-ins</label>
+          ${by.admin || a.company_admin ? `<label class="check"><input type="checkbox" id="rvAdm"${a.company_admin ? " checked" : ""}> Company administrator (adds and removes their own people)</label>` : ""}
+          <label>Access until<input type="date" id="rvExp" value="${new Date(Math.max(Date.now() + 365 * 864e5, a.expires || 0)).toISOString().slice(0, 10)}"></label>
+          <div class="btnrow"><button class="primary" id="rvYes">Approve</button><button class="secondary" id="rvAsk">Ask for more information</button><button class="danger" id="rvNo">Deny</button></div>
+          <p class="fine">They're told by ${a.phone ? "email and text" : "email"}. Every step goes to the audit log.</p></div>`;
+      // evidence buttons
+      $("rvBody").querySelectorAll("[data-pin]").forEach((b) => (b.onclick = () => { const c = b.dataset.pin === "prem" ? (by.md_reg_no || by.npip_id).data : by.address.data; pin(c.x, c.y, b.dataset.pin === "prem" ? [74, 13, 13, 1] : [44, 90, 160, 1]); }));
+      $("rvBody").querySelectorAll("[data-open]").forEach((b) => (b.onclick = async () => {
+        try { const r = await ctx.rest(C.core.registry + "/query", { where: `premises_id = '${b.dataset.open.replace(/'/g, "''")}'`, returnIdsOnly: true });
+          const oid = (r.objectIds || [])[0]; if (!oid || !ctx.openPremises) throw new Error("not found"); closeSheet(); ctx.openPremises(oid, true); }
+        catch (e) { toast("Couldn't open the premises record: " + e.message); } }));
+      $("rvRe").onclick = async () => { $("rvRe").disabled = true; try { checks = (await workerCall("/mda/recheck", { id: a.acct_id })).checks; a.checks = JSON.stringify(checks); draw(); toast("Checks run again"); } catch (e) { toast("Couldn't run the checks: " + e.message, 5000); $("rvRe").disabled = false; } };
+      $("rvSave").onclick = () => save().then(() => toast("Saved"));
+      $("rvYes").onclick = approve; $("rvAsk").onclick = ask; $("rvNo").onclick = deny;
+      docs();
+    };
+    // documents they sent (photos shown, PDFs as links)
+    async function docs() {
+      const box = $("rvDocs");
+      try {
+        const r = await ctx.rest(u + "/queryAttachments", { objectIds: String(a.OBJECTID) });
+        const list = ((r.attachmentGroups || [])[0] || {}).attachmentInfos || [], tk = ctx.token();
+        box.innerHTML = list.length ? list.map((x) => { const src = `${u}/${a.OBJECTID}/attachments/${x.id}${tk ? "?token=" + tk : ""}`;
+          return /^image\//.test(x.contentType) ? `<a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${esc(x.name)}"><small>${esc(x.name)}</small></a>` : `<a class="doc" href="${src}" target="_blank" rel="noopener">${esc(x.name)}<small>${Math.round(x.size / 1024)} KB</small></a>`; }).join("")
+          : `<p class="hint">None sent. Ask for one if you need it.</p>`;
+      } catch (e) { box.innerHTML = `<p class="hint">Couldn't load documents: ${esc(e.message)}</p>`; }
+    }
+    const manual = () => {
+      const out = {}; document.querySelectorAll(".review [data-m]").forEach((el) => {
+        const k = el.dataset.m, note = document.querySelector(`.review [data-n="${k}"]`).value.trim(), was = man[k] || {};
+        const changed = !!was.done !== el.checked || (was.note || "") !== note;
+        out[k] = { done: el.checked, note, by: changed ? S.user.username : was.by, at: changed ? Date.now() : was.at };
+      }); return out;
+    };
+    async function save(extra) {
+      const m = manual(); Object.assign(man, m);
+      const attrs = Object.assign({ OBJECTID: a.OBJECTID, manual: JSON.stringify(m).slice(0, 4000), mda_notes: $("rvNotes").value.slice(0, 4000) }, extra || {});
+      await edit(u, { updates: JSON.stringify([{ attributes: attrs }]) });
+      Object.assign(a, attrs);
+    }
+    const tell = async (kind, message) => { try { const r = await workerCall("/mda/notify", { id: a.acct_id, kind, message }); return r.sent && r.sent.length ? ` They were told by ${r.sent.join(" and ")}.` : " Couldn't send them a message; contact them yourself."; } catch (e) { return ` Contact them yourself (${e.message}).`; } };
+    async function approve() {
+      const m = manual(), open = manualItems(a, checks).filter(([k]) => !m[k].done).map(([, t]) => t), bad = checks.filter((c) => c.state === "fail").map((c) => c.label);
+      if ((open.length || bad.length) && !confirm(`Approve anyway?\n\n${bad.length ? "Problems found:\n• " + bad.join("\n• ") + "\n\n" : ""}${open.length ? "Not checked yet:\n• " + open.join("\n• ") : ""}`)) return;
+      const scope = [$("rvS1").checked ? "movement" : "", $("rvS2").checked ? "checkins" : ""].filter(Boolean).join(",");
+      const exp = Date.parse($("rvExp").value + "T23:59:00"); if (!exp || exp < Date.now()) return toast("Pick an end date in the future");
+      $("rvYes").disabled = true;
+      try {
+        await save({ status: "Approved", decided: Date.now(), decided_by: S.user.username, scope, expires: exp, company_admin: $("rvAdm") && $("rvAdm").checked ? 1 : 0, reason: "" });
+        ctx.audit("access:approve", a.email || a.phone, `${a.name} · ${scope} · until ${fmtDate(exp)}${open.length ? " · unchecked: " + open.join("; ") : ""}`);
+        const t = await tell("approved"); closeSheet(); toast("Approved." + t, 6000); after && after();
+      } catch (e) { toast("Couldn't save: " + e.message, 5000); $("rvYes").disabled = false; }
+    }
+    async function ask() {
+      const msg = prompt("What do you need from them? (sent by email and text, with a link to answer and add documents)", a.btype === "grower" ? "Please send a photo of your premises registration card." : a.btype === "hauler" ? "Please send a photo of a truck's cab card showing your USDOT number." : "Please send a document that shows your connection to the company.");
+      if (!msg) return;
+      try { await save({ status: "Info requested", info_request: msg.slice(0, 2000) }); ctx.audit("access:ask", a.email || a.phone, msg); const t = await tell("ask", msg); closeSheet(); toast("Asked." + t, 6000); after && after(); }
+      catch (e) { toast("Couldn't save: " + e.message, 5000); }
+    }
+    async function deny() {
+      const reason = prompt("Reason (sent to them)"); if (reason === null) return;
+      try { await save({ status: "Denied", decided: Date.now(), decided_by: S.user.username, reason: reason.slice(0, 1000) }); ctx.audit("access:deny", a.email || a.phone, reason); const t = await tell("denied", reason); closeSheet(); toast("Denied." + t, 6000); after && after(); }
+      catch (e) { toast("Couldn't save: " + e.message, 5000); }
+    }
+    draw();
+  }
+
 
   // ---------------- zones ----------------
   loaders.z = async () => {
@@ -450,7 +565,7 @@ window.HPAI.modules.push(function (ctx) {
   // ---------------- permit verification (QR scan opens #verify=ID) ----------------
   // used by the MDA menu in the top bar
   ctx.mda = {
-    open, summary, publish: () => publish(), declare, newPremises, invite,
+    open, summary, publish: () => publish(), declare, newPremises, review,
     queue: (k) => { qkind = k; open("q"); },
     premises: (s) => { prSub = s; open("pr"); },
     trace: () => open("tr"), audit: () => open("au")
