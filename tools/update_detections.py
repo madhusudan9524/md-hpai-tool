@@ -11,7 +11,7 @@ Sources (all government):
 Standard library only. Every source is optional: if one is unreachable the previous values are kept and the
 source is listed under "problems" so a stale feed is visible instead of silently empty.
 """
-import csv, hashlib, io, json, os, re, sys, urllib.request, datetime as dt
+import csv, hashlib, io, json, os, re, sys, urllib.request, urllib.error, datetime as dt
 from html import unescape
 from xml.etree import ElementTree as ET
 
@@ -101,14 +101,18 @@ def ai_extract(title, body, source):
     req = urllib.request.Request("https://api.anthropic.com/v1/messages", method="POST", headers={
         "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
         data=json.dumps({"model": AI_MODEL, "max_tokens": 400, "system": AI_PROMPT,
-                         "messages": [{"role": "user", "content": f"Source: {source}\nTitle: {title}\n\n{body[:6000]}"}]}).encode())
+                         "messages": [{"role": "user", "content": f"Source: {source}\nTitle: {title}\n\nRelease text:\n{body[:6000]}\n\nAnswer with the JSON object only."},
+                                      {"role": "assistant", "content": "{"}]}).encode())   # start the answer with "{" so the reply is JSON
+    text = ""
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
-            text = "".join(b.get("text", "") for b in json.loads(r.read().decode())["content"])
-        return validate_ai(json.loads(text[text.find("{"): text.rfind("}") + 1]), source)
+            text = "{" + "".join(b.get("text", "") for b in json.loads(r.read().decode())["content"] if b.get("type") == "text")
+        return validate_ai(json.loads(text[: text.rfind("}") + 1]), source)
+    except urllib.error.HTTPError as e:
+        problems.append(f"AI reading failed ({e.code}: {e.read().decode()[:200]}); used keyword rules")
     except Exception as e:
-        problems.append(f"AI reading failed for '{title[:60]}': {e} (used keyword rules)")
-        return None
+        problems.append(f"AI reading failed for '{title[:50]}': {e}; reply began {text[:80]!r}; used keyword rules")
+    return None
 
 
 def validate_ai(j, source):
@@ -278,7 +282,7 @@ def main():
     result["commercial"] = sorted((c for c in commercial.values() if (today - dt.date.fromisoformat(c["date"])).days <= 60), key=lambda x: x["date"], reverse=True)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(result, open(OUT, "w"), indent=1)
-    print(f"wild {len(result['wild'])}, notices {len(result['notices'])}, commercial {len(result['commercial'])}; problems: {problems or 'none'}")
+    print(f"AI model {AI_MODEL if os.environ.get('ANTHROPIC_API_KEY') else 'off'}; wild 4wk {len(result['wild'])}, 12mo {len(result.get('wild_year', []))}, notices {len(result['notices'])}, commercial {len(result['commercial'])}; problems: {problems or 'none'}")
     return 0
 
 
