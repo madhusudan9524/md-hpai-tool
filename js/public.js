@@ -29,11 +29,17 @@ window.HPAI.modules.push(function (ctx) {
     const seen = store.get("placeSeen", {});
     const rows = await Promise.all(places.map(async (p) => ({ p, s: await statusOf(p) })));
     let fresh = 0;
-    box.innerHTML = rows.map(({ p, s }) => {
+    const many = rows.length > 6 && !S.placesAll;
+    box.innerHTML = rows.map(({ p, s }, i) => {
+      if (many && i >= 5) { const isNew = s.key && seen[p.id] !== s.key; if (isNew) fresh++; return ""; }
       const isNew = s.key && seen[p.id] !== s.key; if (isNew) fresh++;
       const pill = s.flags.length ? s.flags.map(([c, t]) => `<span class="pill ${c}">${esc(t)}</span>`).join(" ") : `<span class="pill green">All clear</span>`;
       return `<div class="place" data-id="${p.id}"><span class="ic">${H.icon(p.kind === "farm" ? "farm" : "home")}</span><span class="tx"><b>${esc(p.name)}${isNew ? ' <span class="pill red">New</span>' : ""}</b><small>${pill}</small></span><button class="mini" data-del="${p.id}" aria-label="Remove">✕</button></div>`;
     }).join("");
+    if (rows.length > 6) {
+      box.insertAdjacentHTML("beforeend", `<button class="link" id="plAll" style="font-size:14px;margin-top:6px">${S.placesAll ? "Show fewer" : `Show all ${rows.length} places`}</button>`);
+      $("plAll").onclick = () => { S.placesAll = !S.placesAll; renderPlaces(); };
+    }
     if (fresh) toast(`Alert: ${fresh} of your places has a new status`, 5000);
     rows.forEach(({ p, s }) => (seen[p.id] = s.key)); store.set("placeSeen", seen);
     box.querySelectorAll(".place").forEach((el) => (el.onclick = (e) => {
@@ -152,45 +158,172 @@ window.HPAI.modules.push(function (ctx) {
   }
   // a county and the counties that touch it
   function neighbours(c) { return (S.counties || []).filter((x) => x === c || ctx.esri.geometryEngine.touches(x.geom, c.geom) || ctx.esri.geometryEngine.intersects(x.geom, c.geom)); }
+
+  // ================= grower farm risk =================
+  // Works for one farm or dozens: a summary by level, the few highest farms, a full table, dots on the map.
+  // Everything is computed and kept on the grower's device; nothing is sent to MDA.
+  const TIER_C = ["green", "amber", "red", "dred"], TIER_N = ["Low", "Moderate", "High", "Very high"], TIER_RGB = [[99, 153, 34], [239, 159, 39], [216, 90, 48], [163, 45, 45]];
+  const myFarms = new ctx.esri.GraphicsLayer({ title: "My farms", listMode: "hide", visible: false });
+  view.map.add(myFarms);
+  ctx.on("hitLayers", () => (myFarms.visible ? [myFarms] : []));
+  ctx.on("hit", ({ g }) => { if (g.layer !== myFarms) return false; riskDetail(g.attributes.id); return true; });
+  let riskRows = [], riskLevel = null, riskQ = "", riskUpOnly = false, riskBusy = 0;
+
+  async function scoreFarm(p, ev) {
+    const pt = ptOf(p), z = await ctx.zoneAt(pt), cty = ctx.countyAt(wmu.geographicToWebMercator(pt));
+    let visits = 0, zoneVisits = 0;
+    if (ctx.has(C.industryVisits) && S.user) {
+      try {
+        const r = await ctx.rest(C.industryVisits + "/query", { geometry: JSON.stringify({ x: p.lon, y: p.lat, spatialReference: { wkid: 4326 } }), geometryType: "esriGeometryPoint", distance: 500, units: "esriSRUnit_Meter",
+          where: `visited >= ${Date.now() - 14 * DAY}`, outFields: "visited,from_zone", returnGeometry: false });
+        visits = r.features.length; zoneVisits = r.features.filter((f) => f.attributes.from_zone === 1).length;
+      } catch (e) {}
+    }
+    const here = { lat: p.lat, lon: p.lon }, now = Date.now();
+    const outbreaksNear = (S.areas || []).filter((f) => { const c = wmu.webMercatorToGeographic(f.geometry.extent.center), t = f.attributes.since || f.attributes.confirmed_date || f.attributes.created_date;
+      return R.km(here, { lat: c.y, lon: c.x }) <= 32.2 && (!t || now - t <= 30 * DAY); }).length;
+    const nb = cty ? neighbours(cty) : [];
+    const countyOutbreak = !!(cty && ((S.live && S.live.commercial) || []).some((c) => now - Date.parse(c.date + "T12:00:00Z") <= 30 * DAY && nb.some((n) => n.state === c.state && n.name === c.county)));
+    const mammalsNear = (S.wildPts || []).filter((w) => w.group === "mammal" && now - w.t <= 56 * DAY && R.km(here, w) <= 16.1).length;
+    const inp = { zone: z.zone, kmToArea: ctx.distToArea(pt), wildNear: ctx.wildNear(pt, 10, 28).length, outbreaksNear, countyOutbreak, mammalsNear, trend: R.regionalTrend(ev, now),
+      wildCounty: !!(cty && (S.wildPts || []).some((w) => w.county === cty.name && w.state === cty.state && now - w.t <= 28 * DAY)),
+      habitatKm: await ctx.habitatKm({ longitude: p.lon, latitude: p.lat }), season: ctx.seasonNow(), zoneVisits, visits, audit: p.audit || null };
+    const r = R.farmRisk(inp, now), top = r.reasons.filter((x) => x.n > 0).sort((x, y) => y.n - x.n);
+    return { p, r, county: cty ? cty.name : "", main: top[0] ? top[0].why : "No risk factors found", more: Math.max(0, top.length - 1) };
+  }
+
   async function renderRisk() {
-    if (S.ws !== "industry") return;
-    const farms = places.filter((p) => p.kind === "farm"), box = $("riskList");
-    if (!farms.length) { box.innerHTML = `<p class="hint">Add your premises under My places (choose Farm).</p>`; return; }
-    const out = await Promise.all(farms.map(async (p) => {
-      const pt = ptOf(p), z = await ctx.zoneAt(pt), cty = ctx.countyAt(wmu.geographicToWebMercator(pt));
-      let visits = 0, zoneVisits = 0;
-      if (ctx.has(C.industryVisits) && S.user) {
-        try {
-          const r = await ctx.rest(C.industryVisits + "/query", { geometry: JSON.stringify({ x: p.lon, y: p.lat, spatialReference: { wkid: 4326 } }), geometryType: "esriGeometryPoint", distance: 500, units: "esriSRUnit_Meter",
-            where: `visited >= ${Date.now() - 14 * DAY}`, outFields: "visited,from_zone", returnGeometry: false });
-          visits = r.features.length; zoneVisits = r.features.filter((f) => f.attributes.from_zone === 1).length;
-        } catch (e) {}
+    const box = $("riskList");
+    if (S.ws !== "industry") { myFarms.removeAll(); myFarms.visible = false; return; }
+    const farms = places.filter((p) => p.kind === "farm");
+    if (!farms.length) { riskRows = []; myFarms.removeAll(); box.innerHTML = `<p class="hint">Add your premises under My places (choose Farm), or <button class="link" id="rkImp0">import a list of farms</button>.</p>`; $("rkImp0").onclick = importFarms; return; }
+    const job = ++riskBusy;
+    if (!riskRows.length) box.innerHTML = `<p class="hint">Scoring ${farms.length} farm${farms.length > 1 ? "s" : ""}…</p>`;
+    const ev = regionEvents(), out = [];
+    for (let i = 0; i < farms.length; i += 6) out.push(...(await Promise.all(farms.slice(i, i + 6).map((p) => scoreFarm(p, ev)))));   // a few at a time
+    if (job !== riskBusy) return;
+    // "went up": compare with the levels the grower saw at the start of this visit (kept on this device)
+    let base = null; try { base = JSON.parse(sessionStorage.getItem("riskBase") || "null"); } catch (e) {}
+    if (!base) { base = store.get("riskSeen", {}); try { sessionStorage.setItem("riskBase", JSON.stringify(base)); } catch (e) {} }
+    out.forEach((x) => { x.prev = base[x.p.id]; x.up = x.prev != null && x.r.tier > x.prev; });
+    store.set("riskSeen", Object.fromEntries(out.map((x) => [x.p.id, x.r.tier])));
+    riskRows = out.sort((a, b) => b.r.points - a.r.points || a.p.name.localeCompare(b.p.name));
+    paintFarms(); drawRisk();
+  }
+
+  const pillOf = (x) => `<span class="pill ${TIER_C[x.r.tier]}">${TIER_N[x.r.tier]} · ${x.r.points}</span>`;
+  const shown = () => riskRows.filter((x) => (riskLevel == null || x.r.tier === riskLevel) && (!riskUpOnly || x.up) && (!riskQ || (x.p.name + " " + x.county).toLowerCase().includes(riskQ)));
+  function drawRisk() {
+    const box = $("riskList"), n = riskRows.length, cnt = [0, 0, 0, 0]; riskRows.forEach((x) => cnt[x.r.tier]++);
+    const ups = riskRows.filter((x) => x.up).length, list = shown(), top = list.slice(0, 5);
+    box.innerHTML = `
+      ${n > 1 ? `<div class="rksum"><span>${n} farms</span><div class="rkbar">${[3, 2, 1, 0].filter((t) => cnt[t]).map((t) => `<i class="t${t}" style="flex:${cnt[t]}"></i>`).join("")}</div>
+        <div class="rkchips">${[3, 2, 1, 0].filter((t) => cnt[t]).map((t) => `<button class="pill ${TIER_C[t]}${riskLevel === t ? " on" : ""}" data-lv="${t}">${cnt[t]} ${TIER_N[t].toLowerCase()}</button>`).join("")}</div></div>` : ""}
+      ${ups ? `<button class="rkup${riskUpOnly ? " on" : ""}" id="rkUp">${H.icon("warn")}<span>${ups} farm${ups > 1 ? "s" : ""} went up since your last visit</span></button>` : ""}
+      ${n > 8 ? `<input id="rkQ" class="rkq" placeholder="Search farms or counties" value="${esc(riskQ)}">` : ""}
+      <div class="rklist">${top.map((x) => riskRow(x)).join("") || `<p class="hint">No farms match.</p>`}</div>
+      ${list.length > top.length ? `<p class="hint">${list.length - top.length} more farm${list.length - top.length > 1 ? "s" : ""} in the full list.</p>` : ""}
+      <div class="btns">${n > 1 ? `<button class="ghost" id="rkAll">See all ${n} farms</button>` : ""}<button class="ghost" id="rkMap">${myFarms.visible ? "Hide from map" : "Show on map"}</button><button class="ghost" id="rkImp">Import farms</button></div>
+      <p class="hint" style="margin-top:8px">Screening score, not a diagnosis. Based on <a href="${R.SOURCES.aphis2015.u}" target="_blank" rel="noopener">USDA APHIS</a> data and peer-reviewed studies. Wildlife detections are published by county, so their distances are approximate. Call MDA about any sick birds.</p>
+      <p class="hint"><b>Private to you.</b> Your farms and their scores are kept only on this device. MDA doesn't see them.</p>`;
+    box.querySelectorAll("[data-lv]").forEach((b) => (b.onclick = () => { const t = +b.dataset.lv; riskLevel = riskLevel === t ? null : t; drawRisk(); }));
+    if ($("rkUp")) $("rkUp").onclick = () => { riskUpOnly = !riskUpOnly; drawRisk(); };
+    if ($("rkQ")) $("rkQ").oninput = (e) => { riskQ = e.target.value.toLowerCase(); const pos = e.target.selectionStart; drawRisk(); const q = $("rkQ"); q.focus(); q.setSelectionRange(pos, pos); };
+    bindRows(box);
+    if ($("rkAll")) $("rkAll").onclick = riskTable;
+    $("rkMap").onclick = () => { myFarms.visible = !myFarms.visible; if (myFarms.visible && myFarms.graphics.length) view.goTo(myFarms.graphics.toArray(), { padding: 60 }).catch(() => {}); drawRisk(); };
+    $("rkImp").onclick = importFarms;
+  }
+  function riskRow(x) {
+    return `<div class="rkrow" data-id="${x.p.id}"><div class="rkt"><b>${esc(x.p.name)}${x.up ? ` <span class="rkarrow t${x.r.tier}" title="Went up">▲</span>` : ""}</b>${pillOf(x)}</div>
+      <small>${esc(x.main)}${x.more ? ` · +${x.more} more` : ""}${x.county ? ` · ${esc(x.county)}` : ""}</small></div>`;
+  }
+  function bindRows(el) { el.querySelectorAll(".rkrow").forEach((r) => (r.onclick = () => riskDetail(r.dataset.id))); }
+
+  // one farm: every reason, the audit, where it is
+  function riskDetail(id) {
+    const x = riskRows.find((y) => y.p.id === id); if (!x) return;
+    const p = x.p;
+    sheet(p.name, `<div class="form"><div class="rkt"><span>${x.county ? esc(x.county) + " County" : ""}</span>${pillOf(x)}</div>
+      <span class="meter"><i style="left:${Math.min(96, (x.r.points / 14) * 100)}%"></i></span>
+      ${x.prev != null && x.prev !== x.r.tier ? `<p class="hint">${x.r.tier > x.prev ? "Up" : "Down"} from ${TIER_N[x.prev].toLowerCase()} since your last visit.</p>` : ""}
+      <ul class="why">${x.r.reasons.map((y) => `<li>${y.n > 0 ? "+" : ""}${y.n} ${esc(y.why)} <a href="${R.SOURCES[y.src].u}" target="_blank" rel="noopener" title="${esc(R.SOURCES[y.src].t)}">source</a></li>`).join("") || "<li>No risk factors found</li>"}</ul>
+      <div class="btns"><button class="ghost" id="rdMap">Show on map</button><button class="ghost" id="rdAudit">${p.audit ? "Last audit " + fmtShort(p.audit.date) + (p.audit.passed ? " · passed" : " · not passed") : "Add last biosecurity audit"}</button></div></div>`);
+    $("rdMap").onclick = () => { closeSheet(); view.goTo({ target: ptOf(p), zoom: 13 }); ctx.locationCard(ptOf(p), p.name); };
+    $("rdAudit").onclick = () => auditForm(p);
+  }
+  function auditForm(p) {
+    sheet("Last biosecurity audit", `<div class="form"><p class="hint">${esc(p.name)}</p><label>Date<input type="date" id="auD" value="${p.audit ? new Date(p.audit.date).toISOString().slice(0, 10) : ""}"></label>
+      <div class="seg" id="auR"><button data-v="1" class="on">Passed</button><button data-v="0">Not passed</button></div><button class="primary" id="auGo">Save</button></div>`);
+    let passed = true; document.querySelectorAll("#auR button").forEach((x) => (x.onclick = () => { passed = x.dataset.v === "1"; document.querySelectorAll("#auR button").forEach((y) => y.classList.toggle("on", y === x)); }));
+    $("auGo").onclick = () => { const d = Date.parse($("auD").value + "T12:00:00"); if (!d) return toast("Pick a date"); p.audit = { date: d, passed }; save(); closeSheet(); renderRisk(); };
+  }
+
+  // all farms in a sortable, filterable table, with a CSV download
+  function riskTable() {
+    let sort = "points", dir = -1, lv = null, cty = "", q = "";
+    const counties = [...new Set(riskRows.map((x) => x.county).filter(Boolean))].sort();
+    const cols = [["name", "Farm"], ["county", "County"], ["points", "Level"], ["main", "Main reason"], ["audit", "Last audit"], ["change", "Change"]];
+    const val = (x, k) => k === "name" ? x.p.name.toLowerCase() : k === "county" ? x.county : k === "points" ? x.r.points : k === "main" ? x.main : k === "audit" ? (x.p.audit ? x.p.audit.date : 0) : (x.prev == null ? 0 : x.r.tier - x.prev);
+    sheet(`All farms (${riskRows.length})`, `<div class="form rktable">
+      <div class="rkfilters"><div class="seg" id="rtLv"><button data-v="" class="on">All</button>${[3, 2, 1, 0].map((t) => `<button data-v="${t}">${TIER_N[t]}</button>`).join("")}</div>
+      <select id="rtCty"><option value="">All counties</option>${counties.map((c) => `<option>${esc(c)}</option>`).join("")}</select><input id="rtQ" placeholder="Search farms"></div>
+      <div class="rtwrap"><table><thead><tr>${cols.map(([k, l]) => `<th data-k="${k}">${l}<span></span></th>`).join("")}</tr></thead><tbody id="rtBody"></tbody></table></div>
+      <div class="btns"><button class="ghost" id="rtCsv">Download CSV</button></div><p class="hint">The download stays on your device; share it only with people you choose.</p></div>`);
+    const draw = () => {
+      const rows = riskRows.filter((x) => (lv == null || x.r.tier === lv) && (!cty || x.county === cty) && (!q || x.p.name.toLowerCase().includes(q)))
+        .sort((a, b) => { const A = val(a, sort), B = val(b, sort); return (A > B ? 1 : A < B ? -1 : 0) * dir; });
+      $("rtBody").innerHTML = rows.map((x) => `<tr data-id="${x.p.id}"><td><b>${esc(x.p.name)}</b></td><td>${esc(x.county)}</td><td>${pillOf(x)}</td><td>${esc(x.main)}${x.more ? ` <small>+${x.more}</small>` : ""}</td>
+        <td>${x.p.audit ? fmtShort(x.p.audit.date) + (x.p.audit.passed ? "" : " ✗") : "–"}</td><td>${x.prev == null || x.prev === x.r.tier ? "–" : x.r.tier > x.prev ? `<span class="rkarrow t${x.r.tier}">▲</span> from ${TIER_N[x.prev].toLowerCase()}` : `▼ from ${TIER_N[x.prev].toLowerCase()}`}</td></tr>`).join("") || `<tr><td colspan="6" class="hint">No farms match.</td></tr>`;
+      document.querySelectorAll(".rktable th").forEach((th) => (th.querySelector("span").textContent = th.dataset.k === sort ? (dir > 0 ? " ▲" : " ▼") : ""));
+      $("rtBody").querySelectorAll("tr[data-id]").forEach((tr) => (tr.onclick = () => riskDetail(tr.dataset.id)));
+    };
+    document.querySelectorAll(".rktable th").forEach((th) => (th.onclick = () => { if (sort === th.dataset.k) dir = -dir; else { sort = th.dataset.k; dir = ["points", "audit", "change"].includes(sort) ? -1 : 1; } draw(); }));
+    document.querySelectorAll("#rtLv button").forEach((b) => (b.onclick = () => { lv = b.dataset.v === "" ? null : +b.dataset.v; document.querySelectorAll("#rtLv button").forEach((y) => y.classList.toggle("on", y === b)); draw(); }));
+    $("rtCty").onchange = (e) => { cty = e.target.value; draw(); };
+    $("rtQ").oninput = (e) => { q = e.target.value.toLowerCase(); draw(); };
+    $("rtCsv").onclick = () => H.csv(riskRows.map((x) => ({ farm: x.p.name, county: x.county, level: TIER_N[x.r.tier], points: x.r.points, reasons: x.r.reasons.map((y) => `${y.n > 0 ? "+" : ""}${y.n} ${y.why}`).join("; "),
+      last_audit: x.p.audit ? new Date(x.p.audit.date).toISOString().slice(0, 10) : "", audit_passed: x.p.audit ? (x.p.audit.passed ? "yes" : "no") : "", latitude: x.p.lat, longitude: x.p.lon })), `farm-risk-${new Date().toISOString().slice(0, 10)}.csv`);
+    draw();
+  }
+
+  // dots on the map, colored by level (only on this device)
+  function paintFarms() {
+    myFarms.removeAll();
+    riskRows.forEach((x) => myFarms.add(new Graphic({ geometry: ptOf(x.p), attributes: { id: x.p.id },
+      symbol: { type: "simple-marker", style: "circle", size: 13, color: TIER_RGB[x.r.tier].concat(1), outline: { color: [255, 255, 255, 1], width: 2 } } })));
+  }
+
+  // import many farms from a spreadsheet: name + address, or name + latitude + longitude
+  function parseCsv(text) {
+    const rows = [], re = /("([^"]|"")*"|[^,\r\n]*)(,|\r?\n|$)/g; let row = [], m;
+    while ((m = re.exec(text)) && m[0] !== "") { let v = m[1]; if (v.startsWith('"')) v = v.slice(1, -1).replace(/""/g, '"'); row.push(v.trim()); if (m[3] !== ",") { if (row.some(Boolean)) rows.push(row); row = []; } }
+    return rows;
+  }
+  function importFarms() {
+    sheet("Import farms", `<div class="form"><p class="hint">Choose a spreadsheet saved as CSV with a column for the farm <b>name</b> and either an <b>address</b> column or <b>latitude</b> and <b>longitude</b> columns. Up to 200 farms.</p>
+      <input type="file" id="imF" accept=".csv,text/csv"><div id="imOut"></div><p class="hint">Farms are saved only on this device.</p></div>`);
+    $("imF").onchange = async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      const rows = parseCsv(await f.text()); if (rows.length < 2) return ($("imOut").innerHTML = `<p class="hint">The file looks empty.</p>`);
+      const head = rows[0].map((h) => h.toLowerCase()), col = (...names) => head.findIndex((h) => names.some((n) => h.includes(n)));
+      const iN = col("name", "farm"), iA = col("address", "location"), iLat = col("lat"), iLon = col("lon", "lng");
+      if (iN < 0 || (iA < 0 && (iLat < 0 || iLon < 0))) return ($("imOut").innerHTML = `<p class="hint">Couldn't find a name column and an address (or latitude and longitude) column.</p>`);
+      const list = rows.slice(1, 201), added = [], failed = [];
+      for (let i = 0; i < list.length; i++) {
+        const r = list[i], name = r[iN] || `Farm ${i + 1}`;
+        $("imOut").innerHTML = `<p class="hint">Finding ${i + 1} of ${list.length}: ${esc(name)}…</p>`;
+        let lat = iLat >= 0 ? parseFloat(r[iLat]) : NaN, lon = iLon >= 0 ? parseFloat(r[iLon]) : NaN;
+        if ((isNaN(lat) || isNaN(lon)) && iA >= 0 && r[iA]) {
+          try { const g = await fetch("https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?" + new URLSearchParams({ f: "json", SingleLine: r[iA], maxLocations: "1", sourceCountry: "USA" })).then((x) => x.json());
+            const c = g.candidates && g.candidates[0]; if (c && c.score >= 80) { lat = c.location.y; lon = c.location.x; } } catch (err) {}
+        }
+        if (isNaN(lat) || isNaN(lon) || !ctx.inArea(wmu.geographicToWebMercator(new Point({ longitude: lon, latitude: lat })))) { failed.push(name); continue; }
+        added.push({ id: H.uid("P"), name, lon: +lon.toFixed(5), lat: +lat.toFixed(5), kind: "farm" });
       }
-      const here = { lat: p.lat, lon: p.lon }, now = Date.now(), ev = regionEvents();
-      // active infected premises (centre of each control area), last 30 days
-      const outbreaksNear = (S.areas || []).filter((f) => { const c = wmu.webMercatorToGeographic(f.geometry.extent.center), t = f.attributes.since || f.attributes.confirmed_date || f.attributes.created_date;
-        return R.km(here, { lat: c.y, lon: c.x }) <= 32.2 && (!t || now - t <= 30 * DAY); }).length;
-      const nb = cty ? neighbours(cty) : [];
-      const countyOutbreak = !!(cty && ((S.live && S.live.commercial) || []).some((c) => now - Date.parse(c.date + "T12:00:00Z") <= 30 * DAY && nb.some((n) => n.state === c.state && n.name === c.county)));
-      const mammalsNear = (S.wildPts || []).filter((w) => w.group === "mammal" && now - w.t <= 56 * DAY && R.km(here, w) <= 16.1).length;
-      const inp = { zone: z.zone, kmToArea: ctx.distToArea(pt), wildNear: ctx.wildNear(pt, 10, 28).length, outbreaksNear, countyOutbreak, mammalsNear, trend: R.regionalTrend(ev, now),
-        wildCounty: !!(cty && (S.wildPts || []).some((w) => w.county === cty.name && w.state === cty.state && Date.now() - w.t <= 28 * DAY)),
-        habitatKm: await ctx.habitatKm({ longitude: p.lon, latitude: p.lat }), season: ctx.seasonNow(), zoneVisits, visits, audit: p.audit || null };
-      return { p, r: R.farmRisk(inp, Date.now()) };
-    }));
-    const col = ["green", "amber", "red", "dred"];
-    box.innerHTML = out.map(({ p, r }) => `<div class="prow" data-id="${p.id}" style="display:block">
-      <div class="risk"><b style="flex:none;min-width:0">${esc(p.name)}</b><span class="meter"><i style="left:${Math.min(96, (r.points / 14) * 100)}%"></i></span><span class="pill ${col[r.tier]}">${r.label}</span></div>
-      <ul class="why">${r.reasons.map((x) => `<li>${x.n > 0 ? "+" : ""}${x.n} ${esc(x.why)}</li>`).join("") || "<li>No risk factors found</li>"}</ul>
-      <button class="link" data-audit="${p.id}" style="font-size:13px;margin-top:6px">${p.audit ? "Last audit " + fmtShort(p.audit.date) + (p.audit.passed ? " · passed" : " · not passed") : "Add last biosecurity audit"}</button></div>`).join("") +
-      `<p class="hint" style="margin-top:8px">Screening score, not a diagnosis. Based on <a href="${R.SOURCES.aphis2015.u}" target="_blank" rel="noopener">USDA APHIS</a> data and peer-reviewed studies. Wildlife detections are published by county, so their distances are approximate. Call MDA about any sick birds.</p>
-      <p class="hint"><b>Private to you.</b> Your farm and its score are kept only on this device. MDA doesn't see them.</p>`;
-    box.querySelectorAll("[data-audit]").forEach((b) => (b.onclick = () => {
-      const p = places.find((x) => x.id === b.dataset.audit);
-      sheet("Last biosecurity audit", `<div class="form"><label>Date<input type="date" id="auD" value="${p.audit ? new Date(p.audit.date).toISOString().slice(0, 10) : ""}"></label>
-        <div class="seg" id="auR"><button data-v="1" class="on">Passed</button><button data-v="0">Not passed</button></div><button class="primary" id="auGo">Save</button></div>`);
-      let passed = true; document.querySelectorAll("#auR button").forEach((x) => (x.onclick = () => { passed = x.dataset.v === "1"; document.querySelectorAll("#auR button").forEach((y) => y.classList.toggle("on", y === x)); }));
-      $("auGo").onclick = () => { const d = Date.parse($("auD").value + "T12:00:00"); if (!d) return toast("Pick a date"); p.audit = { date: d, passed }; save(); closeSheet(); renderRisk(); };
-    }));
+      places = places.concat(added); save();
+      $("imOut").innerHTML = `<p><b>${added.length} farm${added.length === 1 ? "" : "s"} added.</b></p>${failed.length ? `<p class="hint">Not found or outside the region (${failed.length}): ${failed.slice(0, 15).map(esc).join(", ")}${failed.length > 15 ? "…" : ""}</p>` : ""}<button class="primary" id="imDone">Done</button>`;
+      $("imDone").onclick = closeSheet; renderPlaces();
+    };
   }
 });
