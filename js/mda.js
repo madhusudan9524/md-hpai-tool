@@ -353,6 +353,8 @@ window.HPAI.modules.push(function (ctx) {
     $("npGo").onclick = async () => {
       $("npGo").disabled = true; $("npGo").textContent = "Creating…";
       const id = $("npId").value.trim(), when = Date.parse($("npDate").value + "T12:00:00"), c = ctx.countyAt(pt);
+      if ((+$("npCA").value < 6.21 || +$("npSZ").value < 12.43) && !confirm("These zones are smaller than the USDA minimums (control area 6.21 mi, surveillance zone 12.43 mi). Create them anyway?")) { $("npGo").disabled = false; $("npGo").textContent = "Create premises and zones"; return; }
+      if (+$("npSZ").value <= +$("npCA").value) { $("npGo").disabled = false; $("npGo").textContent = "Create premises and zones"; return toast("The surveillance zone must reach farther than the control area"); }
       const ca = ge.geodesicBuffer(boundary, +$("npCA").value, "miles"), sz = ge.difference(ge.geodesicBuffer(boundary, +$("npSZ").value, "miles"), ca);
       const g = (x) => x.toJSON(), est = $("npEst").checked, zst = est ? "Active" : "Pending";   // a preliminary premises' zones wait as 'Pending'
       if (!id) { $("npGo").disabled = false; $("npGo").textContent = "Create premises and zones"; return toast("Enter a premises ID"); }
@@ -401,7 +403,7 @@ window.HPAI.modules.push(function (ctx) {
     sheet("Edit " + a.premises_id, `<div class="form">
       <div class="two"><label>Premises ID<input id="epId" value="${esc(a.premises_id)}"></label><label>Detected / confirmed<input id="epDate" type="date" value="${a.confirmed_date ? new Date(a.confirmed_date).toISOString().slice(0, 10) : ""}"></label></div>
       <div class="two"><label>Flock type<select id="epFlock">${FLOCKS.concat(FLOCKS.includes(a.flock_type) || !a.flock_type ? [] : [a.flock_type]).map((x) => `<option${x === a.flock_type ? " selected" : ""}>${esc(x)}</option>`).join("")}</select></label><label>Birds<input id="epBirds" type="number" min="0" value="${a.birds == null ? "" : a.birds}"></label></div>
-      <label>County<select id="epCty">${(S.counties || []).map((c) => `<option${c.name === a.county ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>
+      <label>County<select id="epCty">${(S.counties || []).slice().sort((x, y) => (x.state === "Maryland" ? 0 : 1) - (y.state === "Maryland" ? 0 : 1) || x.name.localeCompare(y.name)).map((c, i, all) => `<option value="${esc(c.name)}"${c.name === a.county && all.findIndex((y) => y.name === a.county) === i ? " selected" : ""}>${esc(c.name)}${c.state !== "Maryland" ? ", " + esc(c.state) : ""}</option>`).join("")}</select></label>
       <label>Notes<textarea id="epNotes" rows="2">${esc(a.notes || "")}</textarea></label>
       <label class="lrow" style="padding:0"><input type="checkbox" id="epEst" class="tg"${pending ? "" : " checked"}><span>Confirmed by USDA (zones drawn and published)</span></label>
       <button class="primary" id="epSave">Save changes</button>
