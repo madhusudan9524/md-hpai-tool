@@ -287,7 +287,7 @@ require([
     const aff = cty && S.affected.find((a) => a.county === cty.name && a.state === cty.state);
     const wildN = ctx.wildNear(pt, 10, 28).length, wildY = ctx.wildNear(pt, 10, 365).length;
     const g = pt.spatialReference.isWGS84 ? pt : wmu.webMercatorToGeographic(pt);
-    const sr = R.seasonalRisk({ pt: { lat: g.latitude, lon: g.longitude }, month: new Date().getMonth(), seasonCounts: S.season, detections: S.wildPts, habitat: await habitatAt(g), now: Date.now() });
+    const sr = R.seasonalRisk({ pt: { lat: g.latitude, lon: g.longitude }, month: new Date().getMonth(), seasonCounts: S.season, detections: S.wildPts, habitat: await habitatAt(g, false), now: Date.now() });   // never waits for habitat
     const hist = await pastAt(pt);
     const smp = z.f && z.f.attributes.sample === 1;
     const band = z.zone === "control" ? ["ca", "Control area"] : z.zone === "surveillance" ? ["sz", "Surveillance zone"] : ["free", "No restrictions"];
@@ -325,23 +325,26 @@ require([
   }
 
   // ---------------- waterfowl habitat (for seasonal risk) ----------------
-  let habitatGeom = null;
-  async function loadHabitat() {
-    if (habitatGeom) return habitatGeom;
-    const q = (l, where) => l.queryFeatures({ where: where || "1=1", geometry: S.clearGeom ? S.clearGeom.extent : null, returnGeometry: true, maxAllowableOffset: 150, outSpatialReference: { wkid: 102100 } }).then((r) => r.features.map((f) => f.geometry)).catch(() => []);
-    await ready;
-    const parts = (await Promise.all([q(env.waterfowl), q(env.wma, "DESIG = 'WMA'"), q(env.refuges)])).flat().filter(Boolean);
-    habitatGeom = parts.length ? geometryEngine.union(parts) : null;
-    return habitatGeom;
+  let habitatGeom = null, habitatP = null;
+  function loadHabitat() {
+    if (habitatP) return habitatP;
+    const q = (l, where) => l.queryFeatures({ where: where || "1=1", geometry: S.clearGeom ? S.clearGeom.extent : null, returnGeometry: true, maxAllowableOffset: 400, outSpatialReference: { wkid: 102100 } }).then((r) => r.features.map((f) => f.geometry)).catch(() => []);
+    habitatP = ready.then(async () => {
+      const parts = (await Promise.all([q(env.waterfowl), q(env.wma, "DESIG = 'WMA'"), q(env.refuges)])).flat().filter(Boolean);
+      habitatGeom = parts.length ? geometryEngine.union(parts.map((g) => geometryEngine.generalize(g, 300, true))) : null;
+      return habitatGeom;
+    }).catch(() => null);
+    return habitatP;
   }
+  setTimeout(loadHabitat, 4000);   // warm up in the background
   // 1 inside habitat, falling to 0 at 5 km
-  async function habitatAt(g) {
-    const hg = await loadHabitat(); if (!hg) return 0;
+  async function habitatAt(g, wait) {
+    const hg = habitatGeom || (wait ? await loadHabitat() : null); if (!hg) return 0;
     const d = geometryEngine.distance(hg, wmu.geographicToWebMercator(new Point({ longitude: g.longitude, latitude: g.latitude })), "kilometers");
     return Math.max(0, 1 - d / 5);
   }
   ctx.habitatAt = habitatAt;
-  ctx.habitatKm = async (g) => { const hg = await loadHabitat(); return hg ? geometryEngine.distance(hg, wmu.geographicToWebMercator(new Point({ longitude: g.longitude, latitude: g.latitude })), "kilometers") : null; };
+  ctx.habitatKm = async (g) => { const hg = habitatGeom || await Promise.race([loadHabitat(), new Promise((r) => setTimeout(() => r(null), 8000))]); return hg ? geometryEngine.distance(hg, wmu.geographicToWebMercator(new Point({ longitude: g.longitude, latitude: g.latitude })), "kilometers") : null; };
 
   // ---------------- seasonal risk layer (hexagons, ~6 km) ----------------
   async function buildRisk() {
