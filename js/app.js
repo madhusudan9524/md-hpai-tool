@@ -62,7 +62,9 @@ require([
   const svgIcon = (path, color) => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="${color}" stroke="#fff" stroke-width="1.6" paint-order="stroke" stroke-linejoin="round">${path}</g></svg>`);
   const BIRD = '<path d="M2.5 14.2c2.6.5 4.6-.5 6-2.5C10 9.4 12 7.8 14.7 7.8c1.5 0 2.7.5 3.5 1.4l3.3-.9-2 2.6c.2 4-2.8 7.5-7.8 7.5-3.6 0-6.4-1.4-9.2-4.2z"/><path d="M9.5 12.2c1.6-.2 3.4.3 4.8 1.6-2 .2-3.7-.3-4.8-1.6z"/>';
   const PAW = '<ellipse cx="12" cy="16" rx="4.6" ry="3.9"/><circle cx="5.8" cy="10.6" r="2.1"/><circle cx="9.6" cy="6.9" r="2.1"/><circle cx="14.4" cy="6.9" r="2.1"/><circle cx="18.2" cy="10.6" r="2.1"/>';
-  const ICONS = { bird: svgIcon(BIRD, "#0e9aa7"), mammal: svgIcon(PAW, "#8a5a2b") };
+  // barn (gambrel roof) with a door cut-out
+  const BARN = '<path d="M2.5 21.5V11l3.2-4.3L12 2.8l6.3 3.9 3.2 4.3v10.5z"/><path fill="#fff" stroke="none" d="M9 21.5v-5.2h6v5.2h-1.4v-3.8h-3.2v3.8zM10.4 10.4h3.2v2.4h-3.2z"/>';
+  const ICONS = { bird: svgIcon(BIRD, "#0e9aa7"), mammal: svgIcon(PAW, "#8a5a2b"), barn: svgIcon(BARN, "#4a0d0d") };
   const wild = new FeatureLayer({
     title: "Wildlife with HPAI", source: [], objectIdField: "OID", geometryType: "point", spatialReference: { wkid: 4326 }, outFields: ["*"],
     fields: [{ name: "OID", type: "oid" }, { name: "group", type: "string" }, { name: "state", type: "string" }, { name: "county", type: "string" }, { name: "species", type: "string" }, { name: "strain", type: "string" }, { name: "detected", type: "date" }, { name: "age", type: "integer" }],
@@ -146,8 +148,9 @@ require([
     }
     if (has(C.pub.markers)) {
       L.markers = new FeatureLayer({ url: C.pub.markers, title: "Infected premises (approximate)", outFields: ["*"], popupEnabled: false, definitionExpression: "status = 'Active'",
-        renderer: { type: "simple", symbol: { type: "simple-marker", size: 24, color: DRED.concat(0.9), outline: { color: [255, 255, 255, 1], width: 3 } } } });
+        renderer: { type: "simple", symbol: { type: "picture-marker", url: ICONS.barn, width: "28px", height: "28px" } } });
       map.add(L.markers);
+      if (ctx.isStaff()) L.markers.visible = false;
     }
     if (has(C.pub.declarations)) {
       L.decl = new FeatureLayer({ url: C.pub.declarations, outFields: ["*"], popupEnabled: false, definitionExpression: "status <> 'Withdrawn'", visible: false });   // read only; drawn into tintLyr
@@ -155,10 +158,12 @@ require([
     }
     if (ctx.isStaff()) {
       const premUrl = has(C.core.premises) ? C.core.premises : C.legacy.premises, perimUrl = has(C.core.perimeters) ? C.core.perimeters : C.legacy.perimeters;
-      L.perim = new FeatureLayer({ url: perimUrl, title: "Premises boundary", outFields: ["*"], popupEnabled: false, renderer: { type: "simple", symbol: fill(DRED, 0.45, DRED.concat(1), 1.5) }, minScale: 300000 });
+      L.perim = new FeatureLayer({ url: perimUrl, title: "Premises boundary", outFields: ["*"], popupEnabled: false, minScale: 150000,
+        renderer: { type: "simple", symbol: { type: "simple-fill", style: "diagonal-cross", color: DRED.concat(0.7), outline: { color: DRED.concat(1), width: 2.5 } } } });
       L.prem = new FeatureLayer({ url: premUrl, title: "Infected premises (exact)", outFields: ["*"], popupEnabled: false,
-        renderer: { type: "unique-value", field: "status", defaultSymbol: { type: "simple-marker", style: "diamond", size: 15, color: DRED.concat(1), outline: { color: [255, 255, 255, 1], width: 1.5 } },
-          uniqueValueInfos: [{ value: "Released", symbol: { type: "simple-marker", style: "diamond", size: 11, color: [140, 140, 150, 0.9], outline: { color: [255, 255, 255, 1], width: 1 } } }] } });
+        maxScale: 150000,   // zoomed in, the exact boundary takes over
+        renderer: { type: "unique-value", field: "status", defaultSymbol: { type: "picture-marker", url: ICONS.barn, width: "28px", height: "28px" },
+          uniqueValueInfos: [{ value: "Released", symbol: { type: "picture-marker", url: svgIcon(BARN, "#8a94a6"), width: "20px", height: "20px" } }] } });
       map.addMany([L.perim, L.prem]);
     }
     [wild, closuresLyr, routeLyr, marks].forEach((l) => { map.remove(l); map.add(l); });
@@ -399,8 +404,8 @@ require([
     { sec: "Outbreak" },
     { id: "ca", t: "Control area", n: `0–${C.zones.controlKm} km from the premises edge`, sw: "ca", ls: () => [L.ca] },
     { id: "sz", t: "Surveillance zone", n: "appears as you zoom in", sw: "sz", ls: () => [L.sz] },
-    { id: "pm", t: "Infected premises", n: C.privacy.markerShiftKm[1] ? "approximate area" : (ctx.isStaff() ? "public marker" : ""), sw: "pm", ls: () => [L.markers] },
-    { id: "ex", staff: 1, t: "Infected premises (exact)", sw: "exact", ls: () => [L.prem, L.perim] },
+    { id: "pm", t: ctx.isStaff() ? "Infected premises (public view)" : "Infected premises", n: C.privacy.markerShiftKm[1] ? "approximate location" : "", sw: "barn", ls: () => [L.markers], off: ctx.isStaff() },
+    { id: "ex", staff: 1, t: "Infected premises (exact)", n: "boundary when zoomed in", sw: "perim", ls: () => [L.prem, L.perim] },
     { id: "cty", t: "Affected county", n: "detection or MDA notice", sw: "cty", ls: () => [tintLyr] },
     { sec: "Wildlife" },
     { id: "wb", t: "Wildlife with HPAI", n: "birds and mammals · USDA APHIS", sw: "wb", ls: () => [wild], seg: true },
