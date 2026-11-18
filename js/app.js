@@ -289,7 +289,8 @@ require([
     const sub = since ? `since ${fmtShort(since)} · day ${Math.max(1, Math.floor((Date.now() - since) / DAY) + 1)}` : aff ? (aff.items.every((i) => i.sample) ? "sample zone in county" : "HPAI reported in county · " + fmtShort(aff.since)) : "";
     const chips = [];
     if (smp) chips.push(`<i class="c amber">Sample</i>`);
-    chips.push(`<i class="c teal">${wildN} wild bird${wildN === 1 ? "" : "s"} · 4 wk</i>`);
+    if (wildN) chips.push(`<i class="c teal">${wildN} wild bird${wildN === 1 ? "" : "s"} · 4 wk</i>`);
+    else if (wildY) chips.push(`<i class="c teal">${wildY} wild bird${wildY === 1 ? "" : "s"} · 12 mo</i>`);
     if (sr.tier) chips.push(`<i class="c violet">${R.TIERS[sr.tier]} seasonal risk</i>`);
     if (hist.n) chips.push(`<i class="c">${hist.n} past · ${fmtShort(hist.last)}</i>`);
     const tip = { control: "MDA permit needed to move birds, eggs, feed or litter.", surveillance: "Watch birds closely. Check with MDA before moving birds.", none: "Keep birds away from wild waterfowl. Report sick birds." }[z.zone || "none"];
