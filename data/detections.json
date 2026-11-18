@@ -1,17 +1,34 @@
 {
- "updated": "2026-11-18T06:25:18+00:00",
+ "updated": "2026-11-18T06:28:05+00:00",
  "wild": [],
  "notices": [
   {
-   "date": "2026-11-16",
-   "source": "Delaware Department of Agriculture",
-   "title": "DDA reminds residents of poultry safety tips as avian influenza season arrives",
-   "url": "https://www.morningagclips.com/dda-reminds-residents-of-poultry-safety-tips-as-avian-influenza-season-arrives/",
-   "via": "republished by Morning Ag Clips",
+   "title": "What to Expect in the First 72 Hours of an Avian Influenza Response",
+   "url": "https://mda.maryland.gov/animals/animal-health-livestock-poultry/disease-monitoring-response/avian-influenza-poultry/first-72-hours",
+   "date": "2026-11-18",
+   "source": "Maryland Department of Agriculture",
    "kind": "general",
    "status": null,
    "county": null,
-   "state": "Delaware"
+   "state": "Maryland",
+   "flock_type": null,
+   "birds": null,
+   "summary": "Maryland Department of Agriculture explains what to expect during the first 72 hours of an avian influenza response and urges flock owners to report signs of illness.",
+   "method": "ai"
+  },
+  {
+   "title": "USDA-APHIS: Protecting Poultry from Avian Influenza - PDF",
+   "url": "https://www.aphis.usda.gov/sites/default/files/bro-protect-poultry-from-ai.pdf",
+   "date": "2026-11-18",
+   "source": "Maryland Department of Agriculture",
+   "kind": "general",
+   "status": null,
+   "county": null,
+   "state": "Maryland",
+   "flock_type": null,
+   "birds": null,
+   "summary": "The release text is unreadable raw PDF data, so no new avian influenza detection can be identified from it.",
+   "method": "ai"
   },
   {
    "title": "Delaware Department of Agriculture reminds residents of poultry safety tips as avian influenza season arrives",
@@ -24,33 +41,66 @@
    "state": "Delaware",
    "flock_type": null,
    "birds": null,
-   "summary": "Delaware Department of Agriculture urges residents to practice poultry safety as avian influenza risk rises with colder weather and migratory season.",
+   "summary": "Delaware Department of Agriculture urges residents to practice poultry safety as avian influenza season approaches with colder weather.",
    "method": "ai"
   },
   {
-   "date": "2026-11-11",
-   "source": "Maryland Department of Agriculture",
    "title": "Preliminary Testing Confirms Highly Pathogenic Avian Influenza in Worcester County",
    "url": "https://mda.maryland.gov/news/press-releases/preliminary-testing-confirms-highly-pathogenic-avian-influenza-worcester-county",
+   "date": "2026-11-11",
+   "source": "Maryland Department of Agriculture",
    "kind": "commercial",
    "status": "preliminary",
    "county": "Worcester",
-   "state": "Maryland"
+   "state": "Maryland",
+   "flock_type": "Commercial broiler",
+   "birds": null,
+   "summary": "State lab preliminarily detected H5N1 avian influenza in a Worcester County commercial broiler flock; NVSL confirmation pending and flock being depopulated.",
+   "method": "ai"
+  },
+  {
+   "title": "CDC: Bird Flu Current Situation",
+   "url": "https://www.cdc.gov/bird-flu/situation-summary/?CDC_AAref_Val=https://www.cdc.gov/flu/avianflu/avian-flu-summary.htm",
+   "date": "2026-11-05",
+   "source": "Maryland Department of Agriculture",
+   "kind": "general",
+   "status": null,
+   "county": null,
+   "state": "Maryland",
+   "flock_type": null,
+   "birds": null,
+   "summary": "A CDC situation page on H5 bird flu describes widespread wild bird outbreaks and sporadic human cases, with no new state detection announced.",
+   "method": "ai"
+  },
+  {
+   "title": "USDA-APHIS: Avian Influenza",
+   "url": "https://www.aphis.usda.gov/aphis/ourfocus/animalhealth/animal-disease-information/avian/avian-influenza/ai",
+   "date": "2026-10-06",
+   "source": "Maryland Department of Agriculture",
+   "kind": "general",
+   "status": null,
+   "county": null,
+   "state": "Maryland",
+   "flock_type": null,
+   "birds": null,
+   "summary": "USDA-APHIS general information page on avian influenza, describing the disease, its strains, and signs to watch for in poultry.",
+   "method": "ai"
   }
  ],
  "commercial": [
   {
-   "id": "MD-2026-11-11-worcester",
+   "id": "auto-c21f7982",
    "state": "Maryland",
    "county": "Worcester",
    "date": "2026-11-11",
    "flock": "Commercial broiler",
+   "birds": null,
    "status": "preliminary",
-   "status_text": "Preliminary positive (state laboratory, routine surveillance). USDA NVSL confirmation pending. Property quarantined; flock being depopulated.",
+   "status_text": "State lab preliminarily detected H5N1 avian influenza in a Worcester County commercial broiler flock; NVSL confirmation pending and flock being depopulated.",
    "source": "Maryland Department of Agriculture",
    "url": "https://mda.maryland.gov/news/press-releases/preliminary-testing-confirms-highly-pathogenic-avian-influenza-worcester-county",
-   "note": "From MDA press release, Nov 11, 2026. Bird count and control-area radius not stated in the release.",
-   "auto": false
+   "auto": true,
+   "method": "ai"
   }
  ],
  "problems": [
@@ -594,17 +644,18 @@
  ],
  "history": [
   {
-   "id": "MD-2026-11-11-worcester",
+   "id": "auto-c21f7982",
    "state": "Maryland",
    "county": "Worcester",
    "date": "2026-11-11",
    "flock": "Commercial broiler",
+   "birds": null,
    "status": "preliminary",
-   "status_text": "Preliminary positive (state laboratory, routine surveillance). USDA NVSL confirmation pending. Property quarantined; flock being depopulated.",
+   "status_text": "State lab preliminarily detected H5N1 avian influenza in a Worcester County commercial broiler flock; NVSL confirmation pending and flock being depopulated.",
    "source": "Maryland Department of Agriculture",
    "url": "https://mda.maryland.gov/news/press-releases/preliminary-testing-confirms-highly-pathogenic-avian-influenza-worcester-county",
-   "note": "From MDA press release, Nov 11, 2026. Bird count and control-area radius not stated in the release.",
-   "auto": false
+   "auto": true,
+   "method": "ai"
   },
   {
    "id": "auto-a33387fe",
@@ -614,7 +665,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "Preliminary testing found H5 avian influenza in a Kent County commercial broiler flock; the premises is quarantined and birds are being depopulated.",
+   "status_text": "Preliminary testing found presumptive positive H5 HPAI in a Kent County commercial broiler flock; the premises is quarantined and birds are being depopulated.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2026/01/10/delaware-announces-presumptive-positive-avian-influenza-case-in-kent-county-commercial-flock/",
    "auto": true,
@@ -642,7 +693,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "Preliminary testing of a Kent County commercial broiler flock returned presumptive positive H5 avian influenza; NVSL confirmation is pending.",
+   "status_text": "Preliminary testing of a commercial broiler flock in Kent County returned presumptive positive H5; samples sent to USDA NVSL for confirmation.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2025/01/03/delaware-announces-first-presumptive-positive-h5-avian-influenza-case-detected-on-kent-county-farm-in-2025/",
    "auto": true,
@@ -656,7 +707,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "A commercial broiler flock in Caroline County, Maryland, preliminarily tested positive for HPAI; USDA confirmation is pending.",
+   "status_text": "A commercial broiler flock in Caroline County, Maryland, preliminarily tested positive for HPAI; USDA NVSL confirmation is pending.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2023/11/21/delaware-poultry-owners-urged-to-take-precautions-due-to-hpai-on-delmarva/",
    "auto": true,
@@ -670,7 +721,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "confirmed",
-   "status_text": "USDA's National Veterinary Services Laboratory confirmed HPAI H5N1 in a commercial broiler farm in Kent County, Delaware.",
+   "status_text": "Federal testing confirmed highly pathogenic H5N1 avian influenza at a commercial broiler farm in Kent County, Delaware.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2022/03/17/first-case-of-avian-influenza-detected-on-kent-county-delaware-farm/",
    "auto": true,
