@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-18T06:18:10+00:00",
+ "updated": "2026-11-18T06:20:15+00:00",
  "wild": [],
  "notices": [
   {
@@ -22,7 +22,10 @@
    "status": null,
    "county": null,
    "state": "Delaware",
-   "method": "rules"
+   "flock_type": null,
+   "birds": null,
+   "summary": "Delaware Department of Agriculture urges poultry safety and biosecurity as avian influenza risk rises with the 2026-27 migratory season.",
+   "method": "ai"
   },
   {
    "date": "2026-11-11",
@@ -53,35 +56,11 @@
  ],
  "problems": [
   "VDACS: no VDACS list page reachable",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZECn); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZFQy); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZGK3); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZH9t); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZJ2U); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZJs5); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZKhC); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZLYH); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZMQN); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZNGU); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZPA3); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZQ9p); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZQzv); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZRq2); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZSfe); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZTYU); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZUT3); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZVFu); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZW6k); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZWv8); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZXrB); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZYpi); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZZri); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZahp); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZbVx); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZcSW); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZdGc); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZe7i); used keyword rules",
-  "AI reading failed (400: {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"This model does not support assistant message prefill. The conversation must end with a user message.\"},\"request_id\":\"req_011Ch9uZez3); used keyword rules"
+  "AI reading failed for 'Update on Delaware H5 Avian Influenza Case on Kent': Expecting value: line 1 column 1 (char 0); reply began '{\"is_detection\": true, \"kind\": \"general\", \"status\": \"confirmed\", \"state\": \"Delaw'; used keyword rules",
+  "AI reading failed for 'Two Additional Cases Of Avian Influenza Confirmed ': Expecting value: line 1 column 1 (char 0); reply began '{\"is_detection\": true, \"kind\": \"general\", \"status\": \"confirmed\", \"state\": \"Delaw'; used keyword rules",
+  "AI reading failed for 'Update on Delaware H5 Avian Influenza Case on Kent': Expecting value: line 1 column 1 (char 0); reply began '{\"is_detection\": true, \"kind\": \"general\", \"status\": \"confirmed\", \"state\": \"Delaw'; used keyword rules",
+  "AI reading failed for 'Two Additional Cases Of Avian Influenza Confirmed ': Expecting value: line 1 column 1 (char 0); reply began '{\"model\": \"claude-haiku-5-5\", \"id\": \"msg_011Ch9uo1CM3WADEiFbrmVKv\", \"type\": \"mes'; used keyword rules",
+  "AI reading failed for 'Avian Influenza Found In Delaware Chicken Flock; P': Expecting value: line 1 column 1 (char 0); reply began '{\"model\": \"claude-haiku-5-5\", \"id\": \"msg_011Ch9uoPpNkLt9skqGZc8sy\", \"type\": \"mes'; used keyword rules"
  ],
  "wild_year": [
   {
@@ -638,14 +617,14 @@
    "state": "Delaware",
    "county": "Kent",
    "date": "2026-01-10",
-   "flock": "Commercial flock",
+   "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "",
+   "status_text": "Preliminary testing found H5 avian influenza in a commercial broiler flock in Kent County; the premises is quarantined and birds are being depopulated.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2026/01/10/delaware-announces-presumptive-positive-avian-influenza-case-in-kent-county-commercial-flock/",
    "auto": true,
-   "method": "rules"
+   "method": "ai"
   },
   {
    "id": "auto-e9da8c48",
@@ -666,14 +645,14 @@
    "state": "Delaware",
    "county": "Kent",
    "date": "2025-01-03",
-   "flock": "Commercial flock",
+   "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "",
+   "status_text": "Delaware reports a presumptive positive H5 avian influenza case in a Kent County commercial broiler flock, with samples sent to USDA NVSL for confirmation.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2025/01/03/delaware-announces-first-presumptive-positive-h5-avian-influenza-case-detected-on-kent-county-farm-in-2025/",
    "auto": true,
-   "method": "rules"
+   "method": "ai"
   },
   {
    "id": "auto-d4e515f0",
@@ -683,7 +662,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "A commercial broiler flock in Caroline County, Maryland, preliminarily tested positive for HPAI; USDA NVSL confirmation is pending.",
+   "status_text": "A commercial broiler flock in Caroline County, Maryland preliminarily tested positive for HPAI; USDA NVSL confirmation is pending.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2023/11/21/delaware-poultry-owners-urged-to-take-precautions-due-to-hpai-on-delmarva/",
    "auto": true,
@@ -694,14 +673,14 @@
    "state": "Delaware",
    "county": "Kent",
    "date": "2022-03-17",
-   "flock": "Commercial flock",
+   "flock": "Commercial broiler",
    "birds": null,
    "status": "confirmed",
-   "status_text": "",
+   "status_text": "Federal testing confirmed H5N1 highly pathogenic avian influenza at a commercial broiler farm in Kent County, Delaware.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2022/03/17/first-case-of-avian-influenza-detected-on-kent-county-delaware-farm/",
    "auto": true,
-   "method": "rules"
+   "method": "ai"
   }
  ]
 }
