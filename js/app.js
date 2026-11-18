@@ -156,6 +156,10 @@ require([
     const md = S.counties.filter((c) => c.state === "Maryland");
     S.mdGeom = geometryEngine.union(md.map((c) => c.geom));
     S.clearGeom = geometryEngine.union(S.counties.map((c) => c.geom));
+    // these two pull from nationwide services (USFWS refuges, NLCD land cover) with no state/region
+    // filter of their own, so without a clip they render across the whole country, not just Delmarva
+    env.refuges.clippingArea = S.clearGeom;
+    env.land.clippingArea = S.clearGeom;
     const ext = S.mdGeom.extent.clone();
     view.constraints.geometry = S.clearGeom.extent.clone().expand(1.25);
     if (!location.hash) view.goTo(ext.expand(1.05), { animate: false }).catch(() => {});
@@ -242,7 +246,10 @@ require([
   }
   ctx.refreshAreas = refreshAreas;
 
-  // ---- affected counties: commercial detections + MDA declarations (+ counties containing an active control area) ----
+  // ---- affected counties: commercial (chicken/poultry) detections only, from the live feed or an MDA declaration ----
+  // deliberately NOT based on control/surveillance zone geometry: a zone's buffer radius can extend into a
+  // neighboring county that has no detection of its own, which was shading counties (e.g. Anne Arundel) that
+  // merely sit near an infected premises in another county
   S.affected = [];
   async function paintCounties() {
     await ready; tintLyr.removeAll();
@@ -252,7 +259,6 @@ require([
     if (L.decl) {
       try { (await L.decl.queryFeatures({ where: L.decl.definitionExpression, outFields: ["*"], returnGeometry: false })).features.forEach((f) => { const a = f.attributes; mark(a.state || "Maryland", a.county, { kind: "declaration", t: a.declared, status: a.status, text: a.status_text, url: a.source_url }); }); } catch (e) {}
     }
-    S.areas.forEach((f) => { const c = S.counties.find((x) => geometryEngine.contains(x.geom, f.geometry.extent.center)); if (c) mark(c.state, c.name, { kind: "zone", sample: f.attributes.sample === 1, t: f.attributes.since || f.attributes.confirmed_date || f.attributes.created_date }); });
     S.affected = [...aff.values()].map((o) => ({ county: o.c.name, state: o.c.state, geom: o.c.geom, items: o.items, since: Math.min(...o.items.map((i) => i.t || Date.now())) })).sort((a, b) => b.since - a.since);
     S.affected.forEach((a) => tintLyr.add(new Graphic({ geometry: a.geom, attributes: { county: a.county }, symbol: fill(ROSE, 0.16, ROSE.concat(0.7), 1) })));
     emit("affected", S.affected); kpis();
@@ -489,14 +495,15 @@ require([
   reactiveUtils.watch(() => riskLyr.visible, (v) => { if (v && !riskBuilt) { riskBuilt = true; toast("Building seasonal risk…"); buildRisk().then(() => toast("Seasonal risk: " + new Date().toLocaleString("en-US", { month: "long" }))); } });
   on("wild", () => { if (riskBuilt) buildRisk(); });
 
-  // ---------------- history (time slider): real county history + SAMPLE zone shapes ----------------
+  // ---------------- history (time slider): released control zones only ----------------
   const pubHist = () => has(C.pub.history) ? new FeatureLayer({ url: C.pub.history }).queryFeatures({ where: "1=1", outFields: ["*"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((r) => r.features).catch(() => []) : Promise.resolve([]);
-  const histReady = Promise.all([live, fetch(C.sampleHistoryUrl).then((r) => (r.ok ? r.json() : [])).catch(() => []), ready, pubHist()]).then(([Ld, sample, _s, ph]) => {
-    const items = ph.map((f) => ({ geom: f.geometry, start: f.attributes.start_date, end: f.attributes.end_date, kind: f.attributes.sample ? "sample" : "zone", label: `${f.attributes.county || ""} County · past control area` }));
-    ((Ld && (Ld.history || Ld.commercial)) || []).forEach((d) => { const c = S.counties.find((x) => x.state === d.state && x.name === d.county); if (c) items.push({ geom: c.geom, start: Date.parse(d.date + "T12:00:00Z"), end: Date.parse(d.date + "T12:00:00Z") + 90 * DAY, kind: "county", label: `${d.county} County · ${d.flock || "commercial flock"}`, src: d.source }); });
-    (sample || []).forEach((s) => { const p = new Polygon({ rings: s.rings, spatialReference: { wkid: 4326 } }); items.push({ geom: wmu.geographicToWebMercator(p), start: Date.parse(s.start), end: Date.parse(s.end), kind: "sample", label: s.label }); });
+  // "Past outbreaks" = control zones that were actually released (C.pub.history is only ever written to from the
+  // release+publish flow in mda.js). A past commercial detection or a zone that's still active isn't a past outbreak
+  // yet, so those aren't shown here even though they appear elsewhere (county shading, the current control area, etc.)
+  const histReady = pubHist().then((ph) => {
+    const items = ph.map((f) => ({ geom: f.geometry, start: f.attributes.start_date, end: f.attributes.end_date, kind: f.attributes.sample ? "sample" : "zone", label: `${f.attributes.county || ""} County · past control area (released)` }));
     items.forEach((i) => histLyr.add(new Graphic({ geometry: i.geom, attributes: { start: i.start, end: i.end, kind: i.kind, label: i.label },
-      symbol: i.kind === "county" ? fill(ROSE, 0.14, ROSE.concat(0.8), 1, "dash") : fill(SLATE, i.kind === "zone" ? 0.3 : 0.22, SLATE.concat(0.95), 1.2, i.kind === "sample" ? "dash" : "solid") })));
+      symbol: fill(SLATE, i.kind === "zone" ? 0.3 : 0.22, SLATE.concat(0.95), 1.2, i.kind === "sample" ? "dash" : "solid") })));
     return items;
   });
   // look back in time: a "Past outbreaks" row in the layers panel with a month slider
