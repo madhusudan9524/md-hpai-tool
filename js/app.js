@@ -83,8 +83,8 @@ require([
     layers: [maskLyr, env.land, env.wetlands, env.water, env.rivers, env.sheds, env.wma, env.waterfowl, env.refuges, riskLyr, birdsLyr, tintLyr, countyLyr, histLyr] });
   const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, constraints: { minZoom: 7, snapToZoom: false },
     popup: { dockEnabled: false, dockOptions: { buttonEnabled: false }, collapseEnabled: false, visibleElements: { closeButton: true, featureNavigation: false, actionBar: false, heading: false, collapseButton: false, spinner: false }, highlightEnabled: false, actions: [] }, ui: { components: ["zoom", "attribution"] } });
-  view.ui.move("zoom", "bottom-right");
-  view.ui.add(new Home({ view }), "bottom-right");
+  view.ui.move("zoom", "top-left");
+  view.ui.add(new Home({ view }), "top-left");
 
   // ---------------- state ----------------
   const S = { ws: "public", user: null, groups: [], roles: [], live: null, mdGeom: null, clearGeom: null, counties: [], areas: [], season: null };
@@ -449,11 +449,11 @@ require([
   }
   histReady.then((items) => { timeT0 = Math.min(Date.parse("2022-01-01"), ...items.map((i) => i.start)); renderKey(); });
   // ---------------- floating layers & key (minimizable) ----------------
-  const keyEl = document.createElement("div"); keyEl.className = "lk glass" + (window.innerWidth < 760 || store.get("keyShut", false) ? " shut" : "");
+  const keyEl = document.createElement("div"); keyEl.className = "lk glass shut";   // starts closed; opens upward when clicked
   const acctEl = document.createElement("div"); acctEl.id = "acctFloat";
   view.ui.add(acctEl, { position: "top-right", index: 0 });
   ctx.acctEl = acctEl;
-  view.ui.add(keyEl, { position: "top-right", index: 1 });
+  view.ui.add(keyEl, "bottom-right");
   const ROWS = () => [
     { sec: "Outbreak" },
     { id: "ca", t: "Control area", n: `within ${H.mi(C.zones.controlKm, 0)} miles of infected premises`, sw: "ca", ls: () => [L.ca] },
@@ -486,7 +486,7 @@ require([
   const vis = store.get("vis", {});
   function renderKey() {
     const rows = ROWS().filter((r) => (!r.staff || ctx.isStaff()) && (!r.roles || r.roles.includes(S.ws)));
-    let html = `<header id="keyHead"><span>Layers &amp; key${S.sample ? ' <i class="smpl" title="The control areas shown are exercise data, not real outbreaks">Sample zones</i>' : ""}</span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></header><div class="body">`;
+    let html = `<header id="keyHead"><svg class="lki" viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 10-5z"/><path d="M2 13l10 5 10-5"/></svg><span>Layers &amp; key${S.sample ? ' <i class="smpl" title="The control areas shown are exercise data, not real outbreaks">Sample zones</i>' : ""}</span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></header><div class="body">`;
     rows.forEach((r, i) => {
       if (r.sec) { if (rows[i + 1] && !rows[i + 1].sec) html += `<h4>${esc(r.sec)}</h4>`; return; }
       const ls = r.ls().filter(Boolean); if (!ls.length) return;
@@ -502,7 +502,9 @@ require([
     });
     html += `</div>`;
     keyEl.innerHTML = html;
-    $("keyHead").onclick = () => { keyEl.classList.toggle("shut"); store.set("keyShut", keyEl.classList.contains("shut")); };
+    $("keyHead").onclick = () => keyEl.classList.toggle("shut");
+    $("keyHead").setAttribute("role", "button"); $("keyHead").setAttribute("tabindex", "0"); $("keyHead").setAttribute("aria-expanded", String(!keyEl.classList.contains("shut")));
+    $("keyHead").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); keyEl.classList.toggle("shut"); } };
     keyEl.querySelectorAll(".tg").forEach((t) => (t.onchange = () => { const r = ROWS().find((x) => x.id === t.dataset.id); vis[r.id] = t.checked; store.set("vis", vis); r.ls().filter(Boolean).forEach((l) => (l.visible = t.checked)); if (r.time || r.link) renderKey(); }));
     const seg = $("wildSeg"); if (seg) seg.querySelectorAll("button").forEach((b) => (b.onclick = () => { S.wildRange = +b.dataset.d; store.set("wildRange", S.wildRange); seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); loadWild(); }));
     const tr = $("timeRange");

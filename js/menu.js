@@ -107,10 +107,11 @@ window.HPAI.modules.push(function (ctx) {
     menu.className = "mega" + (S.ws === "regulator" ? "" : " small");
     menu.innerHTML = groups.map(([g, items]) => `<div class="mg"><h4>${esc(g)}</h4>${items.map(([i, t, d, fn]) => item(i, t, d, fn)).join("")}</div>`).join("") + acct;
   }
+  const firstName = () => { const n = (S.user.fullName || "").trim().split(/\s+/)[0]; return n || S.user.username.split(/[_@.]/)[0]; };
   const ini = () => (S.user.fullName || S.user.username).split(/\s+/).map((x) => x[0]).join("").slice(0, 2).toUpperCase();
   function renderBtn() {
     host.innerHTML = S.user
-      ? `<button class="acbtn glass" aria-haspopup="true" aria-expanded="false" title="Account and tools"><span class="av ${S.ws}">${esc(ini())}</span><span class="acl">${S.ws === "regulator" ? "MDA menu" : S.ws === "public" ? "Account" : "Menu"}</span><svg class="li" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>`
+      ? `<button class="acbtn glass" aria-haspopup="true" aria-expanded="false" title="Your menu"><span class="av ${S.ws}">${esc(ini())}</span><span class="acl">${esc(firstName())}</span><svg class="li" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>`
       : `<button class="acbtn glass signin" aria-haspopup="true" aria-expanded="false"><svg class="li" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span class="acl">Sign in</span></button>`;
     const b = host.querySelector("button");
     b.onclick = (e) => { e.stopPropagation(); if (!menu.hidden) return close(); build(); place(b); menu.hidden = false; b.setAttribute("aria-expanded", "true"); const f = menu.querySelector(".mi"); if (f) f.focus(); };
