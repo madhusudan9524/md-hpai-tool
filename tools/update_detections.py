@@ -77,6 +77,59 @@ def classify(title, body, source):
     return {"kind": kind if detect and county else "general", "status": status, "county": county, "state": state}
 
 
+
+# ---------- AI reading of a release (Claude API); falls back to the keyword rules ----------
+AI_MODEL = os.environ.get("HPAI_AI_MODEL", "claude-haiku-5-5")
+AI_PROMPT = """You read official state agriculture press releases about avian influenza on the Delmarva Peninsula.
+Return ONLY a JSON object with these keys:
+  is_detection: true if the release announces a new HPAI / avian influenza detection (not just advice or a reminder)
+  kind: "commercial", "backyard", "wild" or "general"
+  status: "confirmed" (USDA/NVSL confirmed), "preliminary" (state lab, presumptive or preliminary positive) or null
+  state: "Maryland", "Delaware" or "Virginia"
+  county: county name without the word County, or null
+  flock_type: e.g. "Commercial broiler", "Commercial layer", "Backyard", or null
+  birds: number of birds affected as an integer, or null
+  detection_date: YYYY-MM-DD of the detection or announcement, or null
+  summary: one plain sentence, under 25 words, in your own words
+Use only facts stated in the release. If something is not stated, use null."""
+
+
+def ai_extract(title, body, source):
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        return None
+    req = urllib.request.Request("https://api.anthropic.com/v1/messages", method="POST", headers={
+        "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+        data=json.dumps({"model": AI_MODEL, "max_tokens": 400, "system": AI_PROMPT,
+                         "messages": [{"role": "user", "content": f"Source: {source}\nTitle: {title}\n\n{body[:6000]}"}]}).encode())
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            text = "".join(b.get("text", "") for b in json.loads(r.read().decode())["content"])
+        return validate_ai(json.loads(text[text.find("{"): text.rfind("}") + 1]), source)
+    except Exception as e:
+        problems.append(f"AI reading failed for '{title[:60]}': {e} (used keyword rules)")
+        return None
+
+
+def validate_ai(j, source):
+    """Keep only values we can check: known state/county, allowed words, real dates."""
+    lists = {"Maryland": MD, "Delaware": DE, "Virginia": VA}
+    state = j.get("state") if j.get("state") in lists else STATE_OF.get(source, (None,))[0]
+    county = (j.get("county") or "").replace(" County", "").strip() or None
+    if county and state and county not in lists[state]:
+        county = None
+    kind = j.get("kind") if j.get("kind") in ("commercial", "backyard", "wild", "general") else "general"
+    status = j.get("status") if j.get("status") in ("confirmed", "preliminary") else None
+    try:
+        date = dt.date.fromisoformat(j.get("detection_date")).isoformat() if j.get("detection_date") else None
+    except Exception:
+        date = None
+    birds = j.get("birds") if isinstance(j.get("birds"), int) and j.get("birds") >= 0 else None
+    if not j.get("is_detection"):
+        kind = "general"
+    return {"kind": kind if county or kind == "general" else "general", "status": status, "county": county, "state": state,
+            "flock_type": (j.get("flock_type") or None), "birds": birds, "ai_date": date, "summary": (j.get("summary") or "")[:200], "method": "ai"}
+
 # ---------- sources ----------
 def parse_us_date(v):
     return dt.datetime.strptime((v or "").split(" ")[0], "%m/%d/%Y").date()
@@ -195,14 +248,17 @@ def main():
 
     notices, commercial = [], {}
     for n in found:
-        c = classify(n["title"], n["body"], n["source"])
-        n.update(c); n.pop("body", None)
+        c = ai_extract(n["title"], n["body"], n["source"]) or dict(classify(n["title"], n["body"], n["source"]), method="rules")
+        if c.get("ai_date"):
+            n["date"] = c["ai_date"]
+        n.update(c); n.pop("body", None); n.pop("ai_date", None)
         if (today - dt.date.fromisoformat(n["date"])).days <= NOTICE_DAYS:
             notices.append(n)
         if c["kind"] == "commercial" and c["county"] and c["status"]:   # headline must say preliminary/presumptive/confirmed
             key = f'{c["state"]}|{c["county"]}|{n["date"]}'
             commercial[key] = {"id": "auto-" + hashlib.md5(key.encode()).hexdigest()[:8], "state": c["state"], "county": c["county"], "date": n["date"],
-                               "flock": "Commercial flock", "status": c["status"] or "reported", "source": n["source"], "url": n["url"], "auto": True}
+                               "flock": c.get("flock_type") or "Commercial flock", "birds": c.get("birds"), "status": c["status"] or "reported", "status_text": c.get("summary", ""),
+                               "source": n["source"], "url": n["url"], "auto": True, "method": c.get("method", "rules")}
     # curated entries (entered by MDA) replace automatic ones for the same state/county
     for c in curated.get("commercial", []):
         commercial = {k: v for k, v in commercial.items() if not (v["state"] == c["state"] and v["county"] == c["county"] and abs((dt.date.fromisoformat(v["date"]) - dt.date.fromisoformat(c["date"])).days) <= 7)}

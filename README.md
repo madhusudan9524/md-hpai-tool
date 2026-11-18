@@ -74,12 +74,22 @@ Sources: USDA APHIS 2015 case-control findings (control-area location OR 28.8; r
 
 All trips also use truck height and weight limits, MDOT CHART closures and traffic at the departure time. **The hours and C&D stations are placeholders for MDA to confirm.**
 
+## How detections get into the map (automatic)
+
+Twice a day `tools/update_detections.py`:
+1. scrapes MDA press releases (plus Delaware and Virginia agriculture news) and keeps those mentioning avian influenza / HPAI / H5N1;
+2. has Claude read each release and return county, flock type, status (preliminary / confirmed), birds affected, date and a one-line summary (needs the `ANTHROPIC_API_KEY` repository secret; without it, keyword rules are used);
+3. checks the AI answer (county must be a real Delmarva county, dates must be real) and drops anything it can't verify;
+4. writes the result to `data/detections.json`: the county is tinted and the notice is listed, with a link to the original release as the source.
+Zones and exact premises are only added later by MDA staff in the MDA panel.
+
 ## Still to set up
 
+0. **AI reading of releases**: add the repository secret `ANTHROPIC_API_KEY` (an Anthropic API key).
 1. **Email alerts**: add repository secrets `ARCGIS_PORTAL`, `ARCGIS_USER`, `ARCGIS_PASSWORD`, `ALERTS_LAYER` (MD_HPAI_Submissions/1), `AREAS_LAYER` (MD_HPAI_Public/0), `DECL_LAYER` (MD_HPAI_Public/2), `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `ALERT_FROM`, `APP_URL`.
 2. **Apple Wallet**: an Apple Developer pass certificate (ideally MDA's), then set `walletPassUrl` in `js/config.js`.
 3. **Access requests**: approving one opens the ArcGIS group page so MDA can send the invite.
-4. Real C&D stations and allowed movement hours from MDA.
+4. Placeholders to fill in later: real C&D stations and allowed movement hours (MDA), the contact email (`accessEmail` in `js/config.js`), and the press-release link for the Worcester entry in `data/curated_detections.json`.
 
 ## Run locally
 
