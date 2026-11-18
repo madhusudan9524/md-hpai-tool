@@ -33,6 +33,7 @@
       return R(body.op ? T.url + "/" + body.op : T.url, p);
     }
     if (path === "/company/list") { await me(); return { people: [] }; }
+    if (path === "/places") return {};   // View as keeps places on this device only
     fail("Not available in View as. Industry partners do this with their own sign-in.");
   };
 })(window.HPAI);

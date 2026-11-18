@@ -39,6 +39,9 @@ The current zones are the prototype's **sample** data, migrated and labeled as s
 
 ## Who signs in
 
+- **Members of the public (optional)**: "Save my places" with just an email code, no approval and nothing else asked. Their saved homes and farms and alert choices are kept in the sign-in service (KV, keyed by email) and can be deleted from the menu. Industry partners' saved places sync the same way. Without signing in, places stay on the device.
+- **Email alerts**: one subscription per saved place (Email alerts → tick places, pick a distance). The place's type and name ride in the alert token (`<id>~farm|home~<base64url name>`), so `tools/send_alerts.py` words each email for a farm or a home without a change to the alerts layer.
+
 - **View as** (MDA staff): your menu → View as Public / Industry / MDA staff shows each audience's version. A banner shows while you're viewing as someone else. The industry view uses a built-in test grower record and saves nothing (`js/preview.js`).
 
 - **Public**: no sign-in.

@@ -81,6 +81,7 @@ window.HPAI.modules.push(function (ctx) {
       ["layers", "Import farms", "From a spreadsheet (CSV)", () => ctx.actions.importFarms()],
       ["flag", "Report a sick flock", "MDA follows up", () => ctx.actions.flockReport()],
       ["inbox", "Report dead wild birds", "With a photo", () => ctx.actions.wildReport()],
+      ["flag", "Email alerts", "For each of my premises", () => ctx.actions.alerts()],
       ["help", "Help", "Trips, permits, farm risk", () => helpSheet("industry")]]]]
   };
 
@@ -91,13 +92,24 @@ window.HPAI.modules.push(function (ctx) {
   const item = (i, t, d, fn) => { actions.push(fn); return `<button class="mi" role="menuitem" data-a="${actions.length - 1}">${ic(i)}<span><b>${esc(t)}</b>${d ? `<small>${esc(d)}</small>` : ""}</span></button>`; };
   function build() {
     actions = [];
+    if (!S.user && S.member) {   // a member of the public: saved places only
+      menu.className = "mega vertical";
+      menu.innerHTML = `<div class="mg macct"><div class="mwho"><span class="av public">${esc(S.member.email[0].toUpperCase())}</span><span><b>${esc(S.member.email)}</b><small>Your places and alerts are saved to this email</small></span></div>
+        ${item("barn", "My places", "Status of each saved home or farm", () => { ctx.sheetHalf(); const el = document.getElementById("myPlaces"); if (el) el.scrollIntoView({ behavior: "smooth" }); })}
+        ${item("inbox", "Email alerts", "Choose places and distances", () => ctx.actions.alerts())}
+        <div class="msep"></div>${item("user", "MDA staff sign-in", "", () => ctx.signIn("regulator"))}${item("truck", "Industry partner sign-in", "", () => ctx.signIn("partner"))}
+        <div class="msep"></div>${item("log", "Sign out", "", () => ctx.actions.memberSignOut())}${item("flag", "Delete my saved places", "From your account", () => ctx.actions.memberDelete())}</div>`;
+      return;
+    }
     if (!S.user) {
       menu.className = "mega vertical signin";
       menu.innerHTML = `<div class="mg"><h4>Sign in</h4>
+        ${item("barn", "Save my places", "Email only · keep homes, farms and alerts on any device", () => ctx.actions.memberSignIn())}
+        <div class="msep"></div>
         ${item("user", "MDA staff", "Maryland Department of Agriculture account · exact premises, zones, reviews, tracing", () => ctx.signIn("regulator"))}
         ${item("truck", "Industry partners", "Email or text code · trip planning, permits, farm risk, check-ins", () => ctx.signIn("partner"))}
         <div class="msep"></div>${item("plus", "Register as an industry partner", "MDA reviews every request", () => ctx.actions.signup())}
-        <p class="mnote">The public map needs no sign-in: control areas, county status, wildlife cases, alerts and reports.</p></div>`;
+        <p class="mnote">Everything on the public map works without signing in.</p></div>`;
       return;
     }
     const roleName = S.role === "pending" ? "Not on MDA's staff list" : S.session ? [S.user.company, S.user.expires ? "access until " + H.fmtDate(S.user.expires) : ""].filter(Boolean).join(" · ") || ctx.WS[S.role] : ctx.WS[S.role];
@@ -118,7 +130,8 @@ window.HPAI.modules.push(function (ctx) {
   const firstName = () => { const n = (S.user.fullName || "").trim().split(/\s+/)[0]; return n || S.user.username.split(/[_@.]/)[0]; };
   const ini = () => (S.user.fullName || S.user.username).split(/\s+/).map((x) => x[0]).join("").slice(0, 2).toUpperCase();
   function renderBtn() {
-    host.innerHTML = S.user
+    if (!S.user && S.member) { host.innerHTML = `<button class="acbtn glass" aria-haspopup="true" aria-expanded="false" title="Your places"><span class="av public">${esc(S.member.email[0].toUpperCase())}</span><span class="acl">My places</span><svg class="li" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>`; }
+    else host.innerHTML = S.user
       ? `<button class="acbtn glass" aria-haspopup="true" aria-expanded="false" title="Your menu"><span class="av ${S.ws}">${esc(ini())}</span><span class="acl">${esc(firstName())}</span><svg class="li" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>`
       : `<button class="acbtn glass signin" aria-haspopup="true" aria-expanded="false"><svg class="li" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span class="acl">Sign in</span></button>`;
     const b = host.querySelector("button");

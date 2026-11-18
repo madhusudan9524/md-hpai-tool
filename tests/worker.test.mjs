@@ -132,4 +132,18 @@ r = await call("/register", fd); assert.equal(r.status, 200);
 const cal = accounts.find((a) => a.name === "Cal Hauler"), ck = Object.fromEntries(JSON.parse(cal.checks).map((c) => [c.k, c]));
 assert.equal(ck.usdot.state, "ok"); assert.equal(ck.usdot.data.legalName, "SHORE POULTRY TRUCKING LLC"); assert.equal(ck.domain.state, "ok");
 
+// 10. member of the public: email code only, no approval, saved places kept and deletable
+mails.length = 0;
+r = await call("/code", { contact: "+14105550123", purpose: "user" }); assert.equal(r.status, 400, "members sign in with email only");
+r = await call("/code", { contact: "Dee@Home.org", purpose: "user" }); assert.equal(r.status, 200);
+r = await call("/verify", { contact: "dee@home.org", code: lastCode(), purpose: "user" }); assert.equal(r.status, 200); assert.equal(r.j.user.email, "dee@home.org");
+const mem = { authorization: "Bearer " + r.j.token };
+assert.equal(accounts.filter((a) => a.email === "dee@home.org").length, 0, "no account record, nothing else stored");
+r = await call("/places", undefined, mem); assert.equal(r.j.places, null);
+r = await call("/places", { places: [{ id: "P1", name: "Home", kind: "home", lon: -76.5, lat: 38.9, alert: { email: "dee@home.org", token: "U1", km: 9.656 } }, { id: "", name: "bad", lon: 1, lat: 1 }] }, mem);
+assert.equal(r.j.n, 1, "invalid places dropped");
+r = await call("/places", undefined, mem); assert.equal(r.j.places[0].name, "Home"); assert.equal(r.j.places[0].alert.token, "U1");
+r = await call("/me", undefined, mem); assert.equal(r.status, 401, "a member token isn't an industry session");
+r = await call("/u/delete", {}, mem); r = await call("/places", undefined, mem); assert.equal(r.j.places, null);
+
 console.log("worker: all checks passed");

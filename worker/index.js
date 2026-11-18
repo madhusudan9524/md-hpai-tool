@@ -41,6 +41,9 @@ export default {
       else if (p === "/register") out = await register(await req.formData(), env, cx);
       else if (p === "/more") out = await moreInfo(await req.formData(), env);
       else if (p === "/me") out = { user: publicUser(await session(req, env)) };
+      else if (p === "/u/me") out = { user: { email: (await member(req, env)).c } };
+      else if (p === "/places") out = await places(req, env);
+      else if (p === "/u/delete") out = await deleteMember(req, env);
       else if (p === "/arcgis") out = await proxy(await session(req, env), await req.json(), env);
       else if (p.startsWith("/company/")) out = await company(p.slice(9), await session(req, env), await req.json(), env);
       else if (p === "/mda/recheck") out = await mdaRecheck(await mdaUser(req, env), await req.json(), env);
@@ -174,7 +177,8 @@ const publicUser = (a) => ({ id: a.acct_id, name: a.name, company: a.org, btype:
 
 // ---------------------------------------------------------------- /code and /verify
 async function sendCode(b, env, req) {
-  const c = normContact(b.contact), purpose = b.purpose === "register" ? "register" : "signin";
+  const c = normContact(b.contact), purpose = b.purpose === "register" ? "register" : b.purpose === "user" ? "user" : "signin";
+  if (purpose === "user" && c.kind !== "email") throw err(400, "Enter your email address.");
   await limit(env, "c:" + c.v, 5); await limit(env, "ip:" + (req.headers.get("cf-connecting-ip") || "?"), 30);
   const generic = { ok: true, message: purpose === "signin" ? "If this email or number belongs to an approved industry partner, a code is on its way." : "A code is on its way." };
   if (purpose === "signin") {
@@ -195,7 +199,7 @@ async function sendCode(b, env, req) {
   return generic;
 }
 async function verifyCode(b, env) {
-  const c = normContact(b.contact), purpose = b.purpose === "register" ? "register" : "signin";
+  const c = normContact(b.contact), purpose = b.purpose === "register" ? "register" : b.purpose === "user" ? "user" : "signin";
   const raw = env.KV && (await env.KV.get("code:" + c.v)); if (!raw) throw err(400, "That code has expired. Ask for a new one.");
   const s = JSON.parse(raw);
   if (s.p !== purpose) throw err(400, "Ask for a new code.");
@@ -203,6 +207,7 @@ async function verifyCode(b, env) {
   if ((await sha(String(b.code || "").trim() + env.SESSION_SECRET)) !== s.h) { s.n++; await env.KV.put("code:" + c.v, JSON.stringify(s), { expirationTtl: 600 }); throw err(400, "That code isn't right. Check it and try again."); }
   await env.KV.delete("code:" + c.v);
   if (purpose === "register") return { proof: await sign(env, { k: "p", c: c.v, exp: Date.now() + 2 * 3600000 }) };
+  if (purpose === "user") { await audit(env, "user", "user:signin", "", ""); return { token: await sign(env, { k: "u", c: c.v, exp: Date.now() + 365 * DAY }), user: { email: c.v } }; }
   const a = await accountByContact(env, c);
   if (!isActive(a)) throw err(403, "Your access isn't active.");
   await ago(env, env.ACCOUNTS_URL + "/applyEdits", { updates: JSON.stringify([{ attributes: { OBJECTID: a.OBJECTID, last_login: Date.now() } }]) }).catch(() => {});
@@ -210,6 +215,29 @@ async function verifyCode(b, env) {
   const days = +(env.SESSION_DAYS || 30), exp = Math.min(Date.now() + days * DAY, a.expires || Infinity);
   return { token: await sign(env, { k: "s", id: a.acct_id, exp }), user: publicUser(a) };
 }
+
+// ---------------------------------------------------------------- members of the public: saved places only
+// Anyone can keep their saved places (homes, farms) and their alert choices with just an email code. Nothing else is
+// asked or stored: the places live in KV under the email, and the person can delete them at any time.
+async function member(req, env) { return unsign(env, (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, ""), "u"); }
+async function placesKey(req, env) {
+  const t = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  try { return "places:u:" + (await unsign(env, t, "u")).c; } catch (e) { return "places:i:" + (await session(req, env)).acct_id; }   // or an industry partner
+}
+function cleanPlaces(list) {
+  return (Array.isArray(list) ? list : []).slice(0, 200).map((p) => ({ id: clip(p.id, 24), name: clip(p.name, 80), kind: p.kind === "farm" ? "farm" : "home",
+    lon: +(+p.lon).toFixed(5), lat: +(+p.lat).toFixed(5), audit: p.audit && +p.audit.date ? { date: +p.audit.date, passed: !!p.audit.passed } : undefined,
+    alert: p.alert && p.alert.token ? { email: clip(p.alert.email, 120), token: clip(p.alert.token, 200), km: +p.alert.km || 9.656 } : undefined }))
+    .filter((p) => p.id && isFinite(p.lon) && isFinite(p.lat) && Math.abs(p.lat) <= 90 && Math.abs(p.lon) <= 180);
+}
+async function places(req, env) {
+  if (!env.KV) throw err(500, "The sign-in service isn't set up yet.");
+  const key = await placesKey(req, env);
+  if (req.method === "GET") return { places: JSON.parse((await env.KV.get(key)) || "null") };
+  const list = cleanPlaces((await req.json()).places);
+  await env.KV.put(key, JSON.stringify(list)); return { ok: true, n: list.length };
+}
+async function deleteMember(req, env) { const m = await member(req, env); if (env.KV) await env.KV.delete("places:u:" + m.c); return { ok: true }; }
 
 // session: signature + account still approved (checked at most once a minute per account)
 const live = new Map();

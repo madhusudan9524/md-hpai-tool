@@ -15,7 +15,7 @@ Needs these settings (GitHub repository secrets); without them the script does n
   APP_URL                                         public address of the map (for links and unsubscribe)
 Standard library only.
 """
-import hashlib, json, math, os, smtplib, ssl, sys, urllib.parse, urllib.request, datetime as dt
+import base64, hashlib, json, math, os, smtplib, ssl, sys, urllib.parse, urllib.request, datetime as dt
 from email.message import EmailMessage
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -54,6 +54,33 @@ def dist_to_poly(pt, rings):
     return 0 if inside(pt, rings) else min(km(pt, v[:2]) for ring in rings for v in ring)
 
 
+def place_of(token):
+    """The map writes one subscription per saved place; its kind and name ride in the token: "<id>~<farm|home>~<base64url name>".
+    Older tokens (no "~") are a home with no name."""
+    parts = str(token or "").split("~")
+    if len(parts) < 3:
+        return "home", "your place"
+    try:
+        name = base64.urlsafe_b64decode(parts[2] + "=" * (-len(parts[2]) % 4)).decode("utf-8").strip() or "your place"
+    except Exception:
+        name = "your place"
+    return ("farm" if parts[1] == "farm" else "home"), name
+
+
+ADVICE = {
+    "farm": {
+        "control": "Your premises is in or near an HPAI control area. Moving poultry, eggs, feed, litter or equipment in or out needs an MDA permit. Keep birds indoors, allow essential visits only, and clean and disinfect every vehicle.",
+        "county": "HPAI was reported in a commercial flock in this county. Tighten biosecurity: limit visitors, use dedicated boots and clothing, and check your birds closely.",
+        "wild": "HPAI was found in wild birds near your premises. Keep poultry away from wild birds and standing water, and cover feed and water.",
+    },
+    "home": {
+        "control": "Your home is in or near an HPAI control area. If you keep backyard birds, keep them in, and check with MDA before moving any birds or eggs.",
+        "county": "HPAI was reported in a poultry flock in this county. If you keep backyard birds, keep them away from wild birds and watch them closely.",
+        "wild": "HPAI was found in wild birds near your home. Don't touch sick or dead wild birds; report them to MDA.",
+    },
+}
+
+
 def events(token):
     out = []
     for f in post(E("AREAS_LAYER") + "/query", {"where": "status = 'Active' AND zone_type = 'Control Area'", "outFields": "since,county", "outSR": 4326, "token": token}).get("features", []):
@@ -89,7 +116,8 @@ def main():
         if a.get("action") == "unsubscribe":
             subs = {k: v for k, v in subs.items() if v["token"] != a.get("token")}
         elif a.get("email"):
-            subs[a["token"]] = {"email": a["email"], "km": a.get("radius_km") or 10, "pt": [f["geometry"]["x"], f["geometry"]["y"]], "token": a["token"]}
+            kind, name = place_of(a["token"])
+            subs[a["token"]] = {"email": a["email"], "km": a.get("radius_km") or 10, "pt": [f["geometry"]["x"], f["geometry"]["y"]], "token": a["token"], "kind": kind, "name": name}
     state = json.load(open(STATE)) if os.path.exists(STATE) else {"sent": []}
     sent, ev, mails = set(state["sent"]), events(token), []
     for s in subs.values():
@@ -106,9 +134,13 @@ def main():
                 smtp.login(E("SMTP_USER"), E("SMTP_PASS") or "")
             for s, e, d in mails:
                 m = EmailMessage()
-                m["From"], m["To"], m["Subject"] = E("ALERT_FROM"), s["email"], "Maryland HPAI alert near your place"
-                m.set_content(f"{e['text']}\nDistance from your place: {d:.0f} km.\n\nSee the map: {E('APP_URL')}\n"
-                              f"Sick or dead birds? Call MDA at 410-841-5810.\n\nUnsubscribe: {E('APP_URL')}#unsub={s['token']}\n")
+                what = "farm" if s["kind"] == "farm" else "home"
+                kind = e["kind"] if e["kind"] in ("control", "wild") else "county"
+                where = "inside it" if d < 0.05 else f"{d * 0.621371:.1f} miles from {s['name']}"
+                m["From"], m["To"], m["Subject"] = E("ALERT_FROM"), s["email"], f"HPAI alert for {s['name']} ({what})"
+                m.set_content(f"{e['text']}\nWhere: {where}.\n\nWhat to do: {ADVICE[s['kind']][kind]}\n\n"
+                              f"See the map: {E('APP_URL')}\nSick or dead birds? Call MDA at 410-841-5810.\n\n"
+                              f"Turn off alerts for {s['name']}: {E('APP_URL')}#unsub={urllib.parse.quote(s['token'])}\n")
                 smtp.send_message(m)
     state["sent"] = sorted(sent)[-20000:]
     json.dump(state, open(STATE, "w"))

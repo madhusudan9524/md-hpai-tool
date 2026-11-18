@@ -8,7 +8,52 @@ window.HPAI.modules.push(function (ctx) {
 
   // ================= My places + alerts =================
   let places = store.get("places", []);
-  const save = () => store.set("places", places);
+
+  // ---- optional sign-in for anyone: keeps saved places and alert choices on every device (email code, nothing else) ----
+  const MKEY = "hpai.member";
+  const mTok = () => { try { return localStorage.getItem(MKEY); } catch (e) { return null; } };
+  const svc = () => !!(C.auth && C.auth.url);
+  async function mApi(path, body) {
+    let r; try { r = await fetch(C.auth.url.replace(/\/$/, "") + path, { method: body === undefined ? "GET" : "POST", headers: Object.assign({ authorization: "Bearer " + (mTok() || "") }, body === undefined ? {} : { "content-type": "application/json" }), body: body === undefined ? undefined : JSON.stringify(body) }); }
+    catch (e) { throw new Error("Can't reach the sign-in service. Check your connection."); }
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401 && mTok()) memberOut();
+    if (!r.ok || j.error) throw new Error(j.error || "Something went wrong. Please try again.");
+    return j;
+  }
+  // where this person's places are kept besides this device: their industry account, their member account, or nowhere
+  const cloud = () => (S.session ? ctx.ind.api : mTok() && svc() ? mApi : null);
+  let pushT = null;
+  const save = () => { store.set("places", places); const api = cloud(); if (api) { clearTimeout(pushT); pushT = setTimeout(() => api("/places", { places }).catch(() => {}), 600); } };
+  async function pull() {   // merge the account's places with this device's (nothing is lost either way)
+    const api = cloud(); if (!api) return;
+    try {
+      const r = await api("/places"); if (!r || r.places === undefined) return;
+      const byId = new Map((r.places || []).map((p) => [p.id, p])); places.forEach((p) => { if (!byId.has(p.id)) byId.set(p.id, p); });
+      const merged = [...byId.values()], grew = merged.length !== (r.places || []).length;
+      places = merged; store.set("places", places); renderPlaces(); if (grew) api("/places", { places }).catch(() => {});
+    } catch (e) {}
+  }
+  ctx.on("signin", () => { if (S.session) pull(); });
+  function memberOut() { try { localStorage.removeItem(MKEY); } catch (e) {} S.member = null; ctx.emit("acct"); }
+  ctx.actions.memberSignIn = () => {
+    if (!svc()) return toast("Saving to an account isn't available yet. Your places are saved on this device.", 5000);
+    sheet("Save my places", `<div class="form"><p class="hint">Keep your saved homes and farms, and their email alerts, on any phone or computer. Just your email: we send a 6-digit code. No password, nothing else.</p>
+      <label>Email<input id="mbE" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"></label><button class="primary" id="mbSend">Send code</button>
+      <div id="mbStep2" hidden><label>Code<input id="mbC" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 digits"></label><button class="primary" id="mbGo">Sign in</button><button class="linkbtn" id="mbAgain">Send a new code</button></div></div>`);
+    const send = async () => { const e = $("mbE").value.trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return toast("Enter your email address");
+      $("mbSend").disabled = true; try { await mApi("/code", { contact: e, purpose: "user" }); $("mbStep2").hidden = false; $("mbSend").hidden = true; $("mbC").focus(); toast("Check your email for the code", 4000); } catch (x) { toast(x.message, 5000); } finally { $("mbSend").disabled = false; } };
+    const go = async () => { try { const r = await mApi("/verify", { contact: $("mbE").value.trim(), code: $("mbC").value, purpose: "user" });
+      try { localStorage.setItem(MKEY, r.token); } catch (x) {} S.member = r.user; store.set("alertEmail", r.user.email); closeSheet(); ctx.emit("acct"); await pull(); save(); toast("Signed in. Your places are saved to your account.", 4500); } catch (x) { toast(x.message, 5000); } };
+    $("mbSend").onclick = send; $("mbAgain").onclick = send; $("mbE").onkeydown = (e) => { if (e.key === "Enter") send(); };
+    $("mbGo").onclick = go; $("mbC").oninput = () => { if (/^\d{6}$/.test($("mbC").value)) go(); };
+  };
+  ctx.actions.memberSignOut = () => { memberOut(); toast("Signed out. Your places stay on this device."); };
+  ctx.actions.memberDelete = async () => {
+    if (!confirm("Delete the places saved in your account? They stay on this device unless you remove them here too.")) return;
+    try { await mApi("/u/delete", {}); memberOut(); toast("Your saved places were deleted from your account."); } catch (e) { toast(e.message, 5000); }
+  };
+  if (mTok() && svc()) mApi("/u/me").then((r) => { S.member = r.user; ctx.emit("acct"); pull(); }).catch(() => {});
   const ptOf = (p) => new Point({ longitude: p.lon, latitude: p.lat });
 
   async function statusOf(p) {
@@ -36,7 +81,7 @@ window.HPAI.modules.push(function (ctx) {
       if (many && i >= 5) { const isNew = s.key && seen[p.id] !== s.key; if (isNew) fresh++; return ""; }
       const isNew = s.key && seen[p.id] !== s.key; if (isNew) fresh++;
       const pill = s.flags.length ? s.flags.map(([c, t]) => `<span class="pill ${c}">${esc(t)}</span>`).join(" ") : `<span class="pill green">All clear</span>`;
-      return `<div class="place" data-id="${p.id}"><span class="ic">${H.icon(p.kind === "farm" ? "farm" : "home")}</span><span class="tx"><b>${esc(p.name)}${isNew ? ' <span class="pill red">New</span>' : ""}</b><small>${pill}</small></span><button class="mini" data-ren="${p.id}" aria-label="Rename ${esc(p.name)}" title="Rename">✎</button><button class="mini" data-del="${p.id}" aria-label="Remove ${esc(p.name)}" title="Remove">✕</button></div>`;
+      return `<div class="place" data-id="${p.id}"><span class="ic">${H.icon(p.kind === "farm" ? "farm" : "home")}</span><span class="tx"><b>${esc(p.name)}${p.alert ? BELL : ""}${isNew ? ' <span class="pill red">New</span>' : ""}</b><small>${pill}</small></span><button class="mini" data-ren="${p.id}" aria-label="Rename ${esc(p.name)}" title="Rename">✎</button><button class="mini" data-del="${p.id}" aria-label="Remove ${esc(p.name)}" title="Remove">✕</button></div>`;
     }).join("");
     if (rows.length > 6) {
       box.insertAdjacentHTML("beforeend", `<button class="link" id="plAll" style="font-size:14px;margin-top:6px">${S.placesAll ? "Show fewer" : `Show all ${rows.length} places`}</button>`);
@@ -56,11 +101,13 @@ window.HPAI.modules.push(function (ctx) {
   }
   ["areas", "affected", "wild", "ws"].forEach((ev) => ctx.on(ev, () => renderPlaces()));
 
+  const BELL = ' <svg class="bell" viewBox="0 0 24 24" role="img" aria-label="Email alerts on"><title>Email alerts on</title><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/></svg>';
+  ctx.bell = BELL;
   // remove with Undo (no confirm box), rename in place
   function removePlace(id) {
     const i = places.findIndex((x) => x.id === id); if (i < 0) return;
-    const [gone] = places.splice(i, 1); save(); renderPlaces();
-    toast(`Removed ${gone.name}`, null, { label: "Undo", fn: () => { places.splice(Math.min(i, places.length), 0, gone); save(); renderPlaces(); } });
+    const [gone] = places.splice(i, 1), hadAlert = !!gone.alert; ctx.alertsOff(gone); save(); renderPlaces();
+    toast(`Removed ${gone.name}${hadAlert ? " and its alerts" : ""}`, null, { label: "Undo", fn: () => { places.splice(Math.min(i, places.length), 0, gone); save(); renderPlaces(); } });
   }
   function renamePlace(id) {
     const p = places.find((x) => x.id === id); if (!p) return;
@@ -69,7 +116,9 @@ window.HPAI.modules.push(function (ctx) {
       <button class="primary" id="rnGo">Save</button></div>`);
     let kind = p.kind;
     document.querySelectorAll("#rnKind button").forEach((b) => (b.onclick = () => { kind = b.dataset.k; document.querySelectorAll("#rnKind button").forEach((x) => x.classList.toggle("on", x === b)); }));
-    const go = () => { const n = $("rnName").value.trim(); if (!n) return toast("Enter a name"); p.name = n; p.kind = kind; save(); closeSheet(); renderPlaces(); toast("Saved"); };
+    const go = () => { const n = $("rnName").value.trim(); if (!n) return toast("Enter a name"); const reAlert = p.alert && (p.name !== n || p.kind !== kind); p.name = n; p.kind = kind;
+      if (reAlert && ctx.has(C.submit.alerts)) { const old = p.alert, token = alertToken(p); sendAlerts([unsubFeature(old.token), subFeature(p, old.email, old.km, token)]).then(() => { p.alert = Object.assign({}, old, { token }); save(); }).catch(() => {}); }
+      save(); closeSheet(); renderPlaces(); toast("Saved"); };
     $("rnGo").onclick = go; $("rnName").onkeydown = (e) => { if (e.key === "Enter") go(); };
   }
 
@@ -81,13 +130,13 @@ window.HPAI.modules.push(function (ctx) {
       <div class="seg" id="plKind"><button data-k="farm" class="${S.ws !== "public" ? "on" : ""}">Farm / premises</button><button data-k="home" class="${S.ws === "public" ? "on" : ""}">Home / other</button></div>
       <p class="hint" id="plWhere">${g ? `Location set (${g.latitude.toFixed(4)}, ${g.longitude.toFixed(4)})` : "Type an address, or tap the pin to pick it on the map."}</p>
       <button class="primary" id="plSave" ${g ? "" : "disabled"}>Save place</button>
-      <p class="hint">Saved on this device only. For email alerts use “Email alerts”.</p></div>`);
+      <p class="hint">${S.member || S.session ? "Saved to your account." : "Saved on this device. Sign in (email only) to keep it on every device."}</p></div>`);
     let loc = g, kind = S.ws !== "public" ? "farm" : "home";
     ctx.makeSearch("plSearch", "Start typing an address", (geom, nm) => { loc = geom.spatialReference.isWGS84 ? geom : wmu.webMercatorToGeographic(geom); $("plWhere").textContent = nm; if (!$("plName").value) $("plName").value = nm.split(",")[0]; $("plSave").disabled = false; });
     body.querySelectorAll("#plKind button").forEach((b) => (b.onclick = () => { kind = b.dataset.k; body.querySelectorAll("#plKind button").forEach((x) => x.classList.toggle("on", x === b)); }));
     $("plSave").onclick = () => {
       places.push({ id: H.uid("P"), name: $("plName").value.trim() || "My place", lon: +loc.longitude.toFixed(5), lat: +loc.latitude.toFixed(5), kind });
-      save(); closeSheet(); renderPlaces(); toast("Saved. You'll see alerts here when its status changes.");
+      save(); closeSheet(); renderPlaces(); toast(`Saved${S.member || S.session ? " to your account" : " on this device"}.`, null, { label: "Email me alerts", fn: () => ctx.actions.alerts() });
     };
   }
   $("addPlace").onclick = () => addPlace();
@@ -96,36 +145,70 @@ window.HPAI.modules.push(function (ctx) {
   ctx.actions.savePlace = (pt, name) => addPlace(pt, name);
   ctx.on("card", ({ pt }) => S.ws === "regulator" ? "" : `<button class="pb" data-act="savePlace">☆ Save</button>`);
 
-  // ---- email alerts (subscription stored in a create-only layer; emails sent by the twice-daily job) ----
+  // ---- email alerts: one per saved place, with advice for a farm or a home (sent by tools/send_alerts.py twice a day) ----
+  // The alerts layer holds email, radius_km, action and token only, so the place's kind and name ride in the token:
+  // "<id>~<farm|home>~<base64url name>". The unsubscribe link carries the same token.
+  const b64u = (t) => btoa(unescape(encodeURIComponent(t))).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const alertToken = (p) => `${H.uid("U")}~${p.kind === "farm" ? "farm" : "home"}~${b64u((p.name || "My place").slice(0, 40))}`;
+  const KM = [["4.828", "3 mi"], ["9.656", "6 mi"], ["19.312", "12 mi"]];
+  const defKm = (p) => (p.kind === "farm" ? "19.312" : "9.656");   // a farm cares about the whole surveillance zone (12.4 mi); a home about 6 mi
+  const subFeature = (p, email, km, token) => ({ geometry: { x: p.lon, y: p.lat, spatialReference: { wkid: 4326 } }, attributes: { email, radius_km: +km, action: "subscribe", token, created: Date.now() } });
+  const unsubFeature = (token) => ({ geometry: { x: -76.6, y: 39, spatialReference: { wkid: 4326 } }, attributes: { action: "unsubscribe", token, created: Date.now() } });
+  const sendAlerts = (features) => ctx.rest(C.submit.alerts + "/addFeatures", { features: JSON.stringify(features) }, { anon: true });
+  ctx.alertsOff = (p) => { if (p && p.alert && ctx.has(C.submit.alerts)) sendAlerts([unsubFeature(p.alert.token)]).catch(() => {}); if (p) delete p.alert; };
+
   ctx.actions.alerts = () => {
-    const first = places[0];
+    const email0 = (p) => (p && p.alert && p.alert.email) || (S.member && S.member.email) || (S.user && S.user.email) || store.get("alertEmail", "");
+    const any = places.some((p) => p.alert);
+    const want = new Map(places.map((p) => [p.id, { on: any ? !!p.alert : true, km: p.alert ? String(p.alert.km) : defKm(p) }]));
     sheet("Email alerts", `<div class="form">
-      <p class="hint">We'll email you when a control area, an HPAI detection in the county, or a wild-bird detection comes near your place.</p>
-      <label>Email<input id="alEmail" type="email" autocomplete="email" placeholder="you@example.com"></label>
-      <label>Place<div id="alSearch"></div></label>
-      <p class="hint" id="alWhere">${first ? "Using: " + esc(first.name) : "Type your address."}</p>
-      <label>Alert me within<select id="alKm"><option value="4.828">3 miles</option><option value="9.656" selected>6 miles</option><option value="19.312">12 miles</option></select></label>
-      <button class="primary" id="alGo" ${first ? "" : "disabled"}>Subscribe</button>
-      <p class="hint">Only MDA can read your email. Every alert has a link to unsubscribe.</p></div>`);
-    let loc = first ? { longitude: first.lon, latitude: first.lat } : null;
-    ctx.makeSearch("alSearch", "Your address", (geom, nm) => { loc = geom.spatialReference.isWGS84 ? geom : wmu.webMercatorToGeographic(geom); $("alWhere").textContent = nm; $("alGo").disabled = false; });
+      <p class="hint">Pick the places to watch. Each gets its own alert when a control area, an HPAI detection in the county, or a wild-bird case comes within the distance you choose, with advice for a farm or a home.</p>
+      <label>Email<input id="alEmail" type="email" autocomplete="email" value="${esc(email0(places.find((p) => p.alert)))}" placeholder="you@example.com"></label>
+      <div id="alList" class="allist"></div>
+      <label>Add a place<div id="alSearch"></div></label>
+      <button class="primary" id="alGo">Save alerts</button>
+      <p class="hint">Only MDA can read your email. Every alert has a link to turn it off.</p></div>`);
+    const draw = () => {
+      $("alList").innerHTML = places.length ? places.map((p) => { const w = want.get(p.id);
+        return `<div class="alrow"><label class="check"><input type="checkbox" data-on="${p.id}"${w.on ? " checked" : ""}><span class="alic">${H.icon(p.kind === "farm" ? "farm" : "home")}</span><b>${esc(p.name)}</b></label>
+          <select data-km="${p.id}" aria-label="Alert distance for ${esc(p.name)}"${w.on ? "" : " disabled"}>${KM.map(([v, l]) => `<option value="${v}"${Math.abs(+v - +w.km) < 0.01 ? " selected" : ""}>within ${l}</option>`).join("")}</select></div>`; }).join("")
+        : `<p class="hint">No saved places yet. Add one below.</p>`;
+      $("alList").querySelectorAll("[data-on]").forEach((c) => (c.onchange = () => { want.get(c.dataset.on).on = c.checked; $("alList").querySelector(`[data-km="${c.dataset.on}"]`).disabled = !c.checked; }));
+      $("alList").querySelectorAll("[data-km]").forEach((x) => (x.onchange = () => (want.get(x.dataset.km).km = x.value)));
+    };
+    draw();
+    ctx.makeSearch("alSearch", "Address of a home or farm", (geom, nm) => {
+      const g = geom.spatialReference && !geom.spatialReference.isWGS84 ? wmu.webMercatorToGeographic(geom) : geom;
+      const p = { id: H.uid("P"), name: (nm || "My place").split(",")[0].slice(0, 60), lon: +g.longitude.toFixed(5), lat: +g.latitude.toFixed(5), kind: S.ws === "industry" ? "farm" : "home" };
+      places.push(p); want.set(p.id, { on: true, km: defKm(p) }); save(); renderPlaces(); draw(); toast(`Added ${p.name} to your places`);
+    });
     $("alGo").onclick = async () => {
       const email = $("alEmail").value.trim();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast("Enter a valid email");
       if (!ctx.has(C.submit.alerts)) return toast(`Email alerts are temporarily unavailable. Call MDA at ${C.mdaPhone}.`);
+      const feats = [], changes = [];
+      places.forEach((p) => {
+        const w = want.get(p.id); if (!w) return;
+        const same = p.alert && w.on && p.alert.email === email && Math.abs(p.alert.km - +w.km) < 0.01;
+        if (same) return;
+        if (p.alert) feats.push(unsubFeature(p.alert.token));
+        if (w.on) { const token = alertToken(p); feats.push(subFeature(p, email, w.km, token)); changes.push([p, { email, token, km: +w.km }]); } else changes.push([p, null]);
+      });
+      if (!feats.length) { closeSheet(); return toast("No changes"); }
       $("alGo").disabled = true;
       try {
-        await ctx.rest(C.submit.alerts + "/addFeatures", { features: JSON.stringify([{ geometry: { x: loc.longitude, y: loc.latitude, spatialReference: { wkid: 4326 } },
-          attributes: { email, radius_km: +$("alKm").value, action: "subscribe", token: H.uid("U"), created: Date.now() } }]) }, { anon: true });
-        closeSheet(); toast("Subscribed. Check your inbox for alerts.");
-      } catch (e) { $("alGo").disabled = false; toast("Couldn't subscribe: " + e.message); }
+        await sendAlerts(feats);
+        changes.forEach(([p, a]) => { if (a) p.alert = a; else delete p.alert; });
+        store.set("alertEmail", email); save(); renderPlaces(); closeSheet();
+        const n = places.filter((p) => p.alert).length;
+        toast(n ? `Email alerts on for ${n} place${n > 1 ? "s" : ""}` : "Email alerts turned off", 4500);
+      } catch (e) { $("alGo").disabled = false; toast("Couldn't save alerts: " + e.message); }
     };
   };
-  // unsubscribe link from the email: #unsub=<token>
+  // turn-off link in an alert email: #unsub=<token>
   if (location.hash.startsWith("#unsub=") && ctx.has(C.submit.alerts)) {
-    const token = decodeURIComponent(location.hash.slice(7));
-    ctx.rest(C.submit.alerts + "/addFeatures", { features: JSON.stringify([{ geometry: { x: -76.6, y: 39, spatialReference: { wkid: 4326 } }, attributes: { action: "unsubscribe", token, created: Date.now() } }]) }, { anon: true })
-      .then(() => toast("You're unsubscribed from HPAI email alerts.", 6000)).catch(() => toast("Couldn't unsubscribe. Please contact MDA."));
+    const token = decodeURIComponent(location.hash.slice(7)), p = places.find((x) => x.alert && x.alert.token === token);
+    sendAlerts([unsubFeature(token)]).then(() => { if (p) { delete p.alert; save(); } toast(`Alerts turned off${p ? " for " + p.name : ""}.`, 6000); }).catch(() => toast("Couldn't turn alerts off. Please contact MDA."));
   }
 
   // ================= reports (photo) =================
@@ -264,7 +347,7 @@ window.HPAI.modules.push(function (ctx) {
     $("rkMap").onclick = () => { myFarms.visible = !myFarms.visible; if (myFarms.visible && myFarms.graphics.length) view.goTo(myFarms.graphics.toArray(), { padding: 60 }).catch(() => {}); drawRisk(); };
   }
   function riskRow(x) {
-    return `<div class="rkrow" data-id="${x.p.id}"><div class="rkt"><b>${esc(x.p.name)}${x.up ? ` <span class="rkarrow t${x.r.tier}" title="Went up">▲</span>` : ""}</b>${pillOf(x)}</div>
+    return `<div class="rkrow" data-id="${x.p.id}"><div class="rkt"><b>${esc(x.p.name)}${x.p.alert ? BELL : ""}${x.up ? ` <span class="rkarrow t${x.r.tier}" title="Went up">▲</span>` : ""}</b>${pillOf(x)}</div>
       <small>${esc(x.main)}${x.more ? ` · +${x.more} more` : ""}${x.county ? ` · ${esc(x.county)}` : ""}</small></div>`;
   }
   function bindRows(el) { el.querySelectorAll(".rkrow").forEach((r) => (r.onclick = () => riskDetail(r.dataset.id))); }
