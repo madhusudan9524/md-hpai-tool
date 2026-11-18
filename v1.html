@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maryland HPAI Map (Prototype)</title>
+<link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/light/main.css">
+<link rel="stylesheet" href="css/app_v1.css">
+<script src="https://js.arcgis.com/4.31/"></script>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="mark"></span><h1>Maryland HPAI Map</h1><span class="proto">Live notices · sample zones</span></div>
+  <div id="acct"></div>
+</header>
+
+<main>
+  <aside id="panel">
+
+    <!-- public, industry, MDA: find a place -->
+    <section class="searchbox" data-for="public industry regulator">
+      <div id="pubSearch"></div>
+      <button class="iconbtn" id="locBtn" title="My location"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+    </section>
+
+    <!-- PUBLIC: status at a glance -->
+    <section data-for="public">
+      <div class="stats">
+        <div class="stat red"><svg viewBox="0 0 24 24"><path d="M12 2.5 4 6v6c0 5 3.4 8.5 8 9.5 4.6-1 8-4.5 8-9.5V6z"/><path d="M12 8v5M12 16v.5"/></svg><b id="kCA">–</b><span>control areas</span></div>
+        <div class="stat"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg><b id="kCty">–</b><span>counties</span></div>
+        <div class="stat teal"><svg viewBox="0 0 24 24"><path d="M3 15c3-1 4-4 6-6 2.5-2.5 6-2 7.5 0L21 8l-1.5 3.5c0 5-4 8.5-9 8.5-3 0-5-1.5-7.5-5z"/></svg><b id="kWild">–</b><span>wild birds<br>4 weeks</span></div>
+      </div>
+    </section>
+
+    <!-- trends: wild-bird detections per week + by county (all roles) -->
+    <section class="card trend" data-for="public industry hauler regulator"><div class="th"><b>Wild-bird detections</b><span>last 4 weeks</span></div><div id="trendChart"></div><div id="trendCty"></div></section>
+
+    <!-- POULTRY INDUSTRY: two big actions -->
+    <section data-for="industry"><div class="acts">
+      <button class="act" data-t="permit"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 14l2 2 4-4"/></svg><span>Permit</span></button>
+      <button class="act" data-t="report"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z"/><path d="M12 10v5M12 17.6v.4"/></svg><span>Report</span></button>
+    </div></section>
+
+    <!-- official notices (everyone) -->
+    <section class="card" id="sec-news" data-for="public industry hauler regulator">
+      <h3>Latest official notices</h3>
+      <div id="newsList"><p class="hint">Loading…</p></div>
+    </section>
+
+    <!-- TRANSPORTERS: trip planner -->
+    <section class="card planner" data-for="hauler">
+      <div class="legs">
+        <div class="rail"><i class="a"></i><u></u><i class="b"></i></div>
+        <div class="inputs">
+          <div class="field"><div id="orgSearch"></div><button class="pin" id="pickOrg" title="Pick on map"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button></div>
+          <div class="field"><div id="dstSearch"></div><button class="pin" id="pickDst" title="Pick on map"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button></div>
+        </div>
+      </div>
+      <div class="cchips" id="commChips"><button class="cc on" data-v="Feed"><svg viewBox="0 0 24 24"><path d="M4 20c0-9 6-15 16-16 0 10-6 16-16 16zM4 20c3-5 6-8 10-10"/></svg><span>Feed</span></button><button class="cc" data-v="Live birds"><svg viewBox="0 0 24 24"><path d="M3 15c3-1 4-4 6-6 2.5-2.5 6-2 7.5 0L21 8l-1.5 3.5c0 5-4 8.5-9 8.5-3 0-5-1.5-7.5-5z"/></svg><span>Birds</span></button><button class="cc" data-v="Eggs / egg products"><svg viewBox="0 0 24 24"><path d="M12 3c4 0 7 6 7 10a7 7 0 0 1-14 0c0-4 3-10 7-10z"/></svg><span>Eggs</span></button><button class="cc" data-v="Litter / manure"><svg viewBox="0 0 24 24"><path d="M4 18h16M6 18l1-6h10l1 6M9 12V8h6v4"/></svg><span>Litter</span></button><button class="cc" data-v="Service / equipment"><svg viewBox="0 0 24 24"><path d="M14 6a4 4 0 0 0-5 5L3 17l4 4 6-6a4 4 0 0 0 5-5l-3 3-3-1-1-3z"/></svg><span>Service</span></button><button class="cc" data-v="Other"><svg viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg><span>Other</span></button></div>
+      <input type="hidden" id="commodity" value="Feed">
+      <div class="btns"><button id="routeBtn" class="primary">Plan route</button><button id="clearRoute" class="ghost">Clear</button></div>
+      <div id="routeResult" class="result"></div>
+    </section>
+    <section data-for="hauler"><div class="acts one"><button class="act small" data-t="report"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z"/><path d="M12 10v5M12 17.6v.4"/></svg><span>Report sick birds</span></button></div></section>
+
+    <!-- permit / report helpers (opened by the buttons above) -->
+    <section class="card tool" id="tool-permit" hidden>
+      <h3>Permit</h3>
+      <button class="pick" id="pickPerm"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Mark premises on map</button>
+      <p class="hint" id="permLoc"></p>
+      <a class="cta" id="permLink" target="_blank" rel="noopener" hidden>Open permit request</a>
+    </section>
+    <section class="card tool" id="tool-report" hidden>
+      <h3>Report</h3>
+      <button class="pick" id="pickRep"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Mark location on map</button>
+      <p class="hint" id="repLoc"></p>
+      <a class="cta" id="repLink" target="_blank" rel="noopener" hidden>Open report form</a>
+    </section>
+
+    <!-- MDA STAFF: work dashboard (the three tiles are the tabs) -->
+    <section data-for="regulator">
+      <div class="stats tabs" id="staffTabs">
+        <button class="stat red on" data-p="prem"><svg viewBox="0 0 24 24"><path d="M3 21V9l6-4v16M9 21V12l6-3v12M15 21V8l6 3v10M2 21h20"/></svg><b id="kPrem">–</b><span>premises</span></button>
+        <button class="stat amber" data-p="rep"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11h6M9 15h6"/></svg><b id="kRep">–</b><span>reports</span></button>
+        <button class="stat blue" data-p="per"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 14l2 2 4-4"/></svg><b id="kPer">–</b><span>permits</span></button>
+      </div>
+      <div class="card" id="staffBody">
+        <div id="pane-prem"><div id="premChart"></div><div id="premList"></div><p class="hint" id="permitAdmin"></p></div>
+        <div id="pane-rep" hidden><div class="qtools" id="qt-rep"></div><div id="repQueue"></div></div>
+        <div id="pane-per" hidden><div class="qtools" id="qt-per"></div><div id="perQueue"></div></div>
+      </div>
+    </section>
+
+    <!-- public, industry, transporters: where the control areas are -->
+    <section data-for="public industry hauler">
+      <div class="areaList"></div>
+    </section>
+
+    <a class="callbtn" data-for="public" href="tel:4108415810"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg><span>Sick birds? <b>Call MDA</b></span></a>
+    <p class="foot">General information only · <span id="updated"></span></p>
+  </aside>
+  <div id="viewDiv"></div>
+</main>
+
+<div id="modal" hidden>
+  <div class="dlg" role="dialog" aria-labelledby="mt">
+    <button class="x" id="mclose" aria-label="Close">×</button>
+    <h2 id="mt">Sign in</h2>
+    <button class="role" data-ws="regulator"><span class="ri r1"></span><span><b>MDA staff</b><i>Review reports and permits</i></span></button>
+    <button class="role" data-ws="partner"><span class="ri r2"></span><span><b>Haulers &amp; industry</b><i>Routes, permits, reporting</i></span></button>
+    <p class="fine">Uses your ArcGIS account. Need access? <a id="reqAccess" href="#">Contact MDA</a></p>
+  </div>
+</div>
+<div id="toast" hidden></div>
+
+<script src="js/config_v1.js"></script>
+<script src="js/app_v1.js"></script>
+</body>
+</html>

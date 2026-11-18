@@ -1,0 +1,11 @@
+{
+  "_note": "SAMPLE cleaning-and-disinfection stations for testing the route planner. Replace with MDA's real list (name, lon, lat, hours) during an outbreak.",
+  "sample": true,
+  "stations": [
+    { "id": "CD-1", "name": "Sample C&D station: Salisbury (US-13 / US-50)", "lon": -75.5985, "lat": 38.3660, "hours": "24 h" },
+    { "id": "CD-2", "name": "Sample C&D station: Easton (US-50)", "lon": -76.0670, "lat": 38.7760, "hours": "6 am – 10 pm" },
+    { "id": "CD-3", "name": "Sample C&D station: Denton (MD-404)", "lon": -75.8300, "lat": 38.8840, "hours": "6 am – 10 pm" },
+    { "id": "CD-4", "name": "Sample C&D station: Pocomoke City (US-13)", "lon": -75.5650, "lat": 38.0750, "hours": "24 h" },
+    { "id": "CD-5", "name": "Sample C&D station: Cambridge (US-50)", "lon": -76.0560, "lat": 38.5530, "hours": "6 am – 10 pm" }
+  ]
+}

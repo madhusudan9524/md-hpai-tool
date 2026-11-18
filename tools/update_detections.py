@@ -24,7 +24,9 @@ WILD_CSV = "https://www.aphis.usda.gov/sites/default/files/hpai-wild-birds.csv"
 MDA_LIST = "https://mda.maryland.gov/news/press-releases"
 DDA_FEEDS = ["https://news.delaware.gov/tag/avian-influenza/feed/", "https://news.delaware.gov/category/agriculture/feed/"]
 VDACS_LISTS = ["https://www.vdacs.virginia.gov/news.shtml", "https://www.vdacs.virginia.gov/press-releases.shtml"]
-WILD_DAYS, NOTICE_DAYS, KEEP_NOTICES = 28, 120, 12
+WILD_DAYS, WILD_YEAR, NOTICE_DAYS, KEEP_NOTICES = 28, 365, 120, 12
+FLYWAY = {"Maine", "New Hampshire", "Vermont", "Massachusetts", "Rhode Island", "Connecticut", "New York", "New Jersey", "Pennsylvania", "Delaware",
+          "Maryland", "Virginia", "West Virginia", "North Carolina", "South Carolina", "Georgia", "Florida"}   # Atlantic Flyway states
 
 MD = ["Allegany", "Anne Arundel", "Baltimore", "Calvert", "Caroline", "Carroll", "Cecil", "Charles", "Dorchester", "Frederick", "Garrett", "Harford", "Howard", "Kent",
       "Montgomery", "Prince George's", "Queen Anne's", "St. Mary's", "Somerset", "Talbot", "Washington", "Wicomico", "Worcester"]
@@ -76,26 +78,38 @@ def classify(title, body, source):
 
 
 # ---------- sources ----------
-def wild_birds(today):
-    raw = get(WILD_CSV)
+def parse_us_date(v):
+    return dt.datetime.strptime((v or "").split(" ")[0], "%m/%d/%Y").date()
+
+
+def wild_birds(today, raw=None):
+    """Delmarva wild-bird detections from the last 12 months, plus the Atlantic Flyway monthly pattern (Jan..Dec)."""
+    raw = raw if raw is not None else get(WILD_CSV)
     rows = list(csv.DictReader(io.StringIO(raw)))
-    out = []
+    out, season = [], [0] * 12
     for r in rows:
         st, co = r.get("State", ""), (r.get("County", "") or "").replace(" County", "")
+        try:
+            coll = parse_us_date(r.get("Collection Date") or r.get("Date Detected"))
+            if st in FLYWAY:
+                season[coll.month - 1] += 1
+        except Exception:
+            pass
         if st not in ("Maryland", "Delaware", "Virginia") or (st == "Virginia" and co not in VA):
             continue
         try:
-            d = dt.datetime.strptime((r.get("Date Detected") or r.get("Collection Date")).split(" ")[0], "%m/%d/%Y").date()
+            d = parse_us_date(r.get("Date Detected") or r.get("Collection Date"))
         except Exception:
             continue
-        if (today - d).days > WILD_DAYS or f"{st}|{co}" not in POINTS:
+        if (today - d).days > WILD_YEAR or f"{st}|{co}" not in POINTS:
             continue
         lon, lat = POINTS[f"{st}|{co}"]
         h = int(hashlib.md5(f"{st}{co}{r.get('Bird Species')}{d}{len(out)}".encode()).hexdigest()[:6], 16)   # small stable offset so dots in one county do not stack
         out.append({"state": st, "county": co, "species": r.get("Bird Species", ""), "date": d.isoformat(), "strain": r.get("HPAI Strain", ""),
                     "lon": round(lon + ((h % 1000) / 1000 - .5) * 0.12, 5), "lat": round(lat + (((h // 1000) % 1000) / 1000 - .5) * 0.09, 5),
                     "source": "USDA APHIS"})
-    return out
+    out.sort(key=lambda x: x["date"], reverse=True)
+    return out, season
 
 
 def mda_notices():
@@ -164,8 +178,11 @@ def main():
     curated = load(CURATED, {"commercial": [], "notices": []})
     result = {"updated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "wild": prev.get("wild", []), "notices": [], "commercial": [], "problems": problems}
 
+    result["wild_year"], result["season"] = prev.get("wild_year", []), prev.get("season")
     try:
-        result["wild"] = wild_birds(today)
+        year, season = wild_birds(today)
+        result["wild_year"], result["season"] = year, season
+        result["wild"] = [w for w in year if (today - dt.date.fromisoformat(w["date"])).days <= WILD_DAYS]
     except Exception as e:
         problems.append(f"USDA APHIS wild birds: {e} (kept previous values)")
 
@@ -197,7 +214,12 @@ def main():
             continue
         seen.add(n["url"]); uniq.append(n)
     result["notices"] = uniq[:KEEP_NOTICES]
-    result["commercial"] = sorted((c for c in commercial.values() if (today - dt.date.fromisoformat(c["date"])).days <= 60), key=lambda x: x["date"], reverse=True)   # only recent detections are kept
+    # full history (for the time slider) keeps every commercial detection ever found; "commercial" keeps the recent ones
+    hist = {f'{h["state"]}|{h["county"]}|{h["date"]}': h for h in prev.get("history", [])}
+    for c in commercial.values():
+        hist[f'{c["state"]}|{c["county"]}|{c["date"]}'] = c
+    result["history"] = sorted(hist.values(), key=lambda x: x["date"], reverse=True)
+    result["commercial"] = sorted((c for c in commercial.values() if (today - dt.date.fromisoformat(c["date"])).days <= 60), key=lambda x: x["date"], reverse=True)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(result, open(OUT, "w"), indent=1)
     print(f"wild {len(result['wild'])}, notices {len(result['notices'])}, commercial {len(result['commercial'])}; problems: {problems or 'none'}")
