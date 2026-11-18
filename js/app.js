@@ -146,7 +146,7 @@ require([
     }
     if (has(C.pub.markers)) {
       L.markers = new FeatureLayer({ url: C.pub.markers, title: "Infected premises (approximate)", outFields: ["*"], popupEnabled: false, definitionExpression: "status = 'Active'",
-        renderer: { type: "simple", symbol: { type: "simple-marker", size: 15, color: DRED.concat(0.92), outline: { color: [255, 255, 255, 1], width: 2.5 } } } });
+        renderer: { type: "simple", symbol: { type: "simple-marker", size: 24, color: DRED.concat(0.9), outline: { color: [255, 255, 255, 1], width: 3 } } } });
       map.add(L.markers);
     }
     if (has(C.pub.declarations)) {
@@ -399,7 +399,7 @@ require([
     { sec: "Outbreak" },
     { id: "ca", t: "Control area", n: `0–${C.zones.controlKm} km from the premises edge`, sw: "ca", ls: () => [L.ca] },
     { id: "sz", t: "Surveillance zone", n: "appears as you zoom in", sw: "sz", ls: () => [L.sz] },
-    { id: "pm", t: "Infected premises", n: ctx.isStaff() ? "approximate (public view)" : "approximate area", sw: "pm", ls: () => [L.markers] },
+    { id: "pm", t: "Infected premises", n: C.privacy.markerShiftKm[1] ? "approximate area" : (ctx.isStaff() ? "public marker" : ""), sw: "pm", ls: () => [L.markers] },
     { id: "ex", staff: 1, t: "Infected premises (exact)", sw: "exact", ls: () => [L.prem, L.perim] },
     { id: "cty", t: "Affected county", n: "detection or MDA notice", sw: "cty", ls: () => [tintLyr] },
     { sec: "Wildlife" },
@@ -471,8 +471,8 @@ require([
   }
   function markerCard(g, pt) {
     const a = g.attributes, since = a.since;
-    simpleCard(pt, "prem", "Infected premises" + (a.sample === 1 ? " · SAMPLE" : ""), "Approximate location", [["County", a.county], ["Confirmed", fmtDate(since)], ["Status", a.status]],
-      `<div class="do">To protect the farm's privacy, this marker is moved up to ${C.privacy.markerShiftKm[1]} km from the real site. Use the zone shading for movement rules.</div>`);
+    simpleCard(pt, "prem", "Infected premises" + (a.sample === 1 ? " · SAMPLE" : ""), C.privacy.markerShiftKm[1] ? "Approximate location" : (a.county || "") + " County", [["County", a.county], ["Confirmed", fmtDate(since)], ["Status", a.status]],
+      (C.privacy.markerShiftKm[1] ? `<div class="do">To protect the farm's privacy, this marker is moved up to ${C.privacy.markerShiftKm[1]} km from the real site.</div>` : `<div class="do">Use the zone shading for movement rules.</div>`));
   }
 
   // ---------------- roles and sign-in ----------------

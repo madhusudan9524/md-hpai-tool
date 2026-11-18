@@ -56,7 +56,7 @@ window.HPAI_CONFIG = {
   zones: { controlKm: 10, surveillanceKm: 20 },
   tintDays: 30,                 // county tint lasts this long after a commercial-flock detection or declaration
   privacy: {
-    markerShiftKm: [1.5, 3],    // the public marker is moved this far from the premises, in a random direction
+    markerShiftKm: [0, 0],      // 0 = the public marker sits on the premises (MDA choice). e.g. [1.5, 3] moves it off-center for more privacy
     markerRadiusKm: 3,          // and drawn as an area this wide
     minFarmsNearMarker: 5       // re-identification check: at least this many farms must sit inside the marker area
   },

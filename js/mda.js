@@ -271,7 +271,8 @@ window.HPAI.modules.push(function (ctx) {
         const p = new Point({ x: f.geometry.x, y: f.geometry.y, spatialReference: { wkid: 102100 } });
         const ca = caF.find((z) => z.attributes.premises_id === f.attributes.premises_id);
         let best = null;
-        for (let k = 0; k < 12; k++) {
+        if (!P.markerShiftKm[1]) best = { m: p, n: await farms.queryFeatureCount({ geometry: p, distance: P.markerRadiusKm, units: "kilometers" }).catch(() => 0) };
+        for (let k = 0; k < 12 && P.markerShiftKm[1]; k++) {
           const d = (P.markerShiftKm[0] + Math.random() * (P.markerShiftKm[1] - P.markerShiftKm[0])) * 1000, a = Math.random() * 2 * Math.PI;
           const m = new Point({ x: p.x + d * Math.cos(a) / Math.cos(wmu.webMercatorToGeographic(p).latitude * Math.PI / 180), y: p.y + d * Math.sin(a) / Math.cos(wmu.webMercatorToGeographic(p).latitude * Math.PI / 180), spatialReference: { wkid: 102100 } });
           if (ca && !ge.contains(geom(ca), m)) continue;

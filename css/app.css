@@ -166,7 +166,7 @@ section { margin-bottom: 14px; }
 .tg::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .2s; }
 .tg:checked { background: var(--green); } .tg:checked::after { transform: translateX(16px); }
 .sw.ca { background: rgba(215, 38, 61, .3); border: 2px solid #d7263d; } .sw.sz { background: rgba(244, 162, 89, .3); border: 2px dashed #c9731a; }
-.sw.pm { background: radial-gradient(circle, #4a0d0d 45%, #fff 48%, #fff 56%, transparent 58%); border-radius: 50%; width: 18px; height: 18px; margin: 0 2px; }
+.sw.pm { background: radial-gradient(circle, #4a0d0d 55%, #fff 58%, #fff 66%, transparent 68%); border-radius: 50%; width: 18px; height: 18px; margin: 0 2px; }
 .sw.cty { background: rgba(232, 120, 130, .2); border: 1px solid rgba(232, 120, 130, .8); } .sw.past { background: rgba(138, 148, 166, .3); border: 1px solid #8a94a6; }
 .sw.wb { background: radial-gradient(circle, #0e9aa7 45%, transparent 50%); } .sw.risk { background: linear-gradient(90deg, #d1c4e9, #9575cd, #5e35b1); }
 .sw.wet { background: #79b8c9; } .sw.for { background: #5f9a52; } .sw.lake { background: #5b9bd5; } .sw.riv { background: linear-gradient(transparent 40%, #3b7bd0 40% 60%, transparent 60%); }
