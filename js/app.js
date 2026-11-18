@@ -266,9 +266,9 @@ require([
   };
   async function fitCard(pt) {
     const sp = view.toScreen(pt); if (!sp) return;
-    const need = Math.min(430, view.height * 0.62);
-    if (sp.y < need || sp.x < 200 || sp.x > view.width - 200) {
-      const dy = Math.max(0, need - sp.y), dx = sp.x < 200 ? 200 - sp.x : sp.x > view.width - 200 ? view.width - 200 - sp.x : 0;
+    const need = Math.min(270, view.height * 0.5);
+    if (sp.y < need || sp.x < 160 || sp.x > view.width - 160) {
+      const dy = Math.max(0, need - sp.y), dx = sp.x < 160 ? 160 - sp.x : sp.x > view.width - 160 ? view.width - 160 - sp.x : 0;
       const c = view.toScreen(view.center); await view.goTo(view.toMap({ x: c.x - dx, y: c.y - dy }), { duration: 250 }).catch(() => {});
     }
   }
