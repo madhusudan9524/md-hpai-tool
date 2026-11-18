@@ -100,7 +100,7 @@ def ai_extract(title, body, source):
         return None
     req = urllib.request.Request("https://api.anthropic.com/v1/messages", method="POST", headers={
         "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-        data=json.dumps({"model": AI_MODEL, "max_tokens": 400, "system": AI_PROMPT,
+        data=json.dumps({"model": AI_MODEL, "max_tokens": 1200, "system": AI_PROMPT,
                          "messages": [{"role": "user", "content": f"Source: {source}\nTitle: {title}\n\nRelease text:\n{body[:6000]}\n\nAnswer with the JSON object only."}]}).encode())
     text = ""
     try:
