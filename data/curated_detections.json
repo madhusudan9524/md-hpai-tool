@@ -8,19 +8,18 @@
       "date": "2026-11-11",
       "flock": "Commercial broiler",
       "status": "preliminary",
-      "status_text": "Preliminary positive (state laboratory). USDA NVSL confirmation pending.",
+      "status_text": "Preliminary positive (state laboratory, routine surveillance). USDA NVSL confirmation pending. Property quarantined; flock being depopulated.",
       "source": "Maryland Department of Agriculture",
-      "url": "https://mda.maryland.gov/Pages/AvianFlu.aspx",
-      "note": "Entered from MDA's Nov 11, 2026 announcement as reported by WMDT, WGMD and Lancaster Farming. Replace the link with MDA's press release and update status when USDA confirms."
+      "url": "https://mda.maryland.gov/news/press-releases/preliminary-testing-confirms-highly-pathogenic-avian-influenza-worcester-county",
+      "note": "From MDA press release, Nov 11, 2026. Bird count and control-area radius not stated in the release."
     }
   ],
   "notices": [
     {
       "date": "2026-11-11",
       "source": "Maryland Department of Agriculture",
-      "title": "Preliminary testing finds HPAI in a commercial broiler flock in Worcester County",
-      "url": "https://mda.maryland.gov/Pages/AvianFlu.aspx",
-      "via": "replace with MDA press release link",
+      "title": "Preliminary Testing Confirms Highly Pathogenic Avian Influenza in Worcester County",
+      "url": "https://mda.maryland.gov/news/press-releases/preliminary-testing-confirms-highly-pathogenic-avian-influenza-worcester-county",
       "kind": "commercial",
       "status": "preliminary",
       "county": "Worcester",

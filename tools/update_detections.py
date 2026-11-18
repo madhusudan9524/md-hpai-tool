@@ -175,8 +175,13 @@ def mda_notices():
     seen, out = set(), []
     for href, label in links:
         title = clean(label)
-        if not KW.search(title) or href in seen:
+        slug = href.rsplit("/", 1)[-1].replace("-", " ")
+        # match the headline, or the address of the release (/news/press-releases/<slug>) when the link text is short
+        if "/press-releases/" not in href and not KW.search(title):
             continue
+        if not (KW.search(title) or KW.search(slug)) or href in seen:
+            continue
+        title = title if KW.search(title) else slug.capitalize()
         seen.add(href)
         url = href if href.startswith("http") else "https://mda.maryland.gov" + href
         try:
