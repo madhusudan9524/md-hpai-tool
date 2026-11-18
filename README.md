@@ -1,42 +1,89 @@
-# Maryland HPAI Response Map (prototype)
+# Maryland HPAI Map (v2)
 
-This is a three-tier web tool for HPAI (highly pathogenic avian influenza) control-area information on the Delmarva Peninsula. It is built on ArcGIS Online and the ArcGIS Maps SDK for JavaScript 4.31.
+One map for three audiences, each with its own panel:
 
-**The premises and zones in it are sample data. This is not an official MDA product.**
-
-Live site: https://madhusudan9524.github.io/md-hpai-tool/
-
-## Tiers
-| Tab | Who | What it shows |
+| Who | Signs in? | What they get |
 |---|---|---|
-| Public | Anyone | Active Control Areas: exact 10 km circles, with no premises IDs. Past control areas are faded by how long ago each was released. Wild-bird HPAI detections by county come from USDA APHIS. An address lookup reports one of three results: Control Area, Surveillance Zone or Free Area. |
-| Haulers & industry | Truckers and integrators | A truck route that avoids active Control Areas, using them as polygon barriers. It reports the km driven inside the Control Area and the Surveillance Zone, says whether a permit is needed, and links to a pre-filled Survey123 permit request. |
-| Regulators | MDA / USDA | Premises points; Infected, Buffer, Control and Surveillance zones; released zones; wild birds; the premises list; and a link to the submitted permit requests. |
+| **Public** | No | Control areas and surveillance zones, approximate infected-premises markers, affected counties, wild-bird detections, address check with autocomplete, a click card for any place, saved places with alerts (in the browser and by email), dead-wild-bird reports with photos, official notices |
+| **Haulers & industry** | Yes (request access in the app; MDA approves) | Truck route planner that avoids control areas, saved trips, permit requests filled in from the route, permit status with QR code (Apple Wallet once a certificate exists), trip sheet, farm check-ins; growers get a farm risk score and can report a sick flock |
+| **MDA staff** | Yes (MD HPAI Regulators group) | Exact premises, zones drawn outward from the premises boundary, release, county declarations, publishing the public map with a privacy check, review queues (reports with photos, permits, access requests), premises inside each zone with biosecurity audit status, movement tracing, daily situation summary, audit log, QR permit verification |
 
-## APHIS zone geometry (per premises)
-- Infected Zone: 0–3 km.
-- Buffer Zone: 3–10 km.
-- Control Area: the Infected Zone plus the Buffer Zone, 0–10 km.
-- Surveillance Zone: 10–20 km.
+The prototype is kept as `v1.html`.
 
-## ArcGIS Online items (uofmd org, owner madhutim_UofMD)
-| Item | ID |
-|---|---|
-| MD_HPAI_Response (layer 0 Infected_Premises, layer 1 Response_Zones) | 0ac62c28b2954e078ac1f63c178a2932 |
-| MD_HPAI_WildBirds (layer 0 Wild_Bird_Detections) | a1f7e3b4c0484be3b0911e819d5edaed |
-| MD_HPAI_PermitRequests (layer 0 Permit_Requests) | 9df7a5bae8954be89af96c9fbdbee8f9 |
-| Survey123 form: HPAI Movement Permit Request | dc58d20686754e49a56f072f382121dd |
-| OAuth app (client ID Gju4PCNvp8ugZdZQ) | 2a89951c4b3043598c5c85b5ab7542ba |
+## Files
 
-All URLs are in `config.js`. To hand the tool over to MDA:
-1. Recreate or transfer the items above.
-2. Register a new OAuth app.
-3. Edit `config.js`.
+- `index.html`, `css/app.css`: layout and styling (solid panel; frosted glass only over the map; dark mode follows the device; bottom sheet on phones)
+- `js/config.js`: every layer address and rule (zone distances, privacy settings, movement rules by commodity)
+- `js/app.js`: map, layers panel, click card, time slider, seasonal risk, sign-in
+- `js/public.js`, `js/hauler.js`, `js/mda.js`: tools for each audience
+- `js/risk.js`: risk models (tested with `node tests/risk.test.js`)
+- `tools/update_detections.py`: twice-daily update from official sources → `data/detections.json`
+- `tools/send_alerts.py`: email alerts (runs after the update when its secrets are set)
+- `tools/make_wallet_pass.py`: Apple Wallet permit pass (needs an Apple pass certificate)
+- `data/curated_detections.json`: detections entered by MDA staff (always override automatic ones)
+- `data/sample_history.json`, `data/cd_stations.json`: **SAMPLE** data for testing (past zone shapes, C&D stations)
 
-## Updating data
-- **New premises:** add a point to Infected_Premises. Then add its 4 zone rings to Response_Zones (see the notebook / `03_build_premises_and_zones.py`).
-- **Releasing a premises:** set `status = 'Released'` and `released_date` on both the premises and its zones. The public map fades released zones automatically over 0, 60, 180 and 365 days.
-- **Wild birds:** APHIS blocks cloud servers, so download https://www.aphis.usda.gov/sites/default/files/hpai-wild-birds.csv from a desktop. Then re-run the aggregation in `04_build_wild_birds.py`.
+## ArcGIS layers (UMD org, owner madhutim_UofMD)
 
-## Cost note
-Each route the haulers request runs two route solves (avoiding the Control Areas, and direct). That is about 0.01 ArcGIS credits per request, charged to the signed-in user.
+| Service | Shared with | Contains |
+|---|---|---|
+| MD_HPAI_Core | MDA staff | Premises, Perimeters, Zones, PublicAreas, PublicMarkers, Declarations, History, AuditLog, Biosecurity |
+| MD_HPAI_Public (view, query only) | Everyone | PublicAreas, PublicMarkers, Declarations, History |
+| MD_HPAI_Movement | MDA staff | Trips, Visits, Permits |
+| MD_HPAI_Movement_Haulers (view) | Haulers, Industry | Same layers; each person sees only their own records |
+| MD_HPAI_Visits_Industry (view) | Industry | Visit date and "came from a control area" flag only, for the farm risk score |
+| MD_HPAI_Submissions | MDA staff | Reports (with photo attachments), Alerts, Accounts |
+| MD_HPAI_Submit (view, create only) | Everyone | Anyone can submit; nobody but MDA can read |
+
+The current zones are the prototype's **sample** data, migrated and labeled as samples ("Sample zones" badge in the header). Release them from the MDA panel before real use.
+
+## Privacy (Dr. Ghanem's requirement)
+
+- The public never receives exact premises. MDA's "Publish public map" builds merged control-area and surveillance-zone shapes and **approximate markers** moved 1.5–3 km in a random direction (kept inside the control area).
+- A re-identification check counts poultry farms inside each marker area (at least 5 by default) and flags any control area that surrounds a single premises, since its center can be estimated.
+- The poultry farm layer is shown only to MDA staff (haulers' routes use it in the background to keep distance from farms).
+
+## Data sources (official only)
+
+- HPAI in wild birds and the monthly Atlantic Flyway pattern: USDA APHIS
+- Detections and notices: Maryland Department of Agriculture, Delaware Department of Agriculture, Virginia Department of Agriculture and Consumer Services, plus MDA-entered declarations
+- Wetlands: USFWS National Wetlands Inventory · Forests & land cover: USGS/MRLC NLCD 2021 · Lakes, rivers: USGS NHD · Watersheds: USGS WBD HUC-12
+- Wildlife management areas and waterfowl concentration areas: Maryland DNR (MD iMAP) · Wildlife refuges: USFWS
+- Road closures: MDOT CHART via Maryland Open Data · Truck routing and traffic: Esri World Route (truck travel mode)
+
+## Risk models (screening aids, not predictions)
+
+**Seasonal risk layer** = season × (0.55 wild-bird pressure + 0.45 waterfowl habitat), on ~6 km hexagons.
+Season comes from APHIS monthly wild-bird detections in Atlantic Flyway states. Wild-bird pressure fades with distance (10 km) and age (28-day half-life). Habitat is the distance to MD DNR waterfowl areas, wildlife management areas and USFWS refuges.
+
+**Farm risk score** (growers), in points:
+inside a control area +4 / surveillance zone +2 / control area within 10 km +1; visits by vehicles that came from a control area in 14 days +3 (or 5+ visits +1); wild-bird detection within 10 km in 4 weeks +2 (same county +1); waterfowl habitat within 1 km +1; peak season +1; biosecurity audit passed in the last year −1 (not passed or none +1).
+Low 0–2 · Moderate 3–4 · High 5–7 · Very high 8+.
+Sources: USDA APHIS 2015 case-control findings (control-area location OR 28.8; rendering trucks near barns OR 21.4; service visits OR 4.3; protective effect of C&D entry pads); Schreuder et al. 2022 (*Pathogens*); USGS 2025 (*One Health* 21:101172).
+
+## Routing rules by movement type
+
+| Movement | Avoid control areas | Distance from other farms | C&D stop | Allowed hours | Hazmat roads |
+|---|---|---|---|---|---|
+| Live birds | ✓ | ✓ | ✓ | 5:00–20:00 | – |
+| Eggs | ✓ | ✓ | ✓ | – | – |
+| Feed | ✓ | – | leaving a zone | – | – |
+| Litter / manure | ✓ | ✓ | ✓ | 6:00–18:00 | – |
+| Dead birds | ✓ | ✓ | ✓ | 6:00–18:00 | ✓ |
+| Service / crew | ✓ | – | ✓ | – | – |
+
+All trips also use truck height and weight limits, MDOT CHART closures and traffic at the departure time. **The hours and C&D stations are placeholders for MDA to confirm.**
+
+## Still to set up
+
+1. **Email alerts**: add repository secrets `ARCGIS_PORTAL`, `ARCGIS_USER`, `ARCGIS_PASSWORD`, `ALERTS_LAYER` (MD_HPAI_Submissions/1), `AREAS_LAYER` (MD_HPAI_Public/0), `DECL_LAYER` (MD_HPAI_Public/2), `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `ALERT_FROM`, `APP_URL`.
+2. **Apple Wallet**: an Apple Developer pass certificate (ideally MDA's), then set `walletPassUrl` in `js/config.js`.
+3. **Access requests**: approving one opens the ArcGIS group page so MDA can send the invite.
+4. Real C&D stations and allowed movement hours from MDA.
+
+## Run locally
+
+```
+python3 -m http.server 8080
+```
+Open http://localhost:8080 (this address is registered for ArcGIS sign-in).
