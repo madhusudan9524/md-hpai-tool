@@ -58,11 +58,17 @@ require([
   const riskLyr = new GraphicsLayer({ title: "Seasonal risk", visible: false, opacity: 0.75 });
   const histLyr = new GraphicsLayer({ title: "Past outbreak areas", visible: false });
   const closuresLyr = new GraphicsLayer({ title: "Road closures (MDOT CHART)", visible: false });
+  // solid wildlife icons (bird / mammal) with a white halo so they read on any background
+  const svgIcon = (path, color) => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="${color}" stroke="#fff" stroke-width="1.6" paint-order="stroke" stroke-linejoin="round">${path}</g></svg>`);
+  const BIRD = '<path d="M2.5 14.2c2.6.5 4.6-.5 6-2.5C10 9.4 12 7.8 14.7 7.8c1.5 0 2.7.5 3.5 1.4l3.3-.9-2 2.6c.2 4-2.8 7.5-7.8 7.5-3.6 0-6.4-1.4-9.2-4.2z"/><path d="M9.5 12.2c1.6-.2 3.4.3 4.8 1.6-2 .2-3.7-.3-4.8-1.6z"/>';
+  const PAW = '<ellipse cx="12" cy="16" rx="4.6" ry="3.9"/><circle cx="5.8" cy="10.6" r="2.1"/><circle cx="9.6" cy="6.9" r="2.1"/><circle cx="14.4" cy="6.9" r="2.1"/><circle cx="18.2" cy="10.6" r="2.1"/>';
+  const ICONS = { bird: svgIcon(BIRD, "#0e9aa7"), mammal: svgIcon(PAW, "#8a5a2b") };
   const wild = new FeatureLayer({
-    title: "Wild birds with HPAI", source: [], objectIdField: "OID", geometryType: "point", spatialReference: { wkid: 4326 }, outFields: ["*"],
-    fields: [{ name: "OID", type: "oid" }, { name: "state", type: "string" }, { name: "county", type: "string" }, { name: "species", type: "string" }, { name: "strain", type: "string" }, { name: "detected", type: "date" }, { name: "age", type: "integer" }],
-    renderer: { type: "simple", symbol: { type: "simple-marker", size: 8, color: TEAL.concat(0.95), outline: { color: [255, 255, 255, 1], width: 1.5 } },
-      visualVariables: [{ type: "opacity", field: "age", stops: [{ value: 0, opacity: 1 }, { value: 28, opacity: 0.9 }, { value: 365, opacity: 0.35 }] }] },
+    title: "Wildlife with HPAI", source: [], objectIdField: "OID", geometryType: "point", spatialReference: { wkid: 4326 }, outFields: ["*"],
+    fields: [{ name: "OID", type: "oid" }, { name: "group", type: "string" }, { name: "state", type: "string" }, { name: "county", type: "string" }, { name: "species", type: "string" }, { name: "strain", type: "string" }, { name: "detected", type: "date" }, { name: "age", type: "integer" }],
+    renderer: { type: "unique-value", field: "group", defaultSymbol: { type: "picture-marker", url: ICONS.bird, width: "20px", height: "20px" },
+      uniqueValueInfos: [{ value: "bird", symbol: { type: "picture-marker", url: ICONS.bird, width: "20px", height: "20px" } }, { value: "mammal", symbol: { type: "picture-marker", url: ICONS.mammal, width: "20px", height: "20px" } }],
+      visualVariables: [{ type: "opacity", field: "age", stops: [{ value: 0, opacity: 1 }, { value: 28, opacity: 0.95 }, { value: 365, opacity: 0.55 }, { value: 1500, opacity: 0.35 }] }] },
     popupEnabled: false
   });
   const routeLyr = new GraphicsLayer({ listMode: "hide" }), marks = new GraphicsLayer({ listMode: "hide" });
@@ -78,7 +84,7 @@ require([
   const S = { ws: "public", user: null, groups: [], roles: [], live: null, mdGeom: null, clearGeom: null, counties: [], areas: [], season: null };
   const ctx = { H, C, R, S, view, map, on, emit, has, esriId, sharing, dark,
     esri: { FeatureLayer, GraphicsLayer, Graphic, geometryEngine, wmu, Point, Polygon, Extent, Search, reactiveUtils, SketchViewModel },
-    layers: { L, env, wild, riskLyr, histLyr, closuresLyr, routeLyr, marks, tintLyr, countyLyr }, actions: {} };
+    icons: ICONS, layers: { L, env, wild, riskLyr, histLyr, closuresLyr, routeLyr, marks, tintLyr, countyLyr }, actions: {} };
   ctx.isStaff = () => S.ws === "regulator";
   ctx.signedIn = () => !!S.user;
   ctx.token = () => { const c = esriId.findCredential(sharing); return c && c.token; };
@@ -199,9 +205,10 @@ require([
   async function loadWild() {
     const Ld = await live; if (!Ld) return;
     const old = await wild.queryFeatures({ where: "1=1", returnGeometry: false, outFields: ["OID"] }).catch(() => ({ features: [] }));
-    const rows = (Ld.wild_year || Ld.wild || []).map((w) => ({ w, t: Date.parse(w.date + "T12:00:00Z") })).filter((o) => Date.now() - o.t <= S.wildRange * DAY);
-    await wild.applyEdits({ deleteFeatures: old.features, addFeatures: rows.map(({ w, t }) => new Graphic({ geometry: { type: "point", x: w.lon, y: w.lat, spatialReference: { wkid: 4326 } }, attributes: { state: w.state, county: w.county, species: w.species, strain: w.strain, detected: t, age: Math.round((Date.now() - t) / DAY) } })) }).catch(() => {});
-    S.wildPts = (Ld.wild_year || Ld.wild || []).map((w) => ({ lat: w.lat, lon: w.lon, t: Date.parse(w.date + "T12:00:00Z"), county: w.county, state: w.state, species: w.species }));
+    const all = (Ld.wild_all && Ld.wild_all.length ? Ld.wild_all : Ld.wild_year || Ld.wild || []).map((w) => Object.assign({ group: "bird" }, w)).concat(Ld.mammals || []);
+    const rows = all.map((w) => ({ w, t: Date.parse(w.date + "T12:00:00Z") })).filter((o) => Date.now() - o.t <= S.wildRange * DAY);
+    await wild.applyEdits({ deleteFeatures: old.features, addFeatures: rows.map(({ w, t }) => new Graphic({ geometry: { type: "point", x: w.lon, y: w.lat, spatialReference: { wkid: 4326 } }, attributes: { group: w.group, state: w.state, county: w.county, species: w.species, strain: w.strain, detected: t, age: Math.round((Date.now() - t) / DAY) } })) }).catch(() => {});
+    S.wildPts = all.map((w) => ({ lat: w.lat, lon: w.lon, t: Date.parse(w.date + "T12:00:00Z"), county: w.county, state: w.state, species: w.species, group: w.group }));
     kpis(); emit("wild", S.wildPts);
   }
   ctx.loadWild = loadWild;
@@ -296,7 +303,15 @@ require([
     const tip = { control: "MDA permit needed to move birds, eggs, feed or litter.", surveillance: "Watch birds closely. Check with MDA before moving birds.", none: "Keep birds away from wild waterfowl. Report sick birds." }[z.zone || "none"];
     const extra = emit("card", { pt, zone: z, county: cty }).filter(Boolean).join("");
     const el = document.createElement("div"); el.className = "pop";
-    el.innerHTML = `<div class="band ${band[0]}"><b>${band[1]}</b><small>${esc(where)}${sub ? " · " + esc(sub) : ""}</small></div><div class="bd"><div class="chips2">${chips.join("")}</div><p class="tip">${esc(tip)}</p>${extra ? `<div class="pacts">${extra}</div>` : ""}</div>`;
+    const more = `<div class="more" hidden>
+      ${since ? `<div class="r"><span>Zone since</span><b>${fmtDate(since)}</b></div>` : ""}
+      ${aff ? `<div class="r"><span>County status</span><b>${aff.items.every((i) => i.sample) ? "Sample zone" : aff.items.some((i) => i.status === "preliminary") ? "Preliminary detection" : "HPAI reported"} · ${fmtShort(aff.since)}</b></div>` : ""}
+      <div class="r"><span>Wildlife, 10 km</span><b>${wildN} in 4 wk · ${wildY} in 12 mo</b></div>
+      <div class="r"><span>Seasonal risk</span><b>${R.TIERS[sr.tier]}</b></div>
+      <div class="r"><span>Past outbreaks</span><b>${hist.n ? hist.n + " · last " + fmtShort(hist.last) : "None on record"}</b></div>
+      <div class="do"><b>What to do</b><ul>${DO[z.zone || "none"].map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div></div>`;
+    el.innerHTML = `<div class="band ${band[0]}"><b>${band[1]}</b><small>${esc(where)}${sub ? " · " + esc(sub) : ""}</small></div><div class="bd"><div class="chips2">${chips.join("")}</div><p class="tip">${esc(tip)}</p>${more}<div class="pacts">${extra}<button class="pb ghostb" data-more>Details ▾</button></div></div>`;
+    const mb = el.querySelector("[data-more]"); mb.onclick = () => { const m = el.querySelector(".more"); m.hidden = !m.hidden; mb.textContent = m.hidden ? "Details ▾" : "Less ▴"; };
     await fitCard(pt); view.openPopup({ location: pt, content: el });
     el.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => { view.closePopup(); (ctx.actions[b.dataset.act] || (() => {}))(pt, title); }));
   }
@@ -384,7 +399,7 @@ require([
     { id: "ex", staff: 1, t: "Infected premises (exact)", sw: "exact", ls: () => [L.prem, L.perim] },
     { id: "cty", t: "Affected county", n: "detection or MDA notice", sw: "cty", ls: () => [tintLyr] },
     { sec: "Wildlife" },
-    { id: "wb", t: "Wild birds with HPAI", n: "USDA APHIS · county level", sw: "wb", ls: () => [wild], seg: true },
+    { id: "wb", t: "Wildlife with HPAI", n: "birds and mammals · USDA APHIS", sw: "wb", ls: () => [wild], seg: true },
     { id: "risk", t: "Seasonal risk", n: "migration + detections + habitat", sw: "risk", ls: () => [riskLyr], off: true },
     { id: "wf", t: "Waterfowl areas", n: "MD DNR", sw: "wf", ls: () => [env.waterfowl], off: true },
     { id: "nwr", t: "Wildlife refuges", n: "USFWS", sw: "nwr", ls: () => [env.refuges], off: true },
@@ -411,7 +426,7 @@ require([
       const on = vis[r.id] != null ? vis[r.id] : !r.off;
       ls.forEach((l) => (l.visible = on));
       html += `<label class="lrow"><span class="sw ${r.sw}"></span><span class="nm">${esc(r.t)}${r.n ? `<small>${esc(r.n)}</small>` : ""}</span><input type="checkbox" class="tg" data-id="${r.id}" ${on ? "checked" : ""}></label>`;
-      if (r.seg) html += `<div class="seg" id="wildSeg"><button data-d="28" class="${S.wildRange === 28 ? "on" : ""}">4 weeks</button><button data-d="365" class="${S.wildRange === 365 ? "on" : ""}">12 months</button></div>`;
+      if (r.seg) html += `<div class="seg" id="wildSeg"><button data-d="28" class="${S.wildRange === 28 ? "on" : ""}">4 weeks</button><button data-d="365" class="${S.wildRange === 365 ? "on" : ""}">12 months</button><button data-d="9999" class="${S.wildRange === 9999 ? "on" : ""}">All years</button></div><div class="wlg"><span><img src="${ICONS.bird}" alt="">Bird</span><span><img src="${ICONS.mammal}" alt="">Mammal</span></div>`;
     });
     html += `<button class="tbtn" id="timeBtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Look back in time</button></div>`;
     keyEl.innerHTML = html;
@@ -446,7 +461,7 @@ require([
   ctx.simpleCard = simpleCard;
   function wildCard(g) {
     const a = g.attributes;
-    simpleCard(g.geometry, "bird", "HPAI in a wild bird", a.species || "Species not listed", [["Detected", fmtDate(a.detected) + " · " + H.ago(a.detected)], ["County", `${a.county}, ${a.state}`], ["Strain", a.strain]],
+    simpleCard(g.geometry, a.group === "mammal" ? "mammal" : "bird", a.group === "mammal" ? "HPAI in a mammal" : "HPAI in a wild bird", a.species || "Species not listed", [["Detected", fmtDate(a.detected) + " · " + H.ago(a.detected)], ["County", `${a.county}, ${a.state}`], ["Strain", a.strain]],
       `<div class="do">Shown at county level, not the exact site. Source: USDA APHIS.</div><button class="cta" data-act="wildReport">Report a dead wild bird</button>`)
       .querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => { view.closePopup(); ctx.actions.wildReport(); }));
   }

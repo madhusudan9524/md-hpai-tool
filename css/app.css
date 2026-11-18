@@ -253,3 +253,12 @@ section { margin-bottom: 14px; }
 @media print {
   header, #panel, .esri-ui { display: none !important; } main { top: 0; }
 }
+
+/* wildlife legend + expandable card */
+.wlg { display: flex; gap: 14px; margin: 0 8px 6px 10px; font-size: 12.5px; color: var(--mute); }
+.wlg span { display: inline-flex; align-items: center; gap: 5px; } .wlg img { width: 18px; height: 18px; }
+.sw.wb { background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%230e9aa7' d='M2.5 14.2c2.6.5 4.6-.5 6-2.5C10 9.4 12 7.8 14.7 7.8c1.5 0 2.7.5 3.5 1.4l3.3-.9-2 2.6c.2 4-2.8 7.5-7.8 7.5-3.6 0-6.4-1.4-9.2-4.2z'/%3E%3C/svg%3E") center/18px no-repeat !important; }
+.pop .band.mammal { background: #8a5a2b; }
+.pop .more { margin-top: 6px; border-top: 1px solid rgba(127,127,127,.18); padding-top: 4px; }
+.pop .more .do { font-size: 12.5px; padding: 8px 10px; }
+.pb.ghostb { color: var(--mute); margin-left: auto; }

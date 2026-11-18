@@ -21,6 +21,7 @@ CURATED = os.path.join(ROOT, "data", "curated_detections.json")
 POINTS = json.load(open(os.path.join(ROOT, "tools", "county_points.json")))
 
 WILD_CSV = "https://www.aphis.usda.gov/sites/default/files/hpai-wild-birds.csv"
+MAMMAL_CSV = "https://www.aphis.usda.gov/sites/default/files/hpai-mammals.csv"
 MDA_LIST = "https://mda.maryland.gov/news/press-releases"
 # extra MDA pages to look at, because the release list can lag days behind new releases
 MDA_EXTRA = [MDA_LIST + "?page=1", "https://mda.maryland.gov/Pages/AvianFlu.aspx", "https://mda.maryland.gov/news"]
@@ -160,7 +161,7 @@ def wild_birds(today, raw=None):
             d = parse_us_date(r.get("Date Detected") or r.get("Collection Date"))
         except Exception:
             continue
-        if (today - d).days > WILD_YEAR or f"{st}|{co}" not in POINTS:
+        if f"{st}|{co}" not in POINTS:
             continue
         lon, lat = POINTS[f"{st}|{co}"]
         h = int(hashlib.md5(f"{st}{co}{r.get('Bird Species')}{d}{len(out)}".encode()).hexdigest()[:6], 16)   # small stable offset so dots in one county do not stack
@@ -169,6 +170,25 @@ def wild_birds(today, raw=None):
                     "source": "USDA APHIS"})
     out.sort(key=lambda x: x["date"], reverse=True)
     return out, season
+
+
+def mammals():
+    """All Delmarva HPAI detections in wild (and captive) mammals, USDA APHIS."""
+    rows = list(csv.DictReader(io.StringIO(get(MAMMAL_CSV))))
+    out = []
+    for r in rows:
+        st, co = r.get("State", ""), (r.get("County", "") or "").replace(" County", "").rstrip("0123456789")
+        if st not in ("Maryland", "Delaware", "Virginia") or (st == "Virginia" and co not in VA) or f"{st}|{co}" not in POINTS:
+            continue
+        try:
+            d = parse_us_date(r.get("Date Detected") or r.get("Date Collected"))
+        except Exception:
+            continue
+        lon, lat = POINTS[f"{st}|{co}"]
+        h = int(hashlib.md5(f"m{st}{co}{r.get('Species')}{d}{len(out)}".encode()).hexdigest()[:6], 16)
+        out.append({"group": "mammal", "state": st, "county": co, "species": r.get("Species", ""), "date": d.isoformat(), "strain": r.get("HPAI Strain", ""),
+                    "lon": round(lon + ((h % 1000) / 1000 - .5) * 0.12, 5), "lat": round(lat + (((h // 1000) % 1000) / 1000 - .5) * 0.09, 5), "source": "USDA APHIS"})
+    return sorted(out, key=lambda x: x["date"], reverse=True)
 
 
 def mda_notices():
@@ -249,10 +269,16 @@ def main():
     curated = load(CURATED, {"commercial": [], "notices": []})
     result = {"updated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "wild": prev.get("wild", []), "notices": [], "commercial": [], "problems": problems}
 
-    result["wild_year"], result["season"] = prev.get("wild_year", []), prev.get("season")
+    result["wild_year"], result["season"], result["wild_all"], result["mammals"] = prev.get("wild_year", []), prev.get("season"), prev.get("wild_all", []), prev.get("mammals", [])
     try:
-        year, season = wild_birds(today)
-        result["wild_year"], result["season"] = year, season
+        result["mammals"] = mammals()
+    except Exception as e:
+        problems.append(f"USDA APHIS mammals: {e} (kept previous values)")
+    try:
+        allw, season = wild_birds(today)
+        result["wild_all"], result["season"] = allw, season
+        year = [w for w in allw if (today - dt.date.fromisoformat(w["date"])).days <= WILD_YEAR]
+        result["wild_year"] = year
         result["wild"] = [w for w in year if (today - dt.date.fromisoformat(w["date"])).days <= WILD_DAYS]
     except Exception as e:
         problems.append(f"USDA APHIS wild birds: {e} (kept previous values)")
@@ -309,7 +335,7 @@ def main():
     result["commercial"] = sorted((c for c in commercial.values() if (today - dt.date.fromisoformat(c["date"])).days <= 60), key=lambda x: x["date"], reverse=True)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     json.dump(result, open(OUT, "w"), indent=1)
-    print(f"AI model {AI_MODEL if os.environ.get('ANTHROPIC_API_KEY') else 'off'}; wild 4wk {len(result['wild'])}, 12mo {len(result.get('wild_year', []))}, notices {len(result['notices'])}, commercial {len(result['commercial'])}; problems: {problems or 'none'}")
+    print(f"AI model {AI_MODEL if os.environ.get('ANTHROPIC_API_KEY') else 'off'}; wild 4wk {len(result['wild'])}, 12mo {len(result.get('wild_year', []))}, all {len(result.get('wild_all', []))}, mammals {len(result.get('mammals', []))}, notices {len(result['notices'])}, commercial {len(result['commercial'])}; problems: {problems or 'none'}")
     return 0
 
 
