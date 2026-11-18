@@ -363,7 +363,9 @@ require([
     if (sr.tier) chips.push(`<i class="c violet">${R.TIERS[sr.tier]} seasonal risk</i>`);
     if (hist.n) chips.push(`<i class="c">${hist.n} past · ${fmtShort(hist.last)}</i>`);
     const tip = { control: "MDA permit needed to move birds, eggs, feed or litter.", surveillance: "Watch birds closely. Check with MDA before moving birds.", none: "Keep birds away from wild waterfowl. Report sick birds." }[z.zone || "none"];
-    const extra = emit("card", { pt, zone: z, county: cty }).filter(Boolean).join("");
+    // modules add buttons to the card; ones marked <!--more--> go inside the expanded Details part
+    const parts = emit("card", { pt, zone: z, county: cty }).filter(Boolean);
+    const extra = parts.filter((p) => !p.startsWith("<!--more-->")).join(""), extraMore = parts.filter((p) => p.startsWith("<!--more-->")).join("");
     const el = document.createElement("div"); el.className = "pop";
     const more = `<div class="more" hidden>
       ${since ? `<div class="r"><span>Zone since</span><b>${fmtDate(since)}</b></div>` : ""}
@@ -371,7 +373,7 @@ require([
       <div class="r"><span>Wildlife within 6 mi</span><b>${wildN} in 4 wk · ${wildY} in 12 mo</b></div>
       <div class="r"><span>Seasonal risk</span><b>${R.TIERS[sr.tier]}</b></div>
       <div class="r"><span>Past outbreaks</span><b>${hist.n ? hist.n + " · last " + fmtShort(hist.last) : "None on record"}</b></div>
-      <div class="do"><b>What to do</b><ul>${DO[z.zone || "none"].map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div></div>`;
+      <div class="do"><b>What to do</b><ul>${DO[z.zone || "none"].map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>${extraMore}</div>`;
     el.innerHTML = `<div class="band ${band[0]}"><b>${band[1]}</b><small>${esc(where)}${sub ? " · " + esc(sub) : ""}</small></div><div class="bd"><div class="chips2">${chips.join("")}</div><p class="tip">${esc(tip)}</p>${more}<div class="pacts">${extra}<button class="pb ghostb" data-more>Details ▾</button></div></div>`;
     const mb = el.querySelector("[data-more]"); mb.onclick = async () => { const m = el.querySelector(".more"); m.hidden = !m.hidden; mb.textContent = m.hidden ? "Details ▾" : "Less ▴";
       if (!m.hidden) { const hh = el.offsetHeight + 60; view.closePopup(); await fitCard(pt, hh); view.openPopup({ location: pt, content: el }); } };

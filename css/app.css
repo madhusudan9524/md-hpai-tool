@@ -441,3 +441,15 @@ main { top: 0 !important; }
 .lk .body { border-bottom: 1px solid var(--line); max-height: min(60vh, 520px); }
 .esri-ui-bottom-right { align-items: flex-end; }
 @media (max-width: 760px) { .lk:not(.shut) { width: 260px; } }
+
+/* trip planner: drop-a-pin buttons and pin details */
+.frow { display: flex; gap: 6px; align-items: center; }
+.frow .field { flex: 1; min-width: 0; }
+.pinbtn { width: 42px; height: 42px; flex: none; display: grid; place-items: center; border-radius: 12px; border: 1px solid #c9d2dc; background: var(--panel); color: #4b5866; }
+.pinbtn svg { width: 20px; height: 20px; }
+.pinbtn:hover { background: var(--hover); border-color: #9fb0c2; transform: scale(1.03); }
+.pinbtn.on { border-color: var(--ws); color: var(--ws); box-shadow: 0 0 0 2px var(--ws); }
+.pininfo { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 0; padding: 9px 10px; border-radius: 10px; background: var(--hover); font-size: 13.5px; }
+.pininfo .li { width: 18px; height: 18px; color: var(--ws); margin-top: 1px; }
+.pininfo small { color: var(--mute); }
+.pop .more .pacts { margin-top: 8px; }
