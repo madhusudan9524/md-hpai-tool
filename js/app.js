@@ -82,6 +82,9 @@ require([
     popup: { dockEnabled: false, dockOptions: { buttonEnabled: false }, collapseEnabled: false, visibleElements: { closeButton: true, featureNavigation: false, actionBar: false, heading: false, collapseButton: false, spinner: false }, highlightEnabled: false, actions: [] }, ui: { components: ["zoom", "attribution"] } });
   view.ui.move("zoom", "top-left");
   view.ui.add(new Home({ view }), "top-left");
+  // on phones the bottom sheet covers the lower ~150 px: centre the map (and fit Maryland) in the part people can see
+  const padForSheet = () => { view.padding = { top: 0, right: 0, left: 0, bottom: window.innerWidth <= 760 ? 150 : 0 }; };
+  padForSheet(); window.addEventListener("resize", padForSheet);
 
   // ---------------- state ----------------
   const S = { ws: "public", user: null, groups: [], roles: [], live: null, mdGeom: null, clearGeom: null, counties: [], areas: [], season: null };
@@ -98,7 +101,7 @@ require([
   ctx.ind = {
     token: () => { try { return localStorage.getItem(IND_KEY); } catch (e) { return null; } },
     async api(path, body) {
-      if (C.auth && C.auth.demo && H.demoApi) return H.demoApi(path, body, ctx);   // demo on your own computer (js/demo.js)
+      if (H.previewApi && (ctx.ind.token() || "").startsWith(H.PREVIEW_PREFIX)) return H.previewApi(path, body, ctx);   // MDA staff using View as (js/preview.js)
       if (!C.auth || !C.auth.url) throw new Error(`Industry sign-in is being set up. Call MDA at ${C.mdaPhone}.`);
       const h = {}, t = ctx.ind.token(), form = body instanceof FormData;
       if (t) h.authorization = "Bearer " + t;
@@ -195,9 +198,8 @@ require([
   // ---------------- outbreak layers ----------------
   function zoneLayer(url, type, extra) {
     return new FeatureLayer(Object.assign({ url, outFields: ["*"], popupEnabled: false,
-      // "established" is set explicitly when staff create a premises (confirmed vs. preliminary/pending USDA).
-      // Older records predate the field and have no value for it, so they're treated as already established.
-      definitionExpression: `zone_type = '${type}' AND status = 'Active' AND (established = 1 OR established IS NULL)`,
+      // only established zones: a preliminary (unconfirmed) premises keeps its zones at status 'Pending' until MDA confirms it
+      definitionExpression: `zone_type = '${type}' AND status = 'Active'`,
       renderer: { type: "simple", symbol: type === "Control Area" ? fill(RED, 0.24, RED.concat(1), 2) : fill(APRICOT, 0.18, AMBER.concat(1), 1.6, "dash") } }, extra || {}));
   }
   function buildOutbreakLayers() {
@@ -311,9 +313,9 @@ require([
   }
 
   function kpis() {
-    const set = (id, v) => { const e = $(id); if (e) e.textContent = v == null ? "–" : v; };
-    set("kCA", S.areas.length); set("kCty", S.affected.length);
-    set("kWild", (S.wildPts || []).filter((w) => Date.now() - w.t <= 28 * DAY).length);
+    const set = (id, v, one, many) => { const e = $(id); if (e) e.textContent = v == null ? "–" : v; const l = $(id + "l"); if (l && one) l.textContent = v === 1 ? one : many; };
+    set("kCA", S.areas.length, "control area", "control areas"); set("kCty", S.affected.length, "affected county", "affected counties");
+    set("kWild", (S.wildPts || []).filter((w) => Date.now() - w.t <= 28 * DAY).length, "wildlife case · 4 wk", "wildlife cases · 4 wk");
   }
   ctx.kpis = kpis;
 
@@ -384,10 +386,15 @@ require([
     const [ca, sz] = await Promise.all([q(L.ca), q(L.sz)]);
     return ca.length ? { zone: "control", f: ca[0] } : sz.length ? { zone: "surveillance", f: sz[0] } : { zone: null };
   };
+  // geometryEngine.distance measures flat Web Mercator metres, which overstate real ground distance by 1/cos(latitude)
+  // (about 28% in Maryland), so every distance used for alerts and risk is scaled back to true kilometres
+  const trueKm = (a, b) => { const p = b.type === "point" ? b : b.extent.center, lat = p.spatialReference.isWGS84 ? p.latitude : wmu.webMercatorToGeographic(p).latitude;
+    return geometryEngine.distance(a, b, "kilometers") * Math.cos(lat * Math.PI / 180); };
+  ctx.trueKm = trueKm;
   ctx.distToArea = (pt) => {
     if (!S.areas.length) return null;
     const p = pt.spatialReference.isWebMercator ? pt : wmu.geographicToWebMercator(pt);
-    return Math.min(...S.areas.map((f) => geometryEngine.distance(f.geometry, p, "kilometers")));
+    return Math.min(...S.areas.map((f) => trueKm(f.geometry, p)));
   };
   ctx.wildNear = (pt, kmR, days) => { const g = pt.spatialReference.isWGS84 ? pt : wmu.webMercatorToGeographic(pt), p = { lat: g.latitude, lon: g.longitude }; return (S.wildPts || []).filter((w) => Date.now() - w.t <= days * DAY && R.km(p, w) <= kmR); };
   ctx.seasonNow = () => R.seasonIndex(new Date().getMonth(), S.season);
@@ -470,11 +477,11 @@ require([
   // 1 inside habitat, falling to 0 at 5 km
   async function habitatAt(g, wait) {
     const hg = habitatGeom || (wait ? await loadHabitat() : null); if (!hg) return 0;
-    const d = geometryEngine.distance(hg, wmu.geographicToWebMercator(new Point({ longitude: g.longitude, latitude: g.latitude })), "kilometers");
+    const d = trueKm(hg, wmu.geographicToWebMercator(new Point({ longitude: g.longitude, latitude: g.latitude })));
     return Math.max(0, 1 - d / 5);
   }
   ctx.habitatAt = habitatAt;
-  ctx.habitatKm = async (g) => { const hg = habitatGeom || await Promise.race([loadHabitat(), new Promise((r) => setTimeout(() => r(null), 8000))]); return hg ? geometryEngine.distance(hg, wmu.geographicToWebMercator(new Point({ longitude: g.longitude, latitude: g.latitude })), "kilometers") : null; };
+  ctx.habitatKm = async (g) => { const hg = habitatGeom || await Promise.race([loadHabitat(), new Promise((r) => setTimeout(() => r(null), 8000))]); return hg ? trueKm(hg, wmu.geographicToWebMercator(new Point({ longitude: g.longitude, latitude: g.latitude }))) : null; };
 
   // ---------------- seasonal risk layer (hexagons, ~6 km) ----------------
   async function buildRisk() {
@@ -485,7 +492,7 @@ require([
       for (let x = ext.xmin + (row % 2 ? w / 2 : 0); x < ext.xmax; x += w) {
         const c = new Point({ x, y, spatialReference: { wkid: 102100 } });
         if (!geometryEngine.contains(S.clearGeom, c)) continue;
-        const g = wmu.webMercatorToGeographic(c), hab = hg ? Math.max(0, 1 - geometryEngine.distance(hg, c, "kilometers") / 5) : 0;
+        const g = wmu.webMercatorToGeographic(c), hab = hg ? Math.max(0, 1 - trueKm(hg, c) / 5) : 0;
         const v = R.seasonalRisk({ pt: { lat: g.latitude, lon: g.longitude }, month, seasonCounts: S.season, detections: S.wildPts, habitat: hab, now });
         if (!v.tier) continue;
         const ring = []; for (let i = 0; i < 6; i++) { const a = Math.PI / 180 * (60 * i - 30); ring.push([x + r * Math.cos(a), y + r * Math.sin(a)]); } ring.push(ring[0]);
@@ -658,10 +665,6 @@ require([
     setWorkspace(S.role === "pending" ? "public" : S.role);
     emit("signin", S.user);
   }
-  document.querySelectorAll(".role").forEach((b) => (b.onclick = () => { $("modal").hidden = true; ctx.signIn(b.dataset.ws); }));
-  $("mclose").onclick = () => ($("modal").hidden = true);
-  $("modal").addEventListener("click", (e) => { if (e.target.id === "modal") $("modal").hidden = true; });
-  $("signupLink").onclick = (e) => { e.preventDefault(); $("modal").hidden = true; (ctx.actions.signup || (() => {}))(); };
 
   // panel action buttons
   document.addEventListener("click", (e) => { const b = e.target.closest(".act[data-t]"); if (b && ctx.actions[b.dataset.t]) ctx.actions[b.dataset.t](); });
@@ -699,7 +702,7 @@ require([
   // ---------------- start ----------------
   (H.modules || []).forEach((m) => { try { m(ctx); } catch (e) { console.error("module", e); } });
   setWorkspace("public");
-  if (ctx.ind.token() && C.auth && (C.auth.url || C.auth.demo)) {
+  if (ctx.ind.token() && ((C.auth && C.auth.url) || ctx.ind.token().startsWith(H.PREVIEW_PREFIX || "preview."))) {
     // an industry partner who signed in before (30 days): check their access is still active
     ctx.ind.api("/me").then((r) => ctx.ind.begin(r.user)).catch(() => { try { localStorage.removeItem(IND_KEY); } catch (e) {} esriId.checkSignInStatus(sharing).then(initUser).catch(() => {}); });
   } else esriId.checkSignInStatus(sharing).then(initUser).catch(() => {

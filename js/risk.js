@@ -5,9 +5,9 @@
  */
 (function (root) {
   const SOURCES = {
-    aphis2015: { t: "USDA APHIS (2015). Biosecurity factors and the introduction and spread of HPAI: findings from epidemiological studies.", u: "https://www.aphis.usda.gov/animal_health/downloads/animal_diseases/ai/hpai-biosecurity-factors-introduction-and-spread.pdf" },
+    aphis2015: { t: "USDA APHIS (Aug 2015). Highly pathogenic avian influenza: biosecurity factors associated with introduction and spread (case-control study of Midwest layer farms, 2015 H5N2).", u: "https://www.aphis.usda.gov/animal_health/downloads/animal_diseases/ai/hpai-biosecurity-factors-introduction-and-spread.pdf" },
     schreuder2022: { t: "Schreuder et al. (2022). Wild bird densities and landscape variables predict spatial patterns in HPAI outbreak risk across the Netherlands. Pathogens.", u: "https://pmc.ncbi.nlm.nih.gov/articles/PMC9143584" },
-    usgs2025: { t: "USGS (2025). Avian influenza spillover into poultry: environmental influences and biosecurity protections. One Health 21:101172.", u: "https://doi.org/10.1016/j.onehlt.2025.101172" },
+    usgs2025: { t: "Gonnerman et al. (2025), University of Maryland, USDA and USGS. Avian influenza spillover into poultry: environmental influences and biosecurity protections. One Health 21:101172.", u: "https://doi.org/10.1016/j.onehlt.2025.101172" },
     aphisWild: { t: "USDA APHIS. Detections of HPAI in wild birds (monthly counts, Atlantic Flyway states).", u: "https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/wild-birds" },
     aphisMammals: { t: "USDA APHIS. Detections of HPAI in mammals.", u: "https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/mammals" },
     aphisPoultry: { t: "USDA APHIS. Confirmations of HPAI in commercial and backyard flocks.", u: "https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/commercial-backyard-flocks" }
@@ -44,7 +44,7 @@
    * risk = season x (0.55 wild-bird pressure + 0.45 waterfowl habitat)
    * - season: APHIS monthly detection pattern for the Atlantic Flyway (aphisWild)
    * - wild-bird pressure: recent nearby detections (usgs2025: spillover tracks proximity to infected wild birds)
-   * - habitat: waterfowl concentration areas, refuges, WMAs, open water nearby (schreuder2022)
+   * - habitat: waterfowl concentration areas, refuges and WMAs nearby (schreuder2022)
    */
   function seasonalRisk({ pt, month, seasonCounts, detections, habitat, now }) {
     const s = seasonIndex(month, seasonCounts), w = wildPressure(pt, detections, now), h = Math.max(0, Math.min(1, habitat || 0));
@@ -76,17 +76,17 @@
     const pts = [], add = (n, why, src) => pts.push({ n, why, src });
     if (i.zone === "control") add(4, "Inside a control area", "aphis2015");
     else if (i.zone === "surveillance") add(2, "Inside a surveillance zone", "aphis2015");
-    else if (i.kmToArea != null && i.kmToArea <= 10) add(1, `Control area ${(i.kmToArea * 0.621371).toFixed(0)} mi away`, "aphis2015");
+    else if (i.kmToArea != null && i.kmToArea <= 10) add(1, `Control area ${(i.kmToArea * 0.621371).toFixed(i.kmToArea < 16 ? 1 : 0)} mi away`, "aphis2015");
     if (i.zoneVisits > 0) add(3, `${i.zoneVisits} visit${i.zoneVisits > 1 ? "s" : ""} by vehicles from a control area (14 days)`, "aphis2015");
     else if (i.visits >= 5) add(1, `${i.visits} vehicle visits in 14 days`, "aphis2015");
     if (i.outbreaksNear >= 2) add(1, `${i.outbreaksNear} infected premises within 20 mi (30 days)`, "aphisPoultry");
     else if (!i.zone && (i.kmToArea == null || i.kmToArea > 10) && i.countyOutbreak) add(1, "Infected flock in your county or a neighbouring county (30 days)", "aphisPoultry");
-    if (i.wildNear > 0) add(2, `${i.wildNear} wild-bird detection${i.wildNear > 1 ? "s" : ""} within 6 mi (4 weeks)`, "usgs2025");
+    if (i.wildNear > 0) add(2, `${i.wildNear} wild-bird detection${i.wildNear > 1 ? "s" : ""} within about 6 mi (4 weeks; county-level locations)`, "usgs2025");
     else if (i.wildCounty) add(1, "Wild-bird detection in the county (4 weeks)", "usgs2025");
     if (i.mammalsNear > 0) add(1, `${i.mammalsNear} infected mammal${i.mammalsNear > 1 ? "s" : ""} found within 10 mi (8 weeks)`, "aphisMammals");
     if (i.trend && i.trend.sharp) add(2, `Detections in the region rising fast: ${i.trend.recent} in 2 weeks, ${i.trend.ratio === Infinity ? "none" : "about " + Math.round(i.trend.ratio) + "× the rate"} before`, "usgs2025");
     else if (i.trend && i.trend.rising) add(1, `Detections in the region rising: ${i.trend.recent} in 2 weeks, ${i.trend.ratio === Infinity ? "none" : "about " + Math.round(i.trend.ratio) + "× the rate"} before`, "usgs2025");
-    if (i.habitatKm != null && i.habitatKm <= 1) add(1, "Waterfowl habitat or open water within ½ mile", "schreuder2022");
+    if (i.habitatKm != null && i.habitatKm <= 1) add(1, "Waterfowl habitat within 1 km (0.6 mi)", "schreuder2022");
     if (i.season >= 0.5) add(1, "Peak migration season", "aphisWild");
     if (i.audit && i.audit.passed && now - i.audit.date <= 365 * DAY) add(-1, "Passed a biosecurity audit in the last year", "aphis2015");
     else if (i.audit && !i.audit.passed) add(1, "Last biosecurity audit not passed", "aphis2015");

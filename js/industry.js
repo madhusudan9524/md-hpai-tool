@@ -5,8 +5,7 @@
  */
 window.HPAI.modules.push(function (ctx) {
   const { H, C, S } = ctx, { $, esc, fmtDate, toast, sheet, closeSheet, DAY } = H;
-  const ready = () => !!(C.auth && (C.auth.url || C.auth.demo));
-  const demoTip = () => C.auth && C.auth.demo ? `<p class="tip"><b>Demo mode</b> (only on your computer): the code is always 123456 and nothing is emailed. Records are saved with your MDA sign-in.</p>` : "";
+  const ready = () => !!(C.auth && C.auth.url);
   const notReady = () => toast(`Industry sign-in is being set up. For now, call MDA at ${C.mdaPhone}.`, 6000);
   const api = ctx.ind.api;
 
@@ -33,7 +32,7 @@ window.HPAI.modules.push(function (ctx) {
   ctx.actions.industrySignIn = () => {
     if (!ready()) return notReady();
     sheet("Industry partner sign-in", `<div class="form">
-      ${demoTip()}<p class="hint">For approved haulers, growers and poultry businesses. We'll send you a 6-digit code. No password needed.</p>
+      <p class="hint">For approved haulers, growers and poultry businesses. We'll send you a 6-digit code. No password needed.</p>
       <label>Email or mobile number<input id="inC" autocomplete="username" inputmode="email" placeholder="you@company.com or 410 555 0100"></label>
       <button class="primary" id="inSend">Send code</button>
       <div id="inStep2" hidden><label>Code<input id="inCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 digits"></label>
@@ -83,7 +82,7 @@ window.HPAI.modules.push(function (ctx) {
   ctx.actions.signup = () => {
     if (!ready()) return notReady();
     sheet("Register as an industry partner", `<div class="form reg">
-      ${demoTip()}<p class="hint">MDA checks every request. Most are decided within two working days; you'll get an email or text.</p>
+      <p class="hint">MDA checks every request. Most are decided within two working days; you'll get an email or text.</p>
       <label>Your business<select id="rgT">${TYPES.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("")}</select></label>
       <p class="tip" id="rgNeed"></p>
       <div class="two"><label>Full name<input id="rgName" autocomplete="name"></label><label>Company or farm name<input id="rgOrg" autocomplete="organization"></label></div>
@@ -152,13 +151,13 @@ window.HPAI.modules.push(function (ctx) {
   }
   if (location.hash.startsWith("#more=")) setTimeout(() => moreForm(decodeURIComponent(location.hash.slice(6))), 600);
 
-  // ---------------- preview: MDA staff look at the tool as each audience ----------------
-  // (C.preview only: your computer and the private preview link). The industry view signs in as a built-in
-  // test grower, saved with the MDA sign-in, so it shows exactly what a partner sees.
+  // ---------------- View as: MDA staff look at the tool as each audience ----------------
+  // The industry view uses a built-in test grower record (js/preview.js answers its calls with the staff sign-in),
+  // so it shows exactly what a partner sees without a separate account. Nothing is saved while viewing as industry.
   const PV_EMAIL = "preview.grower@example.org", PV_FLAG = "hpai.previewStaff";
   S.previewStaff = (() => { try { return !!localStorage.getItem(PV_FLAG); } catch (e) { return false; } })();
   ctx.previewAs = async (w) => {
-    if (!C.preview) return;
+    if (!C.preview || !(S.role === "regulator" || S.previewStaff)) return;   // MDA staff only
     const leaveIndustry = () => { try { localStorage.removeItem("hpai.session"); localStorage.removeItem(PV_FLAG); } catch (e) {} S.session = null; S.previewStaff = false; };
     if (w === "industry") {
       try {
@@ -174,14 +173,14 @@ window.HPAI.modules.push(function (ctx) {
         }
         try { localStorage.setItem(PV_FLAG, "1"); } catch (e) {}
         S.previewStaff = true;
-        ctx.ind.start("demo." + a.acct_id, { id: a.acct_id, name: a.name, company: a.org, btype: a.btype, email: a.email, county: a.county, expires: a.expires, scope: a.scope, companyAdmin: true });
-        toast("Previewing as an industry partner (test grower)", 4000);
+        ctx.ind.start(H.PREVIEW_PREFIX + a.acct_id, { id: a.acct_id, name: a.name, company: a.org, btype: a.btype, email: a.email, county: a.county, expires: a.expires, scope: a.scope, companyAdmin: true });
+        toast("Viewing as an industry partner (test grower). Nothing you do here is saved.", 5000);
       } catch (e) { toast("Couldn't open the industry view: " + e.message, 6000); }
       return;
     }
     if (S.session) { leaveIndustry(); location.hash = ""; return location.reload(); }   // back to the MDA sign-in
     S.role = "regulator"; ctx.setWorkspace(w);
-    toast(w === "public" ? "Previewing the public view" : "Back to the MDA staff view", 3000);
+    ctx.emit("acct"); toast(w === "public" ? "Viewing as the public" : "Back to the MDA staff view", 3000);
   };
 
   // ---------------- company administrator: my people ----------------

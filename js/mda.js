@@ -15,6 +15,12 @@ window.HPAI.modules.push(function (ctx) {
   const Q = (u, p) => ctx.rest(u + "/query", Object.assign({ where: "1=1", outFields: "*", returnGeometry: false }, p || {}));
   const edit = (u, p) => ctx.rest(u + "/applyEdits", p);
   const BLUE = [30, 110, 190];
+  const FLOCKS = ["Commercial broiler", "Commercial layer", "Commercial turkey", "Broiler breeder", "Commercial duck", "Commercial upland gamebird", "Live bird market", "Backyard"];
+  const sq = (s) => String(s).replace(/'/g, "''");
+  // zone sizes go into the geometry, so they're never rounded down (20 km is 12.43 mi, not 12)
+  const miExact = (km) => (Math.ceil(km * 0.621371 * 100) / 100).toFixed(2);
+  // premises whose detection is still preliminary: their zones wait at status 'Pending' and aren't drawn or published
+  const pendingIds = async () => new Set(((await Q(url.zones(), { where: "status = 'Pending'", outFields: "premises_id" }).catch(() => ({ features: [] }))).features || []).map((f) => f.attributes.premises_id));
 
   // poultry farms layer (estimated, USGS study): MDA only
   const farms = new FeatureLayer({ url: C.farmsUrl, title: "Poultry farms", visible: false, outFields: ["*"], popupEnabled: false, minScale: 1500000,
@@ -47,14 +53,15 @@ window.HPAI.modules.push(function (ctx) {
   }
   loaders.ov = async () => {
     const box = $("pane-ov"), c = await counts();
+    const pl = (n, one, many) => `<b>${n == null ? "–" : n}</b><span>${n === 1 ? one : many}</span>`, wild4 = (S.wildPts || []).filter((w) => Date.now() - w.t <= 28 * DAY).length;
     box.innerHTML = `<div class="kv">
-      <div><b>${c.prem == null ? "–" : c.prem}</b><span>active premises</span></div><div><b>${S.areas.length}</b><span>control areas</span></div>
-      <div><b>${S.affected.length}</b><span>affected counties</span></div><div><b>${(S.wildPts || []).filter((w) => Date.now() - w.t <= 28 * DAY).length}</b><span>wild birds · 4 wk</span></div>
-      <div><b>${c.rep == null ? "–" : c.rep}</b><span>new reports</span></div><div><b>${c.per == null ? "–" : c.per}</b><span>permits pending</span></div></div>
+      <div>${pl(c.prem, "active premises", "active premises")}</div><div>${pl(S.areas.length, "control area", "control areas")}</div>
+      <div>${pl(S.affected.length, "affected county", "affected counties")}</div><div>${pl(wild4, "wildlife detection · 4 wk", "wildlife detections · 4 wk")}</div>
+      <div>${pl(c.rep, "new report", "new reports")}</div><div>${pl(c.per, "permit pending", "permits pending")}</div></div>
       <div class="btns" style="margin-top:0"><button class="primary" id="sumBtn">Daily situation summary</button></div>
       <div class="btns"><button class="ghost" id="pubBtn" style="flex:1">Publish public map</button><button class="ghost" id="declBtn" style="flex:1">Declare a county</button></div>
 `;
-    $("sumBtn").onclick = summary; $("pubBtn").onclick = publish; $("declBtn").onclick = declare;
+    $("sumBtn").onclick = () => summary(); $("pubBtn").onclick = () => publish(); $("declBtn").onclick = () => declare();
   };
 
   // ---------------- daily situation summary (print / save as PDF) ----------------
@@ -166,7 +173,6 @@ window.HPAI.modules.push(function (ctx) {
   const show = (geom, sym) => { marks.removeAll(); marks.add(new Graphic({ geometry: geom, symbol: sym })); view.goTo({ target: geom, zoom: 15 }).catch(() => {}); if (window.innerWidth <= 760) closeSheet(); };
   const pin = (x, y, color) => show({ type: "point", x, y, spatialReference: { wkid: 4326 } }, { type: "simple-marker", style: "diamond", size: 18, color, outline: { color: [255, 255, 255, 1], width: 2 } });
   const workerCall = async (path, body) => {
-    if (C.auth && C.auth.demo && H.demoApi) return H.demoApi(path, body, ctx);
     if (!C.auth || !C.auth.url) throw new Error("the sign-in service isn't set up yet");
     const r = await fetch(C.auth.url.replace(/\/$/, "") + path, { method: "POST", headers: { authorization: "Bearer " + ctx.token(), "content-type": "application/json" }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({})); if (!r.ok || j.error) throw new Error(j.error || "service error"); return j;
@@ -281,10 +287,13 @@ window.HPAI.modules.push(function (ctx) {
     box.innerHTML = `<div class="btns" style="margin-top:0"><button class="primary" id="newZone">+ New infected premises</button></div><h4 style="margin:14px 0 6px">Active</h4><div id="zList"><p class="hint">Loading…</p></div><h4 style="margin:14px 0 6px">County declarations</h4><div id="dList"></div>`;
     $("newZone").onclick = newPremises;
     try {
-      const r = await Q(url.prem(), { where: "status = 'Active'", orderByFields: "confirmed_date DESC", returnGeometry: true, outSR: 4326 });
-      $("zList").innerHTML = r.features.length ? r.features.map((f, i) => { const a = f.attributes, est = a.established !== 0;
-        return `<div class="prow" data-i="${i}"><span class="tx"><b>${esc(a.premises_id)} · ${esc(a.county)}</b><small>${esc(a.flock_type || "")} · confirmed ${fmtShort(a.confirmed_date)} · day ${Math.floor((Date.now() - a.confirmed_date) / DAY) + 1}${est ? "" : " · <b>preliminary, no public zone yet</b>"}</small></span>${est ? "" : `<button class="mini" data-est="${i}">Confirm</button>`}<button class="mini no" data-rel="${i}">Release</button></div>`; }).join("") : `<p class="hint">No active premises.</p>`;
-      $("zList").querySelectorAll(".prow").forEach((el) => (el.onclick = (e) => { const f = r.features[+el.dataset.i]; if (e.target.dataset.rel != null) return release(f.attributes); if (e.target.dataset.est != null) return setEstablished(f.attributes); view.goTo({ target: new Point({ longitude: f.geometry.x, latitude: f.geometry.y }), zoom: 11 }); }));
+      const [r, pend] = await Promise.all([Q(url.prem(), { where: "status = 'Active'", orderByFields: "confirmed_date DESC", returnGeometry: true, outSR: 4326 }), pendingIds()]);
+      $("zList").innerHTML = r.features.length ? r.features.map((f, i) => { const a = f.attributes, pre = pend.has(a.premises_id);
+        return `<div class="prow" data-i="${i}"><span class="tx"><b>${esc(a.premises_id)} · ${esc(a.county)}${a.sample === 1 ? ' <span class="pill amber">Sample</span>' : ""}</b><small>${esc(a.flock_type || "")} · ${pre ? "detected" : "confirmed"} ${fmtShort(a.confirmed_date)} · day ${Math.floor((Date.now() - a.confirmed_date) / DAY) + 1}${pre ? ' · <b class="warnt">preliminary: no zone shown yet</b>' : ""}</small></span>
+          <span class="rowbtns">${pre ? `<button class="mini ok" data-est="${i}">Confirm</button>` : ""}<button class="mini" data-ed="${i}">Edit</button><button class="mini no" data-rel="${i}">Release</button></span></div>`; }).join("") : `<p class="hint">No active premises.</p>`;
+      $("zList").querySelectorAll(".prow").forEach((el) => (el.onclick = (e) => { const f = r.features[+el.dataset.i], d = e.target.dataset;
+        if (d.rel != null) return release(f.attributes); if (d.est != null) return setEstablished(f.attributes, true); if (d.ed != null) return editPremises(f.attributes, pend.has(f.attributes.premises_id));
+        view.goTo({ target: new Point({ longitude: f.geometry.x, latitude: f.geometry.y }), zoom: 11 }); }));
     } catch (e) { $("zList").innerHTML = `<p class="hint">Couldn't load: ${esc(e.message)}</p>`; }
     const dl = $("dList");
     if (!has(C.core.declarations)) { dl.innerHTML = `<p class="hint">County declarations come from data/curated_detections.json until the declarations layer is connected.</p>`; return; }
@@ -304,9 +313,10 @@ window.HPAI.modules.push(function (ctx) {
       <p class="hint">1. Mark the premises. 2. Use its registered boundary or draw one. Zones are drawn outward from the boundary.</p>
       <div class="btns" style="margin:0"><button class="ghost" id="npPick" style="flex:1">1 · Mark premises</button><button class="ghost" id="npDraw" style="flex:1" disabled>2 · Draw boundary</button></div>
       <p class="hint" id="npWhere">Not marked yet.</p>
-      <div class="two"><label>Premises ID<input id="npId" value="MD-${year}-${String(Math.floor(Math.random() * 900) + 100)}"></label><label>Confirmed<input id="npDate" type="date" value="${new Date().toISOString().slice(0, 10)}"></label></div>
-      <div class="two"><label>Flock type<select id="npFlock"><option>Commercial broiler</option><option>Commercial layer</option><option>Commercial turkey</option><option>Broiler breeder</option><option>Commercial duck</option><option>Backyard</option></select></label><label>Birds<input id="npBirds" type="number" min="0"></label></div>
-      <div class="two"><label>Control area (miles)<input id="npCA" type="number" step="0.1" value="${H.mi(C.zones.controlKm)}"></label><label>Surveillance zone (miles)<input id="npSZ" type="number" step="0.1" value="${H.mi(C.zones.surveillanceKm)}"></label></div>
+      <div class="two"><label>Premises ID<input id="npId" value="MD-${year}-${String(Math.floor(Math.random() * 900) + 100)}"></label><label>Detected / confirmed<input id="npDate" type="date" value="${new Date().toISOString().slice(0, 10)}"></label></div>
+      <div class="two"><label>Flock type<select id="npFlock">${FLOCKS.map((x) => `<option>${x}</option>`).join("")}</select></label><label>Birds<input id="npBirds" type="number" min="0"></label></div>
+      <div class="two"><label>Control area (miles)<input id="npCA" type="number" step="0.01" min="6.21" value="${miExact(C.zones.controlKm)}"></label><label>Surveillance zone (miles)<input id="npSZ" type="number" step="0.01" min="12.43" value="${miExact(C.zones.surveillanceKm)}"></label></div>
+      <p class="hint" style="margin:-4px 0 0">USDA minimums: control area 10 km (6.21 mi) and surveillance zone 20 km (12.43 mi) beyond the premises boundary.</p>
       <label class="lrow" style="padding:0"><input type="checkbox" id="npEst" class="tg" checked><span>Confirmed by USDA (shows the control area/surveillance circles now)</span></label>
       <p class="hint" id="npEstHint" style="margin:-4px 0 0">Leave this unchecked for a preliminary (state-lab) positive pending USDA confirmation — the premises is tracked here, but no circle is drawn until you mark it confirmed.</p>
       <label class="lrow" style="padding:0"><input type="checkbox" id="npPub" class="tg" checked><span>Publish to the public map now</span></label>
@@ -344,13 +354,16 @@ window.HPAI.modules.push(function (ctx) {
       $("npGo").disabled = true; $("npGo").textContent = "Creating…";
       const id = $("npId").value.trim(), when = Date.parse($("npDate").value + "T12:00:00"), c = ctx.countyAt(pt);
       const ca = ge.geodesicBuffer(boundary, +$("npCA").value, "miles"), sz = ge.difference(ge.geodesicBuffer(boundary, +$("npSZ").value, "miles"), ca);
-      const g = (x) => x.toJSON(), est = $("npEst").checked ? 1 : 0;
+      const g = (x) => x.toJSON(), est = $("npEst").checked, zst = est ? "Active" : "Pending";   // a preliminary premises' zones wait as 'Pending'
+      if (!id) { $("npGo").disabled = false; $("npGo").textContent = "Create premises and zones"; return toast("Enter a premises ID"); }
       try {
-        await edit(url.prem(), { adds: JSON.stringify([{ geometry: g(pt.type === "point" ? pt : boundary.centroid), attributes: { premises_id: id, county: c ? c.name : "", flock_type: $("npFlock").value, birds: +$("npBirds").value || null, status: "Active", confirmed_date: when, farm_id: farmId, established: est } }]) });
+        const dup = await Q(url.prem(), { where: `premises_id = '${id.replace(/'/g, "''")}' AND status = 'Active'`, returnCountOnly: true });
+        if (dup.count) { $("npGo").disabled = false; $("npGo").textContent = "Create premises and zones"; return toast(`${id} is already an active premises. Use another ID.`, 5000); }
+        await edit(url.prem(), { adds: JSON.stringify([{ geometry: g(pt.type === "point" ? pt : boundary.centroid), attributes: { premises_id: id, county: c ? c.name : "", flock_type: $("npFlock").value, birds: +$("npBirds").value || null, status: "Active", confirmed_date: when, farm_id: farmId } }]) });
         await edit(url.perim(), { adds: JSON.stringify([{ geometry: g(boundary), attributes: { premises_id: id } }]) }).catch(() => {});
         await edit(url.zones(), { adds: JSON.stringify([
-          { geometry: g(ca), attributes: { premises_id: id, zone_type: "Control Area", status: "Active", confirmed_date: when, created_date: Date.now(), established: est } },
-          { geometry: g(sz), attributes: { premises_id: id, zone_type: "Surveillance Zone", status: "Active", confirmed_date: when, created_date: Date.now(), established: est } }]) });
+          { geometry: g(ca), attributes: { premises_id: id, zone_type: "Control Area", status: zst, confirmed_date: when, created_date: Date.now() } },
+          { geometry: g(sz), attributes: { premises_id: id, zone_type: "Surveillance Zone", status: zst, confirmed_date: when, created_date: Date.now() } }]) });
         ctx.audit("premises:create", id, `${c ? c.name : ""} · control area ${$("npCA").value} mi · surveillance ${$("npSZ").value} mi · ${est ? "confirmed" : "preliminary, zone not shown yet"}`);
         const pub = $("npPub").checked; closeSheet(); marks.removeAll(); toast("Premises" + (est ? " and zones created" : " created · zone hidden until confirmed"));
         ctx.buildOutbreakLayers(); loaders.z(); if (pub) publish();
@@ -361,24 +374,74 @@ window.HPAI.modules.push(function (ctx) {
   async function release(a) {
     if (!confirm(`Release ${a.premises_id}? Its control area and surveillance zone will be lifted.`)) return;
     try {
-      const z = await Q(url.zones(), { where: `premises_id = '${a.premises_id.replace(/'/g, "''")}' AND status = 'Active'`, outFields: "OBJECTID" });
+      const z = await Q(url.zones(), { where: `premises_id = '${sq(a.premises_id)}' AND status IN ('Active','Pending')`, outFields: "OBJECTID,status" });
+      const wasConfirmed = z.features.some((f) => f.attributes.status === "Active");   // a preliminary one that's released never became an outbreak
       await edit(url.zones(), { updates: JSON.stringify(z.features.map((f) => ({ attributes: { OBJECTID: f.attributes.OBJECTID, status: "Released", released_date: Date.now() } }))) });
       await edit(url.prem(), { updates: JSON.stringify([{ attributes: { OBJECTID: a.OBJECTID, status: "Released", released_date: Date.now() } }]) });
-      ctx.audit("premises:release", a.premises_id); toast(a.premises_id + " released");
-      ctx.buildOutbreakLayers(); loaders.z(); publish(a);
+      ctx.audit("premises:release", a.premises_id, wasConfirmed ? "" : "was preliminary; not added to past outbreaks"); toast(a.premises_id + " released");
+      ctx.buildOutbreakLayers(); loaders.z(); publish(wasConfirmed ? a : undefined);
     } catch (e) { toast("Couldn't release: " + e.message); }
   }
 
-  // mark a preliminary premises as confirmed by USDA: this is what makes its control area/surveillance circles appear
-  async function setEstablished(a) {
-    if (!confirm(`Mark ${a.premises_id} confirmed? Its control area and surveillance zone will start showing as circles.`)) return;
+  // confirmed (USDA) vs. preliminary: a confirmed premises' zones are 'Active' (drawn and published),
+  // a preliminary one's are 'Pending' (tracked here, not drawn anywhere) — no schema change needed
+  async function setEstablished(a, on, quiet) {
+    if (!quiet && !confirm(on ? `Mark ${a.premises_id} confirmed by USDA? Its control area and surveillance zone will be drawn and published.` : `Mark ${a.premises_id} preliminary? Its zones are taken off the map until it's confirmed.`)) return false;
     try {
-      const z = await Q(url.zones(), { where: `premises_id = '${a.premises_id.replace(/'/g, "''")}' AND status = 'Active'`, outFields: "OBJECTID" });
-      await edit(url.zones(), { updates: JSON.stringify(z.features.map((f) => ({ attributes: { OBJECTID: f.attributes.OBJECTID, established: 1 } }))) });
-      await edit(url.prem(), { updates: JSON.stringify([{ attributes: { OBJECTID: a.OBJECTID, established: 1 } }]) });
-      ctx.audit("premises:establish", a.premises_id); toast(a.premises_id + " confirmed — zone now shown");
-      ctx.buildOutbreakLayers(); loaders.z(); publish();
-    } catch (e) { toast("Couldn't update: " + e.message); }
+      const z = await Q(url.zones(), { where: `premises_id = '${sq(a.premises_id)}' AND status = '${on ? "Pending" : "Active"}'`, outFields: "OBJECTID" });
+      if (z.features.length) await edit(url.zones(), { updates: JSON.stringify(z.features.map((f) => ({ attributes: { OBJECTID: f.attributes.OBJECTID, status: on ? "Active" : "Pending" } }))) });
+      ctx.audit(on ? "premises:confirm" : "premises:preliminary", a.premises_id);
+      if (!quiet) { toast(a.premises_id + (on ? " confirmed · zones shown" : " marked preliminary · zones hidden")); ctx.buildOutbreakLayers(); loaders.z(); publish(); }
+      return true;
+    } catch (e) { toast("Couldn't update: " + e.message); return false; }
+  }
+
+  // correct a premises entered with a mistake (details), or delete one entered by mistake (everything goes)
+  function editPremises(a, pending) {
+    sheet("Edit " + a.premises_id, `<div class="form">
+      <div class="two"><label>Premises ID<input id="epId" value="${esc(a.premises_id)}"></label><label>Detected / confirmed<input id="epDate" type="date" value="${a.confirmed_date ? new Date(a.confirmed_date).toISOString().slice(0, 10) : ""}"></label></div>
+      <div class="two"><label>Flock type<select id="epFlock">${FLOCKS.concat(FLOCKS.includes(a.flock_type) || !a.flock_type ? [] : [a.flock_type]).map((x) => `<option${x === a.flock_type ? " selected" : ""}>${esc(x)}</option>`).join("")}</select></label><label>Birds<input id="epBirds" type="number" min="0" value="${a.birds == null ? "" : a.birds}"></label></div>
+      <label>County<select id="epCty">${(S.counties || []).map((c) => `<option${c.name === a.county ? " selected" : ""}>${esc(c.name)}</option>`).join("")}</select></label>
+      <label>Notes<textarea id="epNotes" rows="2">${esc(a.notes || "")}</textarea></label>
+      <label class="lrow" style="padding:0"><input type="checkbox" id="epEst" class="tg"${pending ? "" : " checked"}><span>Confirmed by USDA (zones drawn and published)</span></label>
+      <button class="primary" id="epSave">Save changes</button>
+      <p class="hint">To change the boundary or zone size, delete this premises and create it again. Every change goes to the audit log.</p>
+      <div class="dz"><b>Entered by mistake?</b><p class="hint">Deleting removes the premises, its boundary and its zones for good, and updates the public map. To end a real outbreak, use Release instead (it's kept as a past outbreak).</p><button class="danger" id="epDel">Delete premises</button></div></div>`);
+    $("epSave").onclick = async () => {
+      const id = $("epId").value.trim(), when = Date.parse($("epDate").value + "T12:00:00");
+      if (!id) return toast("Enter a premises ID"); if (!when) return toast("Pick a date");
+      $("epSave").disabled = true;
+      try {
+        if (id !== a.premises_id) {
+          const dup = await Q(url.prem(), { where: `premises_id = '${sq(id)}'`, returnCountOnly: true });
+          if (dup.count) { $("epSave").disabled = false; return toast(`${id} is already used`); }
+        }
+        const changes = { premises_id: id, confirmed_date: when, flock_type: $("epFlock").value, birds: $("epBirds").value === "" ? null : +$("epBirds").value, county: $("epCty").value, notes: $("epNotes").value.slice(0, 1000) };
+        await edit(url.prem(), { updates: JSON.stringify([{ attributes: Object.assign({ OBJECTID: a.OBJECTID }, changes) }]) });
+        if (id !== a.premises_id || when !== a.confirmed_date) {   // keep the boundary and zones linked and dated the same
+          const [z, p] = await Promise.all([Q(url.zones(), { where: `premises_id = '${sq(a.premises_id)}'`, outFields: "OBJECTID" }), Q(url.perim(), { where: `premises_id = '${sq(a.premises_id)}'`, outFields: "OBJECTID" }).catch(() => ({ features: [] }))]);
+          if (z.features.length) await edit(url.zones(), { updates: JSON.stringify(z.features.map((f) => ({ attributes: { OBJECTID: f.attributes.OBJECTID, premises_id: id, confirmed_date: when } }))) });
+          if (p.features.length) await edit(url.perim(), { updates: JSON.stringify(p.features.map((f) => ({ attributes: { OBJECTID: f.attributes.OBJECTID, premises_id: id } }))) });
+        }
+        const was = Object.keys(changes).filter((k) => String(changes[k] ?? "") !== String(a[k] ?? "")).map((k) => `${k}: ${a[k] ?? "–"} → ${changes[k] ?? "–"}`).join("; ");
+        ctx.audit("premises:edit", a.premises_id, was || "no field changes");
+        const est = $("epEst").checked; if (est === !!pending) await setEstablished(Object.assign({}, a, { premises_id: id }), est, true);
+        closeSheet(); toast("Saved"); ctx.buildOutbreakLayers(); loaders.z(); publish();
+      } catch (e) { $("epSave").disabled = false; toast("Couldn't save: " + e.message); }
+    };
+    $("epDel").onclick = async () => {
+      const typed = prompt(`This permanently deletes ${a.premises_id}, its boundary and its zones. It can't be undone.\n\nType the premises ID to confirm:`);
+      if (typed === null) return; if (typed.trim() !== a.premises_id) return toast("The ID didn't match. Nothing was deleted.");
+      try {
+        const where = { where: `premises_id = '${sq(a.premises_id)}'`, returnIdsOnly: true };
+        const [z, p] = await Promise.all([Q(url.zones(), where), Q(url.perim(), where).catch(() => ({ objectIds: [] }))]);
+        if ((z.objectIds || []).length) await edit(url.zones(), { deletes: z.objectIds.join(",") });
+        if ((p.objectIds || []).length) await edit(url.perim(), { deletes: p.objectIds.join(",") });
+        await edit(url.prem(), { deletes: String(a.OBJECTID) });
+        ctx.audit("premises:delete", a.premises_id, `${a.county || ""} · ${a.flock_type || ""} · entered ${fmtDate(a.confirmed_date)}`);
+        closeSheet(); toast(a.premises_id + " deleted"); ctx.buildOutbreakLayers(); loaders.z(); publish();
+      } catch (e) { toast("Couldn't delete: " + e.message); }
+    };
   }
 
   // county declared by MDA (before zones exist): mild county tint for everyone
@@ -405,15 +468,26 @@ window.HPAI.modules.push(function (ctx) {
     if (!has(C.core.pubAreas) || !has(C.core.pubMarkers)) return toast("The public map can't be updated right now. Try again shortly.");
     toast("Publishing public map…");
     try {
-      const [zr, pr] = await Promise.all([
-        Q(url.zones(), { where: "status = 'Active' AND (established = 1 OR established IS NULL)", returnGeometry: true, outSR: 102100 }),
-        Q(url.prem(), { where: "status = 'Active'", returnGeometry: true, outSR: 102100 })]);
+      const [zr, prAll, pend] = await Promise.all([
+        Q(url.zones(), { where: "status = 'Active'", returnGeometry: true, outSR: 102100 }),
+        Q(url.prem(), { where: "status = 'Active'", returnGeometry: true, outSR: 102100 }), pendingIds()]);
+      const pr = { features: prAll.features.filter((f) => !pend.has(f.attributes.premises_id)) };   // preliminary premises stay off the public map
       const geom = (f) => Polygon.fromJSON(Object.assign({ spatialReference: { wkid: 102100 } }, f.geometry));
       const caF = zr.features.filter((f) => f.attributes.zone_type === "Control Area"), szF = zr.features.filter((f) => f.attributes.zone_type === "Surveillance Zone");
       const since = {}; pr.features.forEach((f) => (since[f.attributes.premises_id] = f.attributes.confirmed_date));
-      const parts = (g) => (g ? g.rings.map((r) => new Polygon({ rings: [r], spatialReference: g.spatialReference })) : []);   // split merged area into pieces (outer rings)
+      // split a merged area into its separate pieces: each outer ring with the holes inside it (a surveillance zone is a
+      // ring with the control area cut out), so zones far apart stay separate areas with their own county and premises count
+      const parts = (g) => {
+        if (!g || !g.rings || !g.rings.length) return [];
+        const sr = g.spatialReference, outer = [], holes = [];
+        g.rings.forEach((r) => (g.isClockwise(r) ? outer : holes).push(r));
+        const polys = outer.map((r) => ({ r, p: new Polygon({ rings: [r], spatialReference: sr }), h: [] }));
+        polys.forEach((o) => (o.a = Math.abs(ge.planarArea(o.p))));
+        holes.forEach((h) => { const pt = new Point({ x: h[0][0], y: h[0][1], spatialReference: sr }); const owner = polys.filter((o) => ge.contains(o.p, pt)).sort((a, b) => a.a - b.a)[0]; if (owner) owner.h.push(h); });
+        return polys.map((o) => new Polygon({ rings: [o.r, ...o.h], spatialReference: sr }));
+      };
       const caU = caF.length ? ge.union(caF.map(geom)) : null, szU = szF.length ? ge.difference(ge.union(szF.map(geom).concat(caU ? [caU] : [])), caU || new Polygon({ rings: [], spatialReference: { wkid: 102100 } })) : null;
-      const pieces = (U, type, src) => (U ? [U] : []).map((g) => {
+      const pieces = (U, type, src) => parts(U).map((g) => {
         const members = src.filter((f) => ge.intersects(g, geom(f))), t = Math.min(...members.map((f) => since[f.attributes.premises_id] || f.attributes.confirmed_date || Date.now()));
         const c = ctx.countyAt(g.centroid || g.extent.center);
         return { geometry: g.toJSON(), attributes: { zone_type: type, status: "Active", since: t, county: c ? c.name : "", premises_count: members.length, sample: members.length && members.every((f) => f.attributes.sample === 1) ? 1 : 0 } };
@@ -444,8 +518,8 @@ window.HPAI.modules.push(function (ctx) {
       if (adds.length) await edit(C.core.pubAreas, { adds: JSON.stringify(adds) });
       if (markers.length) await edit(C.core.pubMarkers, { adds: JSON.stringify(markers) });
       if (released && has(C.core.history)) {
-        const z = await Q(url.zones(), { where: `premises_id = '${released.premises_id.replace(/'/g, "''")}' AND zone_type = 'Control Area'`, returnGeometry: true, outSR: 102100 }).catch(() => ({ features: [] }));
-        if (z.features[0]) await edit(C.core.history, { adds: JSON.stringify([{ geometry: z.features[0].geometry, attributes: { start_date: released.confirmed_date, end_date: Date.now(), county: released.county, sample: 0 } }]) }).catch(() => {});
+        const z = await Q(url.zones(), { where: `premises_id = '${sq(released.premises_id)}' AND zone_type = 'Control Area'`, returnGeometry: true, outSR: 102100 }).catch(() => ({ features: [] }));
+        if (z.features[0]) await edit(C.core.history, { adds: JSON.stringify([{ geometry: z.features[0].geometry, attributes: { start_date: released.confirmed_date, end_date: Date.now(), county: released.county, sample: released.sample === 1 ? 1 : 0 } }]) }).catch(() => {});
       }
       ctx.audit("public:publish", `${adds.length} areas, ${markers.length} markers`, JSON.stringify(report));
       ctx.buildOutbreakLayers();
@@ -549,7 +623,7 @@ window.HPAI.modules.push(function (ctx) {
     let next = [];
     if (who.length && has(C.movementMda.visits)) {
       try { const r = await ctx.rest(C.movementMda.visits + "/query", { where: `Creator IN (${who.map((w) => `'${w.replace(/'/g, "''")}'`).join(",")}) AND visited >= ${from}`, outFields: "*", returnGeometry: true, outSR: 4326 });
-        next = r.features.filter((f) => ge.distance(new Point({ longitude: f.geometry.x, latitude: f.geometry.y }), pt, "kilometers") > 1); } catch (e) {}
+        next = r.features.filter((f) => ctx.R.km({ lat: f.geometry.y, lon: f.geometry.x }, { lat: g.y, lon: g.x }) > 1); } catch (e) {}
     }
     marks.removeAll();
     marks.add(new Graphic({ geometry: pt, symbol: { type: "simple-marker", style: "diamond", size: 18, color: [122, 15, 15, 1], outline: { color: [255, 255, 255, 1], width: 2 } } }));
@@ -571,11 +645,26 @@ window.HPAI.modules.push(function (ctx) {
   loaders.au = async () => {
     const box = $("pane-au");
     if (!has(C.core.audit)) { box.innerHTML = `<p class="hint">The audit log is unavailable right now.</p>`; return; }
-    try {
-      const r = await Q(C.core.audit, { orderByFields: "at DESC", resultRecordCount: 150 });
-      box.innerHTML = `<div class="qtools"><button class="mini" id="auCsv">Export CSV</button></div>` + (r.features.map((f) => f.attributes).map((a) => `<div class="prow"><span class="tx"><b>${esc(a.action)} · ${esc(a.target)}</b><small>${fmtTime(a.at)} · ${esc(a.who)}${a.details ? " · " + esc(a.details).slice(0, 140) : ""}</small></span></div>`).join("") || `<p class="hint">No entries yet.</p>`);
-      $("auCsv").onclick = () => csv(r.features.map((f) => f.attributes), "hpai_audit_log.csv");
-    } catch (e) { box.innerHTML = `<p class="hint">Couldn't load: ${esc(e.message)}</p>`; }
+    // the full history of staff actions: search it, narrow it to one kind of action, page back through older entries
+    const KINDS = [["", "All actions"], ["premises", "Premises & zones"], ["declaration", "County declarations"], ["public", "Public map"], ["access", "Access"], ["rep", "Reports"], ["per", "Permits"], ["registry", "Registry"], ["data", "Exports & backups"]];
+    box.innerHTML = `<div class="aufil"><input id="auQ" type="search" placeholder="Search who, what or details"><select id="auK">${KINDS.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></div>
+      <div class="qtools"><button class="mini" id="auCsv">Export CSV</button></div><div id="auList"><p class="hint">Loading…</p></div><button class="ghost" id="auMore" hidden>Load older entries</button>`;
+    let rows = [], off = 0, tmo = null;
+    const load = async (more) => {
+      if (!more) { rows = []; off = 0; }
+      const q = $("auQ").value.trim().replace(/'/g, "''"), k = $("auK").value;
+      const where = [k ? `action LIKE '${k}%'` : "", q ? `(UPPER(action) LIKE UPPER('%${q}%') OR UPPER(target) LIKE UPPER('%${q}%') OR UPPER(who) LIKE UPPER('%${q}%') OR UPPER(details) LIKE UPPER('%${q}%'))` : ""].filter(Boolean).join(" AND ") || "1=1";
+      try {
+        const r = await Q(C.core.audit, { where, orderByFields: "at DESC", resultOffset: off, resultRecordCount: 100 });
+        rows = rows.concat(r.features.map((f) => f.attributes)); off += r.features.length;
+        $("auList").innerHTML = rows.map((a) => `<div class="prow"><span class="tx"><b>${esc(a.action)} · ${esc(a.target)}</b><small>${fmtTime(a.at)} · ${esc(a.who)}${a.details ? `<br><span class="audet">${esc(a.details)}</span>` : ""}</small></span></div>`).join("") || `<p class="hint">No matching entries.</p>`;
+        $("auMore").hidden = !(r.exceededTransferLimit || r.features.length === 100);
+      } catch (e) { $("auList").innerHTML = `<p class="hint">Couldn't load: ${esc(e.message)}</p>`; }
+    };
+    $("auQ").oninput = () => { clearTimeout(tmo); tmo = setTimeout(() => load(), 300); };
+    $("auK").onchange = () => load(); $("auMore").onclick = () => load(true);
+    $("auCsv").onclick = () => csv(rows, "hpai_audit_log.csv");
+    load();
   };
 
   // ---------------- permit verification (QR scan opens #verify=ID) ----------------

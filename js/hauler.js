@@ -214,7 +214,12 @@ window.HPAI.modules.push(function (ctx) {
   function loadTrips() {
     const box = $("tripList");
     if (!local.trips.length) { box.innerHTML = `<p class="hint">Plan a route and tap Save.</p>`; return; }
-    box.innerHTML = local.trips.map((t) => `<div class="trip" data-id="${t.id}"><span class="ic">${ICON[t.commodity]}</span><span class="tx"><b>${esc(t.name)}</b><small>${Math.round(t.min)} min · ${H.mi(t.km, 0)} mi${t.inZone ? " · through zone" : ""}</small></span><button class="mini" data-go="${t.id}">Plan</button></div>`).join("");
+    box.innerHTML = local.trips.map((t) => `<div class="trip" data-id="${t.id}"><span class="ic">${ICON[t.commodity]}</span><span class="tx"><b>${esc(t.name)}</b><small>${Math.round(t.min)} min · ${H.mi(t.km, 0)} mi${t.inZone ? " · through zone" : ""}</small></span><button class="mini" data-go="${t.id}">Plan</button><button class="mini" data-del="${t.id}" aria-label="Remove ${esc(t.name)}" title="Remove">✕</button></div>`).join("");
+    box.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => {
+      const i = local.trips.findIndex((x) => x.id === b.dataset.del); if (i < 0) return;
+      const [gone] = local.trips.splice(i, 1); store.set("trips", local.trips); loadTrips();
+      toast("Trip removed", null, { label: "Undo", fn: () => { local.trips.splice(i, 0, gone); store.set("trips", local.trips); loadTrips(); } });
+    }));
     box.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => {
       const t = local.trips.find((x) => x.id === b.dataset.go); org = t.org; dst = t.dst; commodity = t.commodity;
       orgS.searchTerm = org.name; dstS.searchTerm = dst.name; chips.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x.dataset.k === commodity)); pin(); plan();

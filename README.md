@@ -4,8 +4,8 @@ One map for three audiences, each with its own panel:
 
 | Who | Signs in? | What they get |
 |---|---|---|
-| **Public** | No | Control areas and surveillance zones, approximate infected-premises markers, affected counties, wild-bird detections, address check with autocomplete, a click card for any place, saved places with alerts (in the browser and by email), dead-wild-bird reports with photos, official notices |
-| **Haulers & industry** | Yes (request access in the app; MDA approves) | Truck route planner that avoids control areas, saved trips, permit requests filled in from the route, permit status with QR code (Apple Wallet once a certificate exists), trip sheet, farm check-ins; growers get a farm risk score and can report a sick flock |
+| **Public** | No | Control areas and surveillance zones, affected counties (commercial-flock detections), wild-bird detections, address check with autocomplete, a click card for any place, saved places with alerts (in the browser and by email), dead-wild-bird reports with photos, official notices |
+| **Haulers & industry** | Yes (request access in the app; MDA approves) | Infected-premises markers, truck route planner that avoids control areas, saved trips, permit requests filled in from the route, permit status with QR code (Apple Wallet once a certificate exists), trip sheet, farm check-ins; growers get a farm risk score and can report a sick flock |
 | **MDA staff** | Yes (MD HPAI Regulators group) | Exact premises, zones drawn outward from the premises boundary, release, county declarations, publishing the public map with a privacy check, review queues (reports with photos, permits, access requests), premises inside each zone with biosecurity audit status, movement tracing, daily situation summary, audit log, QR permit verification |
 
 The prototype is kept as `v1.html`.
@@ -39,9 +39,15 @@ The current zones are the prototype's **sample** data, migrated and labeled as s
 
 ## Who signs in
 
+- **View as** (MDA staff): your menu → View as Public / Industry / MDA staff shows each audience's version. A banner shows while you're viewing as someone else. The industry view uses a built-in test grower record and saves nothing (`js/preview.js`).
+
 - **Public**: no sign-in.
 - **MDA staff**: ArcGIS account in the "MD HPAI Regulators" group.
 - **Industry partners** (haulers, growers, poultry businesses, their drivers and staff): email or text code. They register with the credential for their type of business: premises registration, NPIP, USDOT or employer. Automatic checks run, then MDA reviews the request with documents, evidence and a checklist (Reviews → Access requests). Access lasts one year by default. Company administrators add and remove their own people. Setup: [worker/README.md](worker/README.md).
+
+## Preliminary vs confirmed premises
+
+A premises created with "Confirmed by USDA" off has its zones stored with status **Pending**: it's tracked in the MDA panel but no circle is drawn or published, and no marker is shown, until MDA taps **Confirm**. Releasing a preliminary premises doesn't add it to Past outbreaks.
 
 ## MDA premises registry
 
@@ -56,7 +62,7 @@ MDA staff → Premises → Registry:
 
 ## Privacy (Dr. Ghanem's requirement)
 
-- The public never receives exact premises. MDA's "Publish public map" builds merged control-area and surveillance-zone shapes and **approximate markers** moved 1.5–3 km in a random direction (kept inside the control area).
+- The public never receives premises locations. MDA's "Publish public map" builds merged control-area and surveillance-zone shapes (each separate area kept as its own feature) and premises markers. Markers are shown only to signed-in industry partners, never to the public, and MDA staff see the exact boundary instead. `privacy.markerShiftKm` in `js/config.js` is currently `[0, 0]` (marker on the premises); set e.g. `[1.5, 3]` to move it off-centre.
 - A re-identification check counts poultry farms inside each marker area (at least 5 by default) and flags any control area that surrounds a single premises, since its center can be estimated.
 - The poultry farm layer is shown only to MDA staff (haulers' routes use it in the background to keep distance from farms).
 

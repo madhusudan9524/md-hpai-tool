@@ -18,7 +18,7 @@ window.HPAI.modules.push(function (ctx) {
     const flags = [];
     if (z.zone === "control") flags.push(["red", "In control area"]);
     else if (z.zone === "surveillance") flags.push(["amber", "In surveillance zone"]);
-    else if (d != null && d <= 10) flags.push(["amber", `Control area ${H.mi(d, 0)} mi away`]);
+    else if (d != null && d <= 10) flags.push(["amber", `Control area ${H.mi(d)} mi away`]);
     if (aff && !z.zone) flags.push(["red", "HPAI in county"]);
     if (wild) flags.push(["teal", `${wild} wild bird${wild > 1 ? "s" : ""} nearby`]);
     return { zone: z.zone, dist: d, aff: !!aff, wild, flags, key: flags.map((f) => f[1]).join("|") };
@@ -36,7 +36,7 @@ window.HPAI.modules.push(function (ctx) {
       if (many && i >= 5) { const isNew = s.key && seen[p.id] !== s.key; if (isNew) fresh++; return ""; }
       const isNew = s.key && seen[p.id] !== s.key; if (isNew) fresh++;
       const pill = s.flags.length ? s.flags.map(([c, t]) => `<span class="pill ${c}">${esc(t)}</span>`).join(" ") : `<span class="pill green">All clear</span>`;
-      return `<div class="place" data-id="${p.id}"><span class="ic">${H.icon(p.kind === "farm" ? "farm" : "home")}</span><span class="tx"><b>${esc(p.name)}${isNew ? ' <span class="pill red">New</span>' : ""}</b><small>${pill}</small></span><button class="mini" data-del="${p.id}" aria-label="Remove">✕</button></div>`;
+      return `<div class="place" data-id="${p.id}"><span class="ic">${H.icon(p.kind === "farm" ? "farm" : "home")}</span><span class="tx"><b>${esc(p.name)}${isNew ? ' <span class="pill red">New</span>' : ""}</b><small>${pill}</small></span><button class="mini" data-ren="${p.id}" aria-label="Rename ${esc(p.name)}" title="Rename">✎</button><button class="mini" data-del="${p.id}" aria-label="Remove ${esc(p.name)}" title="Remove">✕</button></div>`;
     }).join("");
     if (rows.length > 6) {
       box.insertAdjacentHTML("beforeend", `<button class="link" id="plAll" style="font-size:14px;margin-top:6px">${S.placesAll ? "Show fewer" : `Show all ${rows.length} places`}</button>`);
@@ -48,12 +48,30 @@ window.HPAI.modules.push(function (ctx) {
     if (fresh) toast(`Alert: ${fresh} of your places has a new status`, 5000);
     all.forEach(({ p, s }) => (seen[p.id] = s.key)); store.set("placeSeen", seen);
     box.querySelectorAll(".place").forEach((el) => (el.onclick = (e) => {
-      if (e.target.dataset.del) { places = places.filter((x) => x.id !== e.target.dataset.del); save(); renderPlaces(); return; }
+      if (e.target.dataset.del) { removePlace(e.target.dataset.del); return; }
+      if (e.target.dataset.ren) { renamePlace(e.target.dataset.ren); return; }
       const p = places.find((x) => x.id === el.dataset.id); view.goTo({ target: ptOf(p), zoom: 12 }); ctx.locationCard(ptOf(p), p.name); ctx.sheetPeek();
     }));
     renderRisk();
   }
   ["areas", "affected", "wild", "ws"].forEach((ev) => ctx.on(ev, () => renderPlaces()));
+
+  // remove with Undo (no confirm box), rename in place
+  function removePlace(id) {
+    const i = places.findIndex((x) => x.id === id); if (i < 0) return;
+    const [gone] = places.splice(i, 1); save(); renderPlaces();
+    toast(`Removed ${gone.name}`, null, { label: "Undo", fn: () => { places.splice(Math.min(i, places.length), 0, gone); save(); renderPlaces(); } });
+  }
+  function renamePlace(id) {
+    const p = places.find((x) => x.id === id); if (!p) return;
+    sheet("Rename", `<div class="form"><label>Name<input id="rnName" value="${esc(p.name)}" maxlength="80"></label>
+      <div class="seg" id="rnKind"><button data-k="farm" class="${p.kind === "farm" ? "on" : ""}">Farm / premises</button><button data-k="home" class="${p.kind !== "farm" ? "on" : ""}">Home / other</button></div>
+      <button class="primary" id="rnGo">Save</button></div>`);
+    let kind = p.kind;
+    document.querySelectorAll("#rnKind button").forEach((b) => (b.onclick = () => { kind = b.dataset.k; document.querySelectorAll("#rnKind button").forEach((x) => x.classList.toggle("on", x === b)); }));
+    const go = () => { const n = $("rnName").value.trim(); if (!n) return toast("Enter a name"); p.name = n; p.kind = kind; save(); closeSheet(); renderPlaces(); toast("Saved"); };
+    $("rnGo").onclick = go; $("rnName").onkeydown = (e) => { if (e.key === "Enter") go(); };
+  }
 
   function addPlace(pt, name) {
     const g = pt ? (pt.spatialReference.isWGS84 ? pt : wmu.webMercatorToGeographic(pt)) : null;
@@ -257,7 +275,7 @@ window.HPAI.modules.push(function (ctx) {
       <div class="btns"><button class="ghost" id="rdMap">Show on map</button><button class="ghost" id="rdDel">Remove farm</button><button class="ghost" id="rdAudit">${p.audit ? "Last audit " + fmtShort(p.audit.date) + (p.audit.passed ? " · passed" : " · not passed") : "Add last biosecurity audit"}</button></div></div>`);
     $("rdMap").onclick = () => { closeSheet(); view.goTo({ target: ptOf(p), zoom: 13 }); ctx.locationCard(ptOf(p), p.name); };
     $("rdAudit").onclick = () => auditForm(p);
-    $("rdDel").onclick = () => { if (!confirm(`Remove ${p.name} from your farms?`)) return; places = places.filter((y) => y.id !== p.id); save(); closeSheet(); renderPlaces(); };
+    $("rdDel").onclick = () => { closeSheet(); removePlace(p.id); };
   }
   function auditForm(p) {
     sheet("Last biosecurity audit", `<div class="form"><p class="hint">${esc(p.name)}</p><label>Date<input type="date" id="auD" value="${p.audit ? new Date(p.audit.date).toISOString().slice(0, 10) : ""}"></label>

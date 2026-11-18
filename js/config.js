@@ -5,11 +5,9 @@ window.HPAI_CONFIG = {
 
   // ---- industry partner sign-in service (worker/; email or text codes). Empty until it's set up ----
   // on your own computer (http://localhost:8080) it uses the service running locally ("npx wrangler dev" in worker/)
-  auth: { url: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? "http://localhost:8787" : "",
-    // demo on your own computer (on by default on localhost; http://localhost:8080/?demo=off to stop). Code is always 123456.
-    demo: (() => { if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname) && !/(^|\.)md-hpai-preview\.pages\.dev$/.test(location.hostname)) return false; try { const q = new URLSearchParams(location.search).get("demo"); if (q !== null) localStorage.setItem("hpai.demo", q === "off" ? "off" : "1"); return localStorage.getItem("hpai.demo") !== "off"; } catch (e) { return false; } })() },   // later: "https://md-hpai-signin.<your-account>.workers.dev"
-  // ---- preview: MDA staff can switch between the public, industry and MDA views (your computer and the private preview link only) ----
-  preview: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || /(^|\.)md-hpai-preview\.pages\.dev$/.test(location.hostname),
+  auth: { url: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? "http://localhost:8787" : "" },   // set to the deployed service, e.g. "https://md-hpai-signin.<your-account>.workers.dev"
+  // ---- View as: signed-in MDA staff can switch between the Public, Industry and MDA staff views (menu → View as) ----
+  preview: true,
   // ---- who sees what (ArcGIS groups; MDA staff) ----
   regulatorGroup: "MD HPAI Regulators",           // MDA staff and authorities
   haulerGroup: "MD HPAI Haulers",                 // truckers, haulers, transporters

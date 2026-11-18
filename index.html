@@ -107,9 +107,9 @@
     <h2 class="sec">Stay informed</h2>
     <section data-for="public industry">
       <div class="hero" id="hero">
-        <div class="hstat red"><b id="kCA">–</b><span>control areas</span></div>
-        <div class="hstat"><b id="kCty">–</b><span>counties</span></div>
-        <div class="hstat teal"><b id="kWild">–</b><span>wildlife · 4 wk</span></div>
+        <div class="hstat red"><b id="kCA">–</b><span id="kCAl">control areas</span></div>
+        <div class="hstat"><b id="kCty">–</b><span id="kCtyl">affected counties</span></div>
+        <div class="hstat teal"><b id="kWild">–</b><span id="kWildl">wildlife cases · 4 wk</span></div>
       </div>
     </section>
     <section class="card" id="sec-news">
@@ -131,20 +131,13 @@
   <button class="x" id="sheetClose" aria-label="Close">×</button><h2 id="sheetTitle"></h2><div id="sheetBody"></div>
 </div></div>
 
-<!-- sign in -->
-<div id="modal" class="overlay" hidden><div class="dlg glass-solid" role="dialog" aria-modal="true" aria-labelledby="mt">
-  <button class="x" id="mclose" aria-label="Close">×</button>
-  <h2 id="mt">Sign in</h2>
-  <button class="role" data-ws="regulator"><span class="ri r1"></span><span><b>MDA staff</b><i>Zones, reviews, tracing</i></span></button>
-  <button class="role" data-ws="partner"><span class="ri r2"></span><span><b>Industry partners</b><i>Sign in with an email or text code</i></span></button>
-  <p class="fine">New industry partner? <a href="#" id="signupLink">Register</a></p>
-</div></div>
 <div id="toast" role="status" hidden></div>
+<div id="viewBanner" hidden></div>
 
 <script src="js/config.js"></script>
 <script src="js/risk.js"></script>
 <script src="js/ui.js"></script>
-<script src="js/demo.js"></script>
+<script src="js/preview.js"></script>
 <script src="js/public.js"></script>
 <script src="js/industry.js"></script>
 <script src="js/hauler.js"></script>

@@ -171,7 +171,7 @@ section { margin-bottom: 14px; }
 .sw.pm { background: radial-gradient(circle, #4a0d0d 55%, #fff 58%, #fff 66%, transparent 68%); border-radius: 50%; width: 18px; height: 18px; margin: 0 2px; }
 .sw.cty { background: rgba(232, 120, 130, .2); border: 1px solid rgba(232, 120, 130, .8); } .sw.past { background: rgba(138, 148, 166, .3); border: 1px dashed #8a94a6; }
 .sw.wb { background: radial-gradient(circle, #0e9aa7 45%, transparent 50%); }
-.sw.risk { background: linear-gradient(90deg, #2e9e4e, #e6a100, #d7263d); border-radius: 99px; }
+.sw.risk { background: linear-gradient(90deg, #d1c4e9, #9575cd, #5e35b1); border-radius: 99px; }   /* same purples as the hexagons on the map (advisory, not a regulatory zone) */
 .sw.for { background: #5f9a52; }
 .sw.wma { background: rgba(132, 160, 60, .45); border: 1px solid #6a8a2a; } .sw.wf { background: repeating-linear-gradient(45deg, rgba(19, 128, 143, .5) 0 3px, transparent 3px 6px); border: 1px solid #13808f; }
 .sw.nwr { background: rgba(70, 130, 90, .3); border: 1px solid #46825a; }
@@ -536,3 +536,34 @@ a.btnlink { display: block; text-align: center; text-decoration: none; }
 .rktable td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; } .rktable tbody tr { cursor: pointer; } .rktable tbody tr:hover { background: var(--hover); }
 @media (prefers-color-scheme: dark) { .rkup { background: #412402; color: #FAC775; } }
 .subhead { margin: 12px 0 4px; font-size: 12.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--mute); }
+
+/* ---------- pre-release pass: undo toasts, View as banner, edit/delete, audit search, sign-in panel ---------- */
+#toast { display: flex; align-items: center; gap: 14px; }
+#toast button { border: 0; background: none; color: #8fc1ff; font: inherit; font-weight: 700; padding: 2px 4px; cursor: pointer; text-transform: none; }
+#toast button:hover { text-decoration: underline; }
+#viewBanner { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 45; display: flex; align-items: center; gap: 12px; padding: 7px 8px 7px 16px;
+  border-radius: 99px; background: #2b1e5c; color: #fff; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); max-width: calc(100vw - 24px); }
+#viewBanner[hidden] { display: none; }
+#viewBanner button { border: 0; border-radius: 99px; padding: 6px 12px; background: #fff; color: #2b1e5c; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+@media (min-width: 761px) { body.viewing #viewBanner { left: calc(50% + 195px); } body.viewing.pshut #viewBanner { left: 50%; } }
+@media (max-width: 760px) { #viewBanner { top: 62px; font-size: 12.5px; padding: 5px 6px 5px 12px; } #viewBanner span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+.rowbtns { display: flex; gap: 6px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+.warnt { color: var(--amber); }
+.dz { margin-top: 10px; padding: 10px 12px; border: 1px solid rgba(215, 38, 61, .35); border-radius: 12px; background: rgba(215, 38, 61, .05); display: grid; gap: 6px; }
+.dz .hint { margin: 0; }
+.aufil { display: flex; gap: 8px; margin-bottom: 6px; } .aufil input { flex: 1 1 60%; min-width: 0; } .aufil select { flex: 1 1 40%; min-width: 0; }
+.audet { display: inline-block; margin-top: 2px; color: var(--mute); word-break: break-word; }
+.mega.signin .mi small { white-space: normal; }
+.mnote { margin: 8px 10px 2px; font-size: 12.5px; color: var(--mute); line-height: 1.4; }
+.place .mini + .mini, .trip .mini + .mini { margin-left: -6px; }
+/* phones: the open Layers & key panel never covers the whole map */
+@media (max-width: 760px) {
+  .lk:not(.shut) { width: min(320px, calc(100vw - 24px)); }
+  .lk .body { max-height: min(42vh, 420px); }
+  .lk .seg button { font-size: 12px; padding: 5px 2px; }
+}
+/* tablets / narrow windows: the side panel takes 390 px, so keep the floating panels compact */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .lk:not(.shut) { width: 260px; }
+  .lk .body { max-height: min(50vh, 460px); }
+}

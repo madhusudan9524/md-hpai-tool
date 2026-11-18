@@ -41,7 +41,7 @@ window.HPAI.modules.push(function (ctx) {
       ["doc", "Daily situation summary", "Printable briefing (PDF)", later(() => ctx.mda.summary())],
       ["plus", "New infected premises", "Mark premises, draw zones", later(() => ctx.mda.newPremises())],
       ["flag", "Declare a county", "Before zones are drawn", later(() => ctx.mda.declare())],
-      ["layers", "Zones and county declarations", "Release premises or counties", later(() => ctx.mda.open("z"))],
+      ["layers", "Zones and county declarations", "Confirm, edit, release or delete", later(() => ctx.mda.open("z"))],
       ["globe", "Publish public map", "Update what the public sees", later(() => ctx.mda.publish())]]],
     ["Reviews", [
       ["inbox", "Reports", "Dead wild birds, sick flocks", later(() => ctx.mda.queue("rep"))],
@@ -92,16 +92,18 @@ window.HPAI.modules.push(function (ctx) {
   function build() {
     actions = [];
     if (!S.user) {
-      menu.className = "mega vertical";
-      menu.innerHTML = `<div class="mg"><h4>Sign in</h4>${item("user", "MDA staff", "Maryland Department of Agriculture", () => ctx.signIn("regulator"))}${item("truck", "Industry partners", "Haulers, growers and poultry businesses", () => ctx.signIn("partner"))}
-        <div class="msep"></div>${item("plus", "Register as an industry partner", "MDA reviews every request", () => ctx.actions.signup())}</div>`;
+      menu.className = "mega vertical signin";
+      menu.innerHTML = `<div class="mg"><h4>Sign in</h4>
+        ${item("user", "MDA staff", "Maryland Department of Agriculture account · exact premises, zones, reviews, tracing", () => ctx.signIn("regulator"))}
+        ${item("truck", "Industry partners", "Email or text code · trip planning, permits, farm risk, check-ins", () => ctx.signIn("partner"))}
+        <div class="msep"></div>${item("plus", "Register as an industry partner", "MDA reviews every request", () => ctx.actions.signup())}
+        <p class="mnote">The public map needs no sign-in: control areas, county status, wildlife cases, alerts and reports.</p></div>`;
       return;
     }
     const roleName = S.role === "pending" ? "Not on MDA's staff list" : S.session ? [S.user.company, S.user.expires ? "access until " + H.fmtDate(S.user.expires) : ""].filter(Boolean).join(" · ") || ctx.WS[S.role] : ctx.WS[S.role];
     const acct = `<div class="mg macct"><div class="mwho"><span class="av ${S.ws}">${esc(ini())}</span><span><b>${esc(S.user.fullName || S.user.username)}</b><small>${esc(roleName)}</small></span></div>
       ${S.session && S.user.companyAdmin ? item("group", "My company's people", "Add or remove drivers and staff", () => ctx.actions.companyPeople()) : ""}
-      ${C.auth && C.auth.demo && S.role === "regulator" && !S.session ? item("truck", "Demo: sign in as an industry partner", "Code is always 123456", () => ctx.actions.industrySignIn()) + item("plus", "Demo: register an industry partner", "Then review it under Reviews", () => ctx.actions.signup()) : ""}
-      ${C.preview && (S.role === "regulator" || S.previewStaff) ? `<div class="pvseg"><small>Preview as</small><div class="seg">${[["public", "Public"], ["industry", "Industry"], ["regulator", "MDA staff"]].map(([w, l]) => `<button data-pv="${w}" class="${S.ws === w ? "on" : ""}">${l}</button>`).join("")}</div></div>` : ""}
+      ${C.preview && (S.role === "regulator" || S.previewStaff) ? `<div class="pvseg"><small>View as</small><div class="seg">${[["public", "Public"], ["industry", "Industry"], ["regulator", "MDA staff"]].map(([w, l]) => `<button data-pv="${w}" class="${S.ws === w ? "on" : ""}">${l}</button>`).join("")}</div></div>` : ""}
       <div class="msep"></div>${item("log", "Sign out", "", () => ctx.signOut())}</div>`;
     const groups = S.ws === "regulator" ? GROUPS : ROLE[S.ws] || [];
     // one column: who you are first, then each section; MDA's longer menu folds into sections (remembers which are open)
@@ -129,6 +131,17 @@ window.HPAI.modules.push(function (ctx) {
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) { close(); const b = host.querySelector("button"); if (b) b.focus(); } });
   window.addEventListener("resize", close);
   ctx.on("acct", renderBtn); ctx.on("signin", renderBtn); renderBtn();
+
+  // ---------------- View as banner: always clear which audience's view MDA staff are looking at ----------------
+  function banner() {
+    const b = $("viewBanner"), viewing = (S.role === "regulator" && S.ws !== "regulator") || S.previewStaff;
+    document.body.classList.toggle("viewing", !!viewing);
+    if (!viewing) { b.hidden = true; return; }
+    const who = S.ws === "industry" ? "an industry partner (test grower) · nothing is saved" : "the public";
+    b.innerHTML = `<span>Viewing as ${who}</span><button type="button" id="vbBack">Back to MDA staff view</button>`;
+    b.hidden = false; $("vbBack").onclick = () => ctx.previewAs("regulator");
+  }
+  ctx.on("ws", banner); ctx.on("acct", banner); ctx.on("signin", banner);
 
   // ---------------- data export ----------------
   const TABLES = () => [
@@ -237,7 +250,7 @@ window.HPAI.modules.push(function (ctx) {
       try { rows = (await ctx.rest(u + "/query", { where, outFields: "*", returnGeometry: false, orderByFields: "name", resultRecordCount: 2000 })).features.map((f) => f.attributes); draw(); }
       catch (e) { $("ipList").innerHTML = `<p class="hint">Couldn't load: ${esc(e.message)}</p>`; }
     };
-    const notify = (a, kind, message) => C.auth && C.auth.demo ? Promise.resolve() : C.auth && C.auth.url ? fetch(C.auth.url.replace(/\/$/, "") + "/mda/notify", { method: "POST", headers: { authorization: "Bearer " + ctx.token(), "content-type": "application/json" }, body: JSON.stringify({ id: a.acct_id, kind, message }) }).catch(() => {}) : Promise.resolve();
+    const notify = (a, kind, message) => C.auth && C.auth.url ? fetch(C.auth.url.replace(/\/$/, "") + "/mda/notify", { method: "POST", headers: { authorization: "Bearer " + ctx.token(), "content-type": "application/json" }, body: JSON.stringify({ id: a.acct_id, kind, message }) }).catch(() => {}) : Promise.resolve();
     async function renew(a) {
       const exp = Math.max(Date.now(), a.expires || 0) + 365 * 864e5;
       if (!confirm(`Renew ${a.name}'s access until ${H.fmtDate(exp)}?`)) return;
@@ -285,11 +298,14 @@ window.HPAI.modules.push(function (ctx) {
       <p><b>Farm risk.</b> Save your farm under My places. The score adds up nearby control areas, wild-bird detections, vehicle visits from control areas, waterfowl habitat and season. It's a screening aid, not a diagnosis.</p>
       <p><b>Sick birds.</b> If birds are dying now, call MDA at ${esc(C.mdaPhone)}. The Report a sick flock form helps MDA follow up.</p></div>`);
     sheet("Help", `<div class="form help">
-      <p><b>New outbreak.</b> MDA menu → New infected premises. Tap the premises (a registered boundary is used if there is one), check the zones, create. Then Publish public map.</p>
+      <p><b>New outbreak.</b> MDA menu → New infected premises. Tap the premises (a registered boundary is used if there is one), check the zones, create. Leave "Confirmed by USDA" off for a preliminary positive: the premises is tracked but no zone is drawn until you tap <b>Confirm</b> under Zones.</p>
+      <p><b>Corrections.</b> Zones → Edit fixes the ID, date, flock, birds, county or notes, or deletes a premises entered by mistake (type its ID to confirm). Every change is in the audit log.</p>
       <p><b>Announcement before zones.</b> MDA menu → Declare a county. The county gets a mild shade for everyone.</p>
-      <p><b>Release.</b> Workspace → Zones → Release. The area moves to Past outbreaks on the time slider.</p>
+      <p><b>Release.</b> Zones → Release. A confirmed area moves to Past outbreaks on the time slider; a preliminary one that's released doesn't.</p>
+      <p><b>View as.</b> Your menu → View as Public or Industry shows exactly what they see. A banner shows while you're viewing as someone else; nothing is saved in the industry view.</p>
       <p><b>Reviews.</b> Reports, permits and access requests each have Approve / Deny (or Confirm / Dismiss). Every decision is in the audit log.</p>
       <p><b>Premises registry.</b> Add or auto-outline farms, fill in birds, history and compliance, then Validate.</p>
+      <p><b>Audit log.</b> Search by person, premises or word, filter by kind of action, and load older entries; export to CSV.</p>
       <p><b>Tracing.</b> MDA menu → Trace an outbreak, pick the premises: visits, permitted trips and where those vehicles went next.</p>
       <p><b>Data.</b> Export any table, or back up everything (with photos) to your ArcGIS content.</p></div>`);
   }

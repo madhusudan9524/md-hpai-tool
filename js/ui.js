@@ -11,7 +11,12 @@ window.HPAI = window.HPAI || { modules: [] };
   const ago = (t) => { const d = daysAgo(t); return d === 0 ? "today" : d === 1 ? "yesterday" : `${d} days ago`; };
 
   let tt;
-  function toast(msg, ms) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => (t.hidden = true), ms || 3200); }
+  // toast(message, ms, { label, fn }): an optional action button, e.g. Undo after removing something
+  function toast(msg, ms, action) {
+    const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(tt);
+    if (action) { const b = document.createElement("button"); b.type = "button"; b.textContent = action.label; b.onclick = () => { t.hidden = true; clearTimeout(tt); action.fn(); }; t.appendChild(b); }
+    tt = setTimeout(() => (t.hidden = true), ms || (action ? 6500 : 3200));
+  }
 
   // browser storage can be missing or throw (private mode); keep it optional
   const store = {
@@ -61,7 +66,7 @@ window.HPAI = window.HPAI || { modules: [] };
   }
 
   // distances are stored in km (regulatory definitions) and shown in miles
-  const mi = (km, d) => { const v = km * 0.621371; return v >= 10 || d === 0 ? Math.round(v).toString() : v.toFixed(d == null ? 1 : d).replace(/\.0$/, ""); };
+  const mi = (km, d) => { const v = km * 0.621371; return v >= 100 || d === 0 ? Math.round(v).toString() : v.toFixed(d == null ? 1 : d).replace(/\.0$/, ""); };   // 20 km → "12.4", not "12"
   // plain one-color line icons used across the panel
   const ICONS = {
     live: '<path d="M7 10c0-3 2-5 5-5 1.6 0 2.8.7 3.6 1.8L19 6l-1.6 2.6c.4.8.6 1.7.6 2.4 0 4-3 7-7 7H8"/><path d="M8 18l-2 2M11 18v2.5"/><circle cx="14.5" cy="8.5" r=".6"/><path d="M7 10c-2 0-3 1.5-3 3 0 2.2 1.8 4 4 4"/>',
