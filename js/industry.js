@@ -5,7 +5,8 @@
  */
 window.HPAI.modules.push(function (ctx) {
   const { H, C, S } = ctx, { $, esc, fmtDate, toast, sheet, closeSheet } = H;
-  const ready = () => !!(C.auth && C.auth.url);
+  const ready = () => !!(C.auth && (C.auth.url || C.auth.demo));
+  const demoTip = () => C.auth && C.auth.demo ? `<p class="tip"><b>Demo mode</b> (only on your computer): the code is always 123456 and nothing is emailed. Records are saved with your MDA sign-in.</p>` : "";
   const notReady = () => toast(`Industry sign-in is being set up. For now, call MDA at ${C.mdaPhone}.`, 6000);
   const api = ctx.ind.api;
 
@@ -32,7 +33,7 @@ window.HPAI.modules.push(function (ctx) {
   ctx.actions.industrySignIn = () => {
     if (!ready()) return notReady();
     sheet("Industry partner sign-in", `<div class="form">
-      <p class="hint">For approved haulers, growers and poultry businesses. We'll send you a 6-digit code. No password needed.</p>
+      ${demoTip()}<p class="hint">For approved haulers, growers and poultry businesses. We'll send you a 6-digit code. No password needed.</p>
       <label>Email or mobile number<input id="inC" autocomplete="username" inputmode="email" placeholder="you@company.com or 410 555 0100"></label>
       <button class="primary" id="inSend">Send code</button>
       <div id="inStep2" hidden><label>Code<input id="inCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 digits"></label>
@@ -82,7 +83,7 @@ window.HPAI.modules.push(function (ctx) {
   ctx.actions.signup = () => {
     if (!ready()) return notReady();
     sheet("Register as an industry partner", `<div class="form reg">
-      <p class="hint">MDA checks every request. Most are decided within two working days; you'll get an email or text.</p>
+      ${demoTip()}<p class="hint">MDA checks every request. Most are decided within two working days; you'll get an email or text.</p>
       <label>Your business<select id="rgT">${TYPES.map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join("")}</select></label>
       <p class="tip" id="rgNeed"></p>
       <div class="two"><label>Full name<input id="rgName" autocomplete="name"></label><label>Company or farm name<input id="rgOrg" autocomplete="organization"></label></div>

@@ -101,6 +101,7 @@ require([
   ctx.ind = {
     token: () => { try { return localStorage.getItem(IND_KEY); } catch (e) { return null; } },
     async api(path, body) {
+      if (C.auth && C.auth.demo && H.demoApi) return H.demoApi(path, body, ctx);   // demo on your own computer (js/demo.js)
       if (!C.auth || !C.auth.url) throw new Error(`Industry sign-in is being set up. Call MDA at ${C.mdaPhone}.`);
       const h = {}, t = ctx.ind.token(), form = body instanceof FormData;
       if (t) h.authorization = "Bearer " + t;
@@ -137,6 +138,9 @@ require([
       const t = indTarget(url);
       if (t) return ctx.ind.api("/arcgis", { target: t.target, op: t.op, params: Object.fromEntries(Object.entries(params || {}).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)])) });
     }
+    return ctx.restRaw(url, params, opts);
+  };
+  ctx.restRaw = async (url, params, opts) => {
     const body = new URLSearchParams(Object.assign({ f: "json" }, params || {}));
     const t = ctx.token(); if (t && !(opts && opts.anon)) body.set("token", t);
     const r = await fetch(url, { method: "POST", body }); const j = await r.json();
@@ -680,9 +684,9 @@ require([
   // ---------------- start ----------------
   (H.modules || []).forEach((m) => { try { m(ctx); } catch (e) { console.error("module", e); } });
   setWorkspace("public");
-  if (ctx.ind.token() && C.auth && C.auth.url) {
+  if (ctx.ind.token() && C.auth && (C.auth.url || C.auth.demo)) {
     // an industry partner who signed in before (30 days): check their access is still active
-    ctx.ind.api("/me").then((r) => ctx.ind.begin(r.user)).catch(() => {});
+    ctx.ind.api("/me").then((r) => ctx.ind.begin(r.user)).catch(() => { try { localStorage.removeItem(IND_KEY); } catch (e) {} esriId.checkSignInStatus(sharing).then(initUser).catch(() => {}); });
   } else esriId.checkSignInStatus(sharing).then(initUser).catch(() => {
     let want = null; try { want = sessionStorage.getItem("hpaiWs"); if (sessionStorage.getItem("hpaiInd")) { sessionStorage.removeItem("hpaiInd"); setTimeout(() => ctx.actions.industrySignIn(), 500); } } catch (e) {}
     if (want === "regulator") esriId.getCredential(sharing).then(initUser).catch(() => {});

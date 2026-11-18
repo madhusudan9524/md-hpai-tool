@@ -98,6 +98,8 @@ window.HPAI.modules.push(function (ctx) {
     const roleName = S.role === "pending" ? "Not on MDA's staff list" : S.session ? [S.user.company, S.user.expires ? "access until " + H.fmtDate(S.user.expires) : ""].filter(Boolean).join(" · ") || ctx.WS[S.role] : ctx.WS[S.role];
     const acct = `<div class="mg macct"><div class="mwho"><span class="av ${S.ws}">${esc(ini())}</span><span><b>${esc(S.user.fullName || S.user.username)}</b><small>${esc(roleName)}</small></span></div>
       ${S.session && S.user.companyAdmin ? item("group", "My company's people", "Add or remove drivers and staff", () => ctx.actions.companyPeople()) : ""}
+      ${C.auth && C.auth.demo ? (S.session ? item("user", "Demo: back to MDA staff", "Leave the industry partner view", () => { try { localStorage.removeItem("hpai.session"); } catch (e) {} location.reload(); })
+        : S.role === "regulator" ? item("truck", "Demo: sign in as an industry partner", "Code is always 123456", () => ctx.actions.industrySignIn()) + item("plus", "Demo: register an industry partner", "Then review it under Reviews", () => ctx.actions.signup()) : "") : ""}
       <div class="msep"></div>${item("log", "Sign out", "", () => ctx.signOut())}</div>`;
     const groups = S.ws === "regulator" ? GROUPS : ROLE[S.ws] || [];
     menu.className = "mega" + (S.ws === "regulator" ? "" : " small");
@@ -227,7 +229,7 @@ window.HPAI.modules.push(function (ctx) {
       try { rows = (await ctx.rest(u + "/query", { where, outFields: "*", returnGeometry: false, orderByFields: "name", resultRecordCount: 2000 })).features.map((f) => f.attributes); draw(); }
       catch (e) { $("ipList").innerHTML = `<p class="hint">Couldn't load: ${esc(e.message)}</p>`; }
     };
-    const notify = (a, kind, message) => C.auth && C.auth.url ? fetch(C.auth.url.replace(/\/$/, "") + "/mda/notify", { method: "POST", headers: { authorization: "Bearer " + ctx.token(), "content-type": "application/json" }, body: JSON.stringify({ id: a.acct_id, kind, message }) }).catch(() => {}) : Promise.resolve();
+    const notify = (a, kind, message) => C.auth && C.auth.demo ? Promise.resolve() : C.auth && C.auth.url ? fetch(C.auth.url.replace(/\/$/, "") + "/mda/notify", { method: "POST", headers: { authorization: "Bearer " + ctx.token(), "content-type": "application/json" }, body: JSON.stringify({ id: a.acct_id, kind, message }) }).catch(() => {}) : Promise.resolve();
     async function renew(a) {
       const exp = Math.max(Date.now(), a.expires || 0) + 365 * 864e5;
       if (!confirm(`Renew ${a.name}'s access until ${H.fmtDate(exp)}?`)) return;

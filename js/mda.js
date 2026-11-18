@@ -166,6 +166,7 @@ window.HPAI.modules.push(function (ctx) {
   const show = (geom, sym) => { marks.removeAll(); marks.add(new Graphic({ geometry: geom, symbol: sym })); view.goTo({ target: geom, zoom: 15 }).catch(() => {}); if (window.innerWidth <= 760) closeSheet(); };
   const pin = (x, y, color) => show({ type: "point", x, y, spatialReference: { wkid: 4326 } }, { type: "simple-marker", style: "diamond", size: 18, color, outline: { color: [255, 255, 255, 1], width: 2 } });
   const workerCall = async (path, body) => {
+    if (C.auth && C.auth.demo && H.demoApi) return H.demoApi(path, body, ctx);
     if (!C.auth || !C.auth.url) throw new Error("the sign-in service isn't set up yet");
     const r = await fetch(C.auth.url.replace(/\/$/, "") + path, { method: "POST", headers: { authorization: "Bearer " + ctx.token(), "content-type": "application/json" }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({})); if (!r.ok || j.error) throw new Error(j.error || "service error"); return j;
