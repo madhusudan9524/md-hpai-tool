@@ -47,7 +47,9 @@ The current zones are the prototype's **sample** data, migrated and labeled as s
 
 ## Preliminary vs confirmed premises
 
-A premises created with "Confirmed by USDA" off has its zones stored with status **Pending**: it's tracked in the MDA panel but no circle is drawn or published, and no marker is shown, until MDA taps **Confirm**. Releasing a preliminary premises doesn't add it to Past outbreaks.
+A premises created with "Confirmed by USDA" off has its zones stored with status **Pending**: it's tracked in the MDA panel but no circle is drawn or published, and no marker is shown, until MDA taps **Confirm**. Releasing a preliminary premises doesn't add it to Past outbreaks; it withdraws the county's declarations and adds a **Cleared** declaration, which ends the county's tint (and is skipped by email alerts).
+
+Releasing a confirmed premises ends its county's tint and keeps the area in light grey under Past outbreaks.
 
 ## MDA premises registry
 

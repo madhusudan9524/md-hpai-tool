@@ -60,7 +60,7 @@ def events(token):
         out.append({"id": f"ca-{f['attributes'].get('county')}-{f['attributes'].get('since')}", "kind": "control", "rings": f["geometry"]["rings"],
                     "text": f"A control area is active in {f['attributes'].get('county')} County."})
     if E("DECL_LAYER"):
-        for f in post(E("DECL_LAYER") + "/query", {"where": "status <> 'Withdrawn'", "outFields": "county,state,declared,status_text", "outSR": 4326, "token": token}).get("features", []):
+        for f in post(E("DECL_LAYER") + "/query", {"where": "status NOT IN ('Withdrawn','Cleared')", "outFields": "county,state,declared,status_text", "outSR": 4326, "token": token}).get("features", []):
             a = f["attributes"]
             out.append({"id": f"decl-{a['state']}-{a['county']}-{a['declared']}", "kind": "county", "rings": f["geometry"]["rings"],
                         "text": f"MDA reports HPAI in {a['county']} County, {a['state']}: {a.get('status_text') or ''}"})

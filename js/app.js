@@ -257,15 +257,18 @@ require([
   S.affected = [];
   S.released = [];   // real control areas MDA has released: [{ county, end }] (filled from the public history layer)
   async function paintCounties() {
-    await ready; tintLyr.removeAll();
+    await ready;
     const cutoff = Date.now() - (C.tintDays || 30) * DAY, aff = new globalThis.Map();
-    // a county's tint ends when MDA releases its control area: a detection or declaration from before that release no longer counts
-    const releasedAfter = (name, t) => S.released.some((r) => r.county === name && r.end >= (t || 0));
+    // MDA declarations: "Cleared" ones mark a county whose preliminary detection MDA released (no outbreak followed)
+    let decl = [];
+    if (L.decl) { try { decl = (await L.decl.queryFeatures({ where: L.decl.definitionExpression, outFields: ["*"], returnGeometry: false })).features.map((f) => f.attributes); } catch (e) {} }
+    const ended = S.released.concat(decl.filter((a) => a.status === "Cleared").map((a) => ({ county: a.county, end: a.declared })));
+    // a county's tint ends when MDA releases its control area (or clears a preliminary detection): anything dated before that no longer counts
+    const releasedAfter = (name, t) => ended.some((r) => r.county === name && r.end >= (t || 0));
     const mark = (st, name, info) => { const c = S.counties.find((x) => x.state === st && x.name === name); if (!c || releasedAfter(name, info.t)) return; const k = st + name; const o = aff.get(k) || { c, items: [] }; o.items.push(info); aff.set(k, o); };
     ((S.live && S.live.commercial) || []).forEach((d) => { const t = Date.parse(d.date + "T12:00:00Z"); if (t >= cutoff) mark(d.state, d.county, { kind: "detection", t, status: d.status, text: d.status_text || "", flock: d.flock, source: d.source, url: d.url }); });
-    if (L.decl) {
-      try { (await L.decl.queryFeatures({ where: L.decl.definitionExpression, outFields: ["*"], returnGeometry: false })).features.forEach((f) => { const a = f.attributes; mark(a.state || "Maryland", a.county, { kind: "declaration", t: a.declared, status: a.status, text: a.status_text, url: a.source_url }); }); } catch (e) {}
-    }
+    decl.filter((a) => a.status !== "Cleared").forEach((a) => mark(a.state || "Maryland", a.county, { kind: "declaration", t: a.declared, status: a.status, text: a.status_text, url: a.source_url }));
+    tintLyr.removeAll();
     S.affected = [...aff.values()].map((o) => ({ county: o.c.name, state: o.c.state, geom: o.c.geom, items: o.items, since: Math.min(...o.items.map((i) => i.t || Date.now())) })).sort((a, b) => b.since - a.since);
     S.affected.forEach((a) => tintLyr.add(new Graphic({ geometry: a.geom, attributes: { county: a.county }, symbol: fill(ROSE, 0.16, ROSE.concat(0.7), 1) })));
     emit("affected", S.affected); kpis();
@@ -527,7 +530,8 @@ require([
   S.timeAt = null; let timeT0 = null, playing = null;
   function applyTime() {
     const t = S.timeAt == null ? Date.now() : S.timeAt;
-    histLyr.graphics.forEach((g) => (g.visible = g.attributes.start <= t && g.attributes.end >= t - 30 * DAY));
+    const today = S.timeAt == null || Date.now() - S.timeAt < 31 * DAY;   // slider at its end = today
+    histLyr.graphics.forEach((g) => (g.visible = today ? g.attributes.start <= t : g.attributes.start <= t && g.attributes.end >= t - 30 * DAY));
     const lab = $("timeLab"); if (lab) lab.textContent = new Date(t).toLocaleDateString("en-US", { month: "short", year: "numeric" });
   }
   histReady.then((items) => { timeT0 = Math.min(Date.parse("2022-01-01"), ...items.map((i) => i.start)); renderKey(); });

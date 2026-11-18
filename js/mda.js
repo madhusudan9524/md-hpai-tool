@@ -298,7 +298,7 @@ window.HPAI.modules.push(function (ctx) {
     const dl = $("dList");
     if (!has(C.core.declarations)) { dl.innerHTML = `<p class="hint">County declarations come from data/curated_detections.json until the declarations layer is connected.</p>`; return; }
     try {
-      const d = await Q(C.core.declarations, { where: "status <> 'Withdrawn'", orderByFields: "declared DESC" });
+      const d = await Q(C.core.declarations, { where: "status NOT IN ('Withdrawn','Cleared')", orderByFields: "declared DESC" });
       dl.innerHTML = d.features.length ? d.features.map((f) => `<div class="prow"><span class="tx"><b>${esc(f.attributes.county)}, ${esc(f.attributes.state)}</b><small>${fmtShort(f.attributes.declared)} · ${esc(f.attributes.status_text || "")}</small></span><button class="mini no" data-w="${f.attributes.OBJECTID}" data-c="${esc(f.attributes.county)}">Release</button></div>`).join("") : `<p class="hint">None.</p>`;
       dl.querySelectorAll("[data-w]").forEach((b) => (b.onclick = async () => { if (!confirm(`Release the declaration for ${b.dataset.c} County? Its shading is removed from the public map.`)) return; await edit(C.core.declarations, { updates: JSON.stringify([{ attributes: { OBJECTID: +b.dataset.w, status: "Withdrawn" } }]) }); ctx.audit("declaration:release", b.dataset.c, "declaration " + b.dataset.w); ctx.paintCounties(); loaders.z(); toast(b.dataset.c + " County released"); }));
     } catch (e) { dl.innerHTML = `<p class="hint">${esc(e.message)}</p>`; }
@@ -380,9 +380,25 @@ window.HPAI.modules.push(function (ctx) {
       const wasConfirmed = z.features.some((f) => f.attributes.status === "Active");   // a preliminary one that's released never became an outbreak
       await edit(url.zones(), { updates: JSON.stringify(z.features.map((f) => ({ attributes: { OBJECTID: f.attributes.OBJECTID, status: "Released", released_date: Date.now() } }))) });
       await edit(url.prem(), { updates: JSON.stringify([{ attributes: { OBJECTID: a.OBJECTID, status: "Released", released_date: Date.now() } }]) });
-      ctx.audit("premises:release", a.premises_id, wasConfirmed ? "" : "was preliminary; not added to past outbreaks"); toast(a.premises_id + " released");
+      if (!wasConfirmed) await clearCounty(a);
+      ctx.audit("premises:release", a.premises_id, wasConfirmed ? "" : "was preliminary; county tint cleared, not added to past outbreaks"); toast(a.premises_id + " released");
       ctx.buildOutbreakLayers(); loaders.z(); publish(wasConfirmed ? a : undefined);
     } catch (e) { toast("Couldn't release: " + e.message); }
+  }
+
+  // a preliminary detection that MDA released (no outbreak followed): end the county's tint for everyone.
+  // Earlier declarations for the county are withdrawn, and a "Cleared" record tells the map (and the public)
+  // that detections reported before now no longer count. The automatic notice feed can't be edited from here.
+  async function clearCounty(a) {
+    const c = (S.counties || []).find((x) => x.name === a.county && x.state === "Maryland") || (S.counties || []).find((x) => x.name === a.county);
+    if (!c || !has(C.core.declarations)) return;
+    try {
+      const old = await Q(C.core.declarations, { where: `county = '${sq(c.name)}' AND state = '${sq(c.state)}' AND status NOT IN ('Withdrawn','Cleared')`, outFields: "OBJECTID" });
+      if (old.features.length) await edit(C.core.declarations, { updates: JSON.stringify(old.features.map((f) => ({ attributes: { OBJECTID: f.attributes.OBJECTID, status: "Withdrawn" } }))) });
+      await edit(C.core.declarations, { adds: JSON.stringify([{ geometry: c.geom.toJSON(), attributes: { county: c.name, state: c.state, declared: Date.now(), status: "Cleared", status_text: "Preliminary detection released by MDA.", source_url: "" } }]) });
+      ctx.audit("declaration:clear", c.name + ", " + c.state, `${a.premises_id} released while preliminary`);
+      ctx.paintCounties();
+    } catch (e) { toast("Released, but couldn't clear the county shading: " + e.message, 6000); }
   }
 
   // confirmed (USDA) vs. preliminary: a confirmed premises' zones are 'Active' (drawn and published),
