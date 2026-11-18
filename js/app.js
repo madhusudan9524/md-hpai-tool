@@ -41,7 +41,6 @@ require([
 
   // environmental reference layers (official public services)
   const env = {
-    wetlands: new MapImageLayer({ url: C.env.wetlands, title: "Wetlands (USFWS NWI)", visible: false, opacity: 0.7 }),
     land: new WMSLayer({ url: C.env.forestWms.url, sublayers: [{ name: C.env.forestWms.layer }], title: "Forests & land cover (NLCD 2021)", visible: false, opacity: 0.55 }),
     wma: new FeatureLayer({ url: C.env.wma, definitionExpression: "DESIG = 'WMA'", title: "Wildlife management areas (MD DNR)", visible: false, outFields: ["DNRName"],
       renderer: { type: "simple", symbol: fill([132, 160, 60], 0.35, [106, 138, 42, 1], 1) }, popupTemplate: { title: "{DNRName}", content: "Wildlife Management Area · Maryland DNR" } }),
@@ -78,7 +77,7 @@ require([
   const routeLyr = new GraphicsLayer({ listMode: "hide" }), marks = new GraphicsLayer({ listMode: "hide" });
 
   const map = new EsriMap({ basemap: dark ? "dark-gray-vector" : "topo-vector",
-    layers: [maskLyr, env.land, env.wetlands, env.wma, env.waterfowl, env.refuges, riskLyr, birdsLyr, tintLyr, countyLyr, histLyr] });
+    layers: [maskLyr, env.land, env.wma, env.waterfowl, env.refuges, riskLyr, birdsLyr, tintLyr, countyLyr, histLyr] });
   const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, constraints: { minZoom: 7, snapToZoom: false },
     popup: { dockEnabled: false, dockOptions: { buttonEnabled: false }, collapseEnabled: false, visibleElements: { closeButton: true, featureNavigation: false, actionBar: false, heading: false, collapseButton: false, spinner: false }, highlightEnabled: false, actions: [] }, ui: { components: ["zoom", "attribution"] } });
   view.ui.move("zoom", "top-left");
@@ -526,10 +525,11 @@ require([
     { sec: "Wildlife" },
     { id: "wb", t: "Wildlife with HPAI", n: "birds and mammals · USDA APHIS", sw: "wb", ls: () => [wild], seg: true },
     { id: "risk", t: "Seasonal risk", n: "migration + detections + habitat", sw: "risk", ls: () => [riskLyr], off: true },
-    { id: "ebd", t: "eBird waterfowl sightings", n: S.birdsNote || "7 days", sw: "ebd", ls: () => [birdsLyr], off: true },
-    { id: "habitat", t: "Waterfowl & refuge habitat", n: "MD DNR · USFWS", sw: "habitat", ls: () => [env.waterfowl, env.refuges, env.wma], off: true },
+    { id: "ebd", t: "Waterfowl sightings", n: S.birdsNote || "eBird · 7 days", sw: "ebd", ls: () => [birdsLyr], off: true },
+    { id: "wf", t: "Waterfowl areas", n: "MD DNR", sw: "wf", ls: () => [env.waterfowl], off: true },
+    { id: "nwr", t: "Wildlife refuges", n: "USFWS", sw: "nwr", ls: () => [env.refuges], off: true },
+    { id: "wma", t: "Wildlife management areas", n: "MD DNR", sw: "wma", ls: () => [env.wma], off: true },
     { sec: "Land and water" },
-    { id: "wet", t: "Wetlands and marshes", n: "USFWS NWI · zoom in", sw: "wet", ls: () => [env.wetlands], off: true },
     { id: "for", t: "Forests and land cover", n: "NLCD 2021", sw: "for", ls: () => [env.land], off: true },
     { sec: "Farms and roads", roles: ["regulator", "industry"] },
     { id: "reg", staff: 1, t: "Registered premises", n: "solid = MDA validated, dashed = review", sw: "reg", ls: () => [ctx.layers.registry] },

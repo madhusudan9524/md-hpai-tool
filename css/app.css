@@ -172,8 +172,9 @@ section { margin-bottom: 14px; }
 .sw.cty { background: rgba(232, 120, 130, .2); border: 1px solid rgba(232, 120, 130, .8); } .sw.past { background: rgba(138, 148, 166, .3); border: 1px dashed #8a94a6; }
 .sw.wb { background: radial-gradient(circle, #0e9aa7 45%, transparent 50%); }
 .sw.risk { background: linear-gradient(90deg, #2e9e4e, #e6a100, #d7263d); border-radius: 99px; }
-.sw.wet { background: #79b8c9; } .sw.for { background: #5f9a52; }
-.sw.habitat { background: repeating-linear-gradient(45deg, rgba(19, 128, 143, .55) 0 3px, rgba(70, 130, 90, .35) 3px 6px); border: 1px solid #13808f; }
+.sw.for { background: #5f9a52; }
+.sw.wma { background: rgba(132, 160, 60, .45); border: 1px solid #6a8a2a; } .sw.wf { background: repeating-linear-gradient(45deg, rgba(19, 128, 143, .5) 0 3px, transparent 3px 6px); border: 1px solid #13808f; }
+.sw.nwr { background: rgba(70, 130, 90, .3); border: 1px solid #46825a; }
 .sw.farm { background: radial-gradient(circle, #6d5a3a 40%, transparent 45%); } .sw.road { background: linear-gradient(90deg, #e6a100 50%, #333 50%); height: 6px; }
 .sw.exact { background: #4a0d0d; transform: rotate(45deg) scale(.7); border-radius: 2px; }
 .lk .seg { margin: 2px 8px 6px; }
