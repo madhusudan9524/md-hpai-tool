@@ -101,13 +101,13 @@ def ai_extract(title, body, source):
     req = urllib.request.Request("https://api.anthropic.com/v1/messages", method="POST", headers={
         "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
         data=json.dumps({"model": AI_MODEL, "max_tokens": 400, "system": AI_PROMPT,
-                         "messages": [{"role": "user", "content": f"Source: {source}\nTitle: {title}\n\nRelease text:\n{body[:6000]}\n\nAnswer with the JSON object only."},
-                                      {"role": "assistant", "content": "{"}]}).encode())   # start the answer with "{" so the reply is JSON
+                         "messages": [{"role": "user", "content": f"Source: {source}\nTitle: {title}\n\nRelease text:\n{body[:6000]}\n\nAnswer with the JSON object only."}]}).encode())
     text = ""
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
-            text = "{" + "".join(b.get("text", "") for b in json.loads(r.read().decode())["content"] if b.get("type") == "text")
-        return validate_ai(json.loads(text[: text.rfind("}") + 1]), source)
+            resp = json.loads(r.read().decode())
+            text = "".join(b.get("text", "") for b in resp.get("content", []) if b.get("type") == "text") or json.dumps(resp)[:200]
+        return validate_ai(json.loads(text[text.find("{"): text.rfind("}") + 1]), source)
     except urllib.error.HTTPError as e:
         problems.append(f"AI reading failed ({e.code}: {e.read().decode()[:200]}); used keyword rules")
     except Exception as e:
