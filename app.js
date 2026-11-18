@@ -70,15 +70,17 @@ require([
   const WILD_DAYS = 28;
   const wildCutoff = new Date(Date.now() - WILD_DAYS * DAY).toISOString().slice(0, 10);
   const wild = new FeatureLayer({
-    url: C.wildBirdsUrl, title: "HPAI in wild birds (last 4 weeks)", outFields: ["*"],
-    definitionExpression: `state = 'Maryland' AND last_detected >= DATE '${wildCutoff}'`,
-    renderer: { type: "simple", symbol: { type: "simple-marker", style: "circle", size: 9, color: [31, 122, 140, 0.95], outline: { color: [255, 255, 255, 1], width: 1.5 } } },
+    title: "HPAI in wild birds (last 4 weeks)", source: [], objectIdField: "OID", geometryType: "point", spatialReference: { wkid: 4326 }, outFields: ["*"],
+    fields: [{ name: "OID", type: "oid" }, { name: "state", type: "string" }, { name: "county", type: "string" }, { name: "species", type: "string" }, { name: "strain", type: "string" }, { name: "last_detected", type: "date" }, { name: "source", type: "string" }],
+    renderer: { type: "simple", symbol: { type: "simple-marker", style: "circle", size: 8, color: [31, 122, 140, 0.95], outline: { color: [255, 255, 255, 1], width: 1.5 } } },
     popupTemplate: {
       title: "HPAI in a wild bird",
       content: "{species}<br>Detected {last_detected}<br>{county} County, {state}<br><span style='font-size:11px'>Source: USDA APHIS. Shown at county level, not the exact site.</span>",
       fieldInfos: [{ fieldName: "last_detected", format: { dateFormat: "short-date" } }]
     }
   });
+  // Live data written twice a day by tools/update_detections.py (official sources only)
+  const livePromise = fetch((C.dataUrl || "data/detections.json") + "?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).catch(() => null);
 
   // REGULATOR layers (full detail)
   const regPopup = (title) => ({
@@ -145,15 +147,15 @@ require([
   });
   const tintLyr = new GraphicsLayer({ title: "Counties with an outbreak", listMode: "hide" });   // mild red tint on counties that reported an outbreak
   const maskLyr = new GraphicsLayer({ title: "Outside Maryland", listMode: "hide" });
-  const map = new Map({ basemap: "topo-vector", layers: [maskLyr, tintLyr, countyLyr, pubSZ, pubReleased, pubCA, wild, routeLyr, marks] });
+  const map = new Map({ basemap: "topo-vector", layers: [maskLyr, tintLyr, countyLyr].concat(C.showZones ? [pubSZ, pubReleased, pubCA] : [], [wild, routeLyr, marks]) });
   const view = new MapView({ container: "viewDiv", map, center: C.center, zoom: C.zoom, popup: { dockEnabled: false, collapseEnabled: false, autoCloseEnabled: false, visibleElements: { featureNavigation: false, actionBar: false, heading: false } }, popupEnabled: false });
   view.ui.add(new Home({ view }), "top-left");
 
   // ---- Maryland only ----
-  let mdGeom = null, mdExtent = null, mdReady = null, outbreakAreas = [];
+  let mdGeom = null, mdExtent = null, mdReady = null, outbreakAreas = [], mdCounties = [], LIVE = null;
   const inMD = (pt) => !mdGeom || geometryEngine.contains(mdGeom, pt) || geometryEngine.intersects(mdGeom, pt);
-  mdReady = countyLyr.queryFeatures({ where: "STATE_NAME = 'Maryland'", outFields: ["NAME"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((r) => {
-    const feats = r.features;
+  mdReady = countyLyr.queryFeatures({ where: "STATE_NAME = 'Maryland'", outFields: ["NAME", "STATE_NAME"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((r) => {
+    const feats = r.features; mdCounties = feats;
     mdGeom = geometryEngine.union(feats.map((f) => f.geometry));
     mdExtent = mdGeom.extent.clone();
     view.constraints = { geometry: mdExtent.clone().expand(1.35), minZoom: 7 };   // can't pan away from Maryland
@@ -161,17 +163,21 @@ require([
     const clearArea = (dm) => geometryEngine.union([mdGeom].concat(dm));
     const worldPoly = { type: "polygon", rings: [[[world.xmin, world.ymin], [world.xmin, world.ymax], [world.xmax, world.ymax], [world.xmax, world.ymin], [world.xmin, world.ymin]]], spatialReference: { wkid: 102100 } };
     // Maryland + the rest of Delmarva (Delaware, Virginia's Eastern Shore) stay clear; everything else is faded
-    new FeatureLayer({ url: COUNTY_URL }).queryFeatures({ where: "STATE_NAME = 'Delaware' OR (STATE_NAME = 'Virginia' AND NAME IN ('Accomack County','Northampton County'))", returnGeometry: true, outSpatialReference: { wkid: 102100 } })
-      .then((dm) => dm.features.map((f) => f.geometry)).catch(() => [])
-      .then((dg) => { maskLyr.add(new Graphic({ geometry: geometryEngine.difference(worldPoly, clearArea(dg)), symbol: { type: "simple-fill", color: [244, 246, 249, 0.78], outline: { color: [0, 0, 0, 0] } } })); });
-    // outbreak tint: counties containing an active control area's center (the infected premises; no premises ID is read)
-    zonesQ.queryFeatures({ where: "zone_type = 'Control Area' AND status = 'Active'", outFields: ["confirmed_date"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((za) => {
-      const hit = new globalThis.Map();   // (esri Map shadows the global)
-      za.features.forEach((z) => { const c = z.geometry.extent.center; feats.forEach((f) => { if (geometryEngine.contains(f.geometry, c)) { const o = hit.get(f) || { f, since: z.attributes.confirmed_date, ext: z.geometry.extent.clone() }; o.since = Math.min(o.since, z.attributes.confirmed_date); o.ext = o.ext.union(z.geometry.extent); hit.set(f, o); } }); });
-      hit.forEach((o) => tintLyr.add(new Graphic({ geometry: o.f.geometry, symbol: { type: "simple-fill", color: [200, 40, 30, 0.12], outline: { color: [200, 40, 30, 0.4], width: 1 } } })));
-      outbreakAreas = [...hit.values()].map((o) => ({ county: o.f.attributes.NAME.replace(" County", ""), since: o.since, ext: o.ext })).sort((a, b) => b.since - a.since);
-      renderAreas();
-    }).catch(() => {});
+    new FeatureLayer({ url: COUNTY_URL }).queryFeatures({ where: "STATE_NAME = 'Delaware' OR (STATE_NAME = 'Virginia' AND NAME IN ('Accomack County','Northampton County'))", outFields: ["NAME", "STATE_NAME"], returnGeometry: true, outSpatialReference: { wkid: 102100 } })
+      .then((dm) => dm.features).catch(() => [])
+      .then(async (dm) => {
+        maskLyr.add(new Graphic({ geometry: geometryEngine.difference(worldPoly, clearArea(dm.map((f) => f.geometry))), symbol: { type: "simple-fill", color: [244, 246, 249, 0.78], outline: { color: [0, 0, 0, 0] } } }));
+        // very mild tint on counties with a commercial-flock detection in the last tintDays (county only; no premises location is published)
+        const L = await livePromise; LIVE = L; if (!L) return;
+        const all = feats.map((f) => ({ f, st: "Maryland" })).concat(dm.map((f) => ({ f, st: f.attributes.STATE_NAME })));
+        const cutoff = Date.now() - (C.tintDays || 30) * DAY;
+        (L.commercial || []).filter((c) => Date.parse(c.date + "T12:00:00Z") >= cutoff).forEach((c) => {
+          const m = all.find((o) => o.st === c.state && o.f.attributes.NAME.replace(" County", "") === c.county); if (!m) return;
+          tintLyr.add(new Graphic({ geometry: m.f.geometry, symbol: { type: "simple-fill", color: [200, 40, 30, 0.12], outline: { color: [200, 40, 30, 0.4], width: 1 } } }));
+          outbreakAreas.push({ county: c.county, state: c.state, since: Date.parse(c.date + "T12:00:00Z"), status: c.status, text: c.status_text, flock: c.flock, ext: m.f.geometry.extent.clone() });
+        });
+        outbreakAreas.sort((x, y) => y.since - x.since); renderAreas();
+      });
   }).catch(() => {});
   // county names and borders: fully visible at the opening view, gone by about zoom 11
   // detail: the public sees only control areas at first; surveillance zones and past areas appear as you zoom in
@@ -244,11 +250,12 @@ require([
   const sw = (cls) => `<span class="sw ${cls}"></span>`;
   const ico = (svg) => `<span class="ic">${svg}</span>`;
   const KEY = [
-    { t: "Control area", n: "0–10 km", sw: sw("ca"), ls: [pubCA] },
-    { t: "Surveillance zone", n: "10–20 km", sw: sw("sz"), ls: [pubSZ] },
-    { t: "Past control area", n: "fades", sw: sw("rel"), ls: [pubReleased] },
-    { t: "Wild bird, 4 weeks", sw: ico('<span class="dot" style="margin:0"></span>'), ls: [wild] },
-    { t: "County names", sw: sw("cty"), ls: [countyLyr, tintLyr] },
+    { z: 1, t: "Control area", n: "0–10 km", sw: sw("ca"), ls: [pubCA] },
+    { z: 1, t: "Surveillance zone", n: "10–20 km", sw: sw("sz"), ls: [pubSZ] },
+    { z: 1, t: "Past control area", n: "fades", sw: sw("rel"), ls: [pubReleased] },
+    { t: "County with commercial detection", sw: sw("cty"), ls: [tintLyr] },
+    { t: "Wild bird detection, 4 weeks", sw: ico('<span class="dot" style="margin:0"></span>'), ls: [wild] },
+    { t: "County names", sw: sw("cty"), ls: [countyLyr] },
     { staff: 1, sec: "MDA layers" },
     { staff: 1, t: "Infected zone", n: "0–3 km", sw: sw("iz"), ls: [regIZ] },
     { staff: 1, t: "Buffer zone", n: "3–10 km", sw: sw("bz"), ls: [regBZ] },
@@ -264,7 +271,7 @@ require([
     keyEl.innerHTML = `<button id="keyBtn">Layers &amp; key</button><div class="kb"></div>`;
     $("keyBtn").onclick = () => keyEl.classList.toggle("shut");
     const kb = keyEl.querySelector(".kb");
-    KEY.filter((k) => !k.staff || isStaff()).forEach((k) => {
+    KEY.filter((k) => (!k.staff || isStaff()) && (!k.z || C.showZones)).forEach((k) => {
       if (k.sec) { kb.insertAdjacentHTML("beforeend", `<div class="sec">${k.sec}</div>`); return; }
       const lab = document.createElement("label");
       lab.innerHTML = `<input type="checkbox" ${k.ls[0].visible ? "checked" : ""}>${k.sw}<span>${k.t}</span>${k.n ? `<i>${k.n}</i>` : ""}`;
@@ -437,12 +444,26 @@ require([
     }
   }
 
-  // data last-updated stamp (like Pennsylvania's "updated daily" note)
-  zonesQ.load().then(() => {
-    const d = zonesQ.editingInfo && zonesQ.editingInfo.lastEditDate;
-    document.getElementById("updated").textContent = d ? "Updated " + new Date(d).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : "";
-  }).catch(() => {});
+  // ---- live notices + wild-bird dots from data/detections.json ----
+  const KIND = { commercial: ["Commercial flock", "c"], backyard: ["Backyard flock", "b"], wild: ["Wild birds", "w"], general: ["Notice", ""] };
+  function renderNews(L) {
+    const box = $("newsList"); if (!box) return;
+    const items = (L.notices || []).slice(0, 4);
+    box.innerHTML = items.length ? items.map((n) => {
+      const k = KIND[n.kind] || KIND.general, st = n.status === "confirmed" ? "Confirmed" : n.status === "preliminary" ? "Preliminary" : "";
+      return `<a class="nw" href="${esc(n.url)}" target="_blank" rel="noopener"><div class="nt">${esc(n.title)}</div><div class="nm"><span class="st ${k[1]}">${k[0]}${st ? " · " + st : ""}</span><span>${esc(n.source.replace("Department of Agriculture and Consumer Services", "VDACS").replace("Maryland Department of Agriculture", "MDA").replace("Delaware Department of Agriculture", "DDA"))}${n.via ? " (" + esc(n.via) + ")" : ""} · ${fmtDate(Date.parse(n.date + "T12:00:00Z"))}</span></div></a>`;
+    }).join("") : `<p class="hint">No recent notices.</p>`;
+  }
+  livePromise.then(async (L) => {
+    if (!L) { const b = $("newsList"); if (b) b.innerHTML = `<p class="hint">Notices are unavailable right now.</p>`; return; }
+    try {
+      await wild.applyEdits({ addFeatures: (L.wild || []).map((w) => new Graphic({ geometry: { type: "point", x: w.lon, y: w.lat, spatialReference: { wkid: 4326 } }, attributes: { state: w.state, county: w.county, species: w.species, strain: w.strain, last_detected: Date.parse(w.date + "T12:00:00Z"), source: w.source } })) });
+    } catch (e) {}
+    renderNews(L); loadTrend(); if (ws === "public") loadPublicKpis();
+    const u = $("updated"); if (u) u.textContent = "Data updated " + new Date(L.updated).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + (L.problems && L.problems.length ? " · some sources unavailable" : "");
+  });
 
+  // data last-updated stamp (like Pennsylvania's "updated daily" note)
   // ---------------- HAULER ----------------
   const stops = { org: null, dst: null };
   const orgSearch = new Search({ view, container: "orgSearch", popupEnabled: false, resultGraphicEnabled: false, locationEnabled: false, includeDefaultSources: false, sources: mdSources("Origin in Maryland") });
@@ -650,9 +671,9 @@ require([
   }
   async function loadPublicKpis() {
     const set = (id, n) => { $(id).textContent = n == null ? "–" : n; };
-    set("kCA", await zonesQ.queryFeatureCount({ where: "zone_type = 'Control Area' AND status = 'Active'" }).catch(() => null));
+    set("kCA", C.showZones ? await zonesQ.queryFeatureCount({ where: "zone_type = 'Control Area' AND status = 'Active'" }).catch(() => null) : outbreakAreas.length);
     set("kWild", await wild.queryFeatureCount().catch(() => null));
-    set("kCty", outbreakAreas.length || null);
+    set("kCty", new Set(outbreakAreas.map((a) => a.state + a.county)).size);
   }
   async function loadQueue(kind, keep) {
     const lyr = kind === "rep" ? repLyr : perLyr, box = $(kind === "rep" ? "repQueue" : "perQueue");
@@ -696,7 +717,7 @@ require([
   // ---- Active control areas list (transporters, industry, officials) ----
   function renderAreas() {
     const day = (t) => Math.max(1, Math.floor((Date.now() - t) / 864e5) + 1);
-    const html = outbreakAreas.length ? outbreakAreas.map((a, i) => `<button class="area" data-i="${i}"><b>${esc(a.county)}</b><span>Day ${day(a.since)}</span></button>`).join("") : `<p class="hint">No active control areas</p>`;
+    const html = outbreakAreas.length ? outbreakAreas.map((a, i) => `<button class="area" data-i="${i}"><b>${esc(a.county)}${a.state && a.state !== "Maryland" ? ", " + esc(a.state.slice(0, 2).toUpperCase()) : ""}</b><span>${a.status === "preliminary" ? "Preliminary · " : ""}Day ${day(a.since)}</span></button>`).join("") : `<p class="hint">No commercial-flock detections in the last ${C.tintDays || 30} days</p>`;
     document.querySelectorAll(".areaList").forEach((el) => {
       el.innerHTML = html;
       el.querySelectorAll(".area").forEach((b) => (b.onclick = () => view.goTo(outbreakAreas[+b.dataset.i].ext.clone().expand(2.2))));

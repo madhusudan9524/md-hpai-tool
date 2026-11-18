@@ -1,0 +1,35 @@
+{
+  "_help": "Detections entered or approved by MDA staff. These always win over automatic ones. Dates are YYYY-MM-DD. Premises locations are NOT stored here; add them in the regulator layer.",
+  "commercial": [
+    {
+      "id": "MD-2026-11-11-worcester",
+      "state": "Maryland",
+      "county": "Worcester",
+      "date": "2026-11-11",
+      "flock": "Commercial broiler",
+      "status": "preliminary",
+      "status_text": "Preliminary positive (state laboratory). USDA NVSL confirmation pending.",
+      "source": "Maryland Department of Agriculture",
+      "url": "https://mda.maryland.gov/Pages/AvianFlu.aspx",
+      "note": "Entered from MDA's Nov 11, 2026 announcement as reported by WMDT, WGMD and Lancaster Farming. Replace the link with MDA's press release and update status when USDA confirms."
+    }
+  ],
+  "notices": [
+    {
+      "date": "2026-11-11",
+      "source": "Maryland Department of Agriculture",
+      "title": "Preliminary testing finds HPAI in a commercial broiler flock in Worcester County",
+      "url": "https://www.wmdt.com/2026/11/1case-of-avian-influenza-detected-in-worcester-county/",
+      "via": "reported by WMDT",
+      "kind": "commercial", "status": "preliminary", "county": "Worcester", "state": "Maryland"
+    },
+    {
+      "date": "2026-11-16",
+      "source": "Delaware Department of Agriculture",
+      "title": "DDA reminds residents of poultry safety tips as avian influenza season arrives",
+      "url": "https://www.morningagclips.com/dda-reminds-residents-of-poultry-safety-tips-as-avian-influenza-season-arrives/",
+      "via": "republished by Morning Ag Clips",
+      "kind": "general", "status": null, "county": null, "state": "Delaware"
+    }
+  ]
+}
