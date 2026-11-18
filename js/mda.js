@@ -262,7 +262,7 @@ window.HPAI.modules.push(function (ctx) {
       const pieces = (U, type, src) => (U ? [U] : []).map((g) => {
         const members = src.filter((f) => ge.intersects(g, geom(f))), t = Math.min(...members.map((f) => since[f.attributes.premises_id] || f.attributes.confirmed_date || Date.now()));
         const c = ctx.countyAt(g.centroid || g.extent.center);
-        return { geometry: g.toJSON(), attributes: { zone_type: type, status: "Active", since: t, county: c ? c.name : "", premises_count: members.length } };
+        return { geometry: g.toJSON(), attributes: { zone_type: type, status: "Active", since: t, county: c ? c.name : "", premises_count: members.length, sample: members.length && members.every((f) => f.attributes.sample === 1) ? 1 : 0 } };
       });
       const adds = pieces(caU, "Control Area", caF).concat(pieces(szU, "Surveillance Zone", szF));
       // approximate markers + re-identification check
@@ -281,7 +281,7 @@ window.HPAI.modules.push(function (ctx) {
         }
         const solo = ca && caF.filter((z) => ge.intersects(geom(z), geom(ca))).length === 1;
         report.push({ id: f.attributes.premises_id, farms: best ? best.n : 0, ok: best && best.n >= P.minFarmsNearMarker, solo });
-        if (best) markers.push({ geometry: best.m.toJSON(), attributes: { status: "Active", since: f.attributes.confirmed_date, county: f.attributes.county, area_km: P.markerRadiusKm } });
+        if (best) markers.push({ geometry: best.m.toJSON(), attributes: { status: "Active", since: f.attributes.confirmed_date, county: f.attributes.county, area_km: P.markerRadiusKm, sample: f.attributes.sample === 1 ? 1 : 0 } });
       }
       // replace public features
       const clear = async (u) => { const ids = (await ctx.rest(u + "/query", { where: "status = 'Active'", returnIdsOnly: true })).objectIds || []; if (ids.length) await edit(u, { deletes: ids.join(",") }); };

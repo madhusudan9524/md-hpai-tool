@@ -169,6 +169,8 @@ require([
         S.areas = r.features;
       } catch (e) { /* not signed in / layer missing */ }
     }
+    S.sample = S.areas.some((f) => f.attributes.sample === 1);
+    $("sampleBadge").hidden = !S.sample;
     paintCounties(); emit("areas", S.areas);
   }
   ctx.refreshAreas = refreshAreas;
@@ -271,6 +273,7 @@ require([
     const g = pt.spatialReference.isWGS84 ? pt : wmu.webMercatorToGeographic(pt);
     const sr = R.seasonalRisk({ pt: { lat: g.latitude, lon: g.longitude }, month: new Date().getMonth(), seasonCounts: S.season, detections: S.wildPts, habitat: await habitatAt(g), now: Date.now() });
     const hist = await pastAt(pt);
+    const smp = z.f && z.f.attributes.sample === 1 ? " · SAMPLE (exercise data)" : "";
     const band = z.zone === "control" ? ["ca", "Inside a control area"] : z.zone === "surveillance" ? ["sz", "Inside a surveillance zone"] : ["free", aff ? "Not in a zone" : "No restrictions"];
     const since = z.f && (z.f.attributes.since || z.f.attributes.confirmed_date || z.f.attributes.created_date);
     let rows = `<div class="r"><span>County</span><b>${cty ? esc(cty.name) + (cty.state !== "Maryland" ? ", " + esc(cty.state) : "") : "–"}</b></div>`;
@@ -281,7 +284,7 @@ require([
     rows += `<div class="r"><span>Past outbreaks here</span><b>${hist.n ? hist.n + " · last " + fmtShort(hist.last) : "None on record"}</b></div>`;
     const extra = emit("card", { pt, zone: z, county: cty }).filter(Boolean).join("");
     const el = document.createElement("div"); el.className = "pop";
-    el.innerHTML = `<div class="band ${band[0]}"><small>${esc(title || "This location")}</small><b>${band[1]}</b></div><div class="bd">${rows}<div class="do"><b>What to do</b><ul>${DO[z.zone || "none"].map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>${extra}</div>`;
+    el.innerHTML = `<div class="band ${band[0]}"><small>${esc(title || "This location")}${smp}</small><b>${band[1]}</b></div><div class="bd">${rows}<div class="do"><b>What to do</b><ul>${DO[z.zone || "none"].map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>${extra}</div>`;
     view.openPopup({ location: pt, content: el });
     el.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => { view.closePopup(); (ctx.actions[b.dataset.act] || (() => {}))(pt, title); }));
   }
@@ -437,7 +440,7 @@ require([
   }
   function markerCard(g, pt) {
     const a = g.attributes, since = a.since;
-    simpleCard(pt, "prem", "Infected premises", "Approximate location", [["County", a.county], ["Confirmed", fmtDate(since)], ["Status", a.status]],
+    simpleCard(pt, "prem", "Infected premises" + (a.sample === 1 ? " · SAMPLE" : ""), "Approximate location", [["County", a.county], ["Confirmed", fmtDate(since)], ["Status", a.status]],
       `<div class="do">To protect the farm's privacy, this marker is moved up to ${C.privacy.markerShiftKm[1]} km from the real site. Use the zone shading for movement rules.</div>`);
   }
 
