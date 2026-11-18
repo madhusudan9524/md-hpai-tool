@@ -178,6 +178,13 @@ require([
         });
         outbreakAreas.sort((x, y) => y.since - x.since); renderAreas();
       });
+    // control-area circles (sample data until MDA publishes real boundaries): tint the counties that contain an active control area
+    if (C.showZones) zonesQ.queryFeatures({ where: "zone_type = 'Control Area' AND status = 'Active'", outFields: ["confirmed_date"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((za) => {
+      const hit = new globalThis.Map();   // (esri Map shadows the global)
+      za.features.forEach((z) => { const c = z.geometry.extent.center; feats.forEach((f) => { if (geometryEngine.contains(f.geometry, c)) { const o = hit.get(f) || { f, since: z.attributes.confirmed_date, ext: z.geometry.extent.clone() }; hit.set(f, o); } }); });
+      hit.forEach((o) => { tintLyr.add(new Graphic({ geometry: o.f.geometry, symbol: { type: "simple-fill", color: [200, 40, 30, 0.12], outline: { color: [200, 40, 30, 0.4], width: 1 } } })); outbreakAreas.push({ county: o.f.attributes.NAME.replace(" County", ""), state: "Maryland", since: o.since, ext: o.ext }); });
+      outbreakAreas.sort((x, y) => y.since - x.since); renderAreas();
+    }).catch(() => {});
   }).catch(() => {});
   // county names and borders: fully visible at the opening view, gone by about zoom 11
   // detail: the public sees only control areas at first; surveillance zones and past areas appear as you zoom in

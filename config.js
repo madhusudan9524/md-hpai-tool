@@ -21,7 +21,7 @@ window.HPAI_CONFIG = {
   farmsUrl: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Poultry_Farms/FeatureServer/0",
   farmsUrl: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Poultry_Farms/FeatureServer/0",
   dataUrl: "data/detections.json",      // written twice a day by tools/update_detections.py
-  showZones: false,                     // true once MDA publishes real control-area polygons (until then zones are sample data)
+  showZones: true,                      // control-area / surveillance-zone layers (currently SAMPLE circles; set false to hide them for public use until MDA publishes real boundaries)
   tintDays: 30,                         // a county stays tinted this long after a commercial-flock detection
   reportFormUrl: "https://survey123.arcgis.com/share/05dfdf8cb14c49e7919d2ba646b7f75d",
   reportResultsUrl: "https://survey123.arcgis.com/surveys/05dfdf8cb14c49e7919d2ba646b7f75d/data",
