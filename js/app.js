@@ -271,9 +271,9 @@ require([
     surveillance: ["Watch your birds closely and report illness.", "Movements may need testing. Check with MDA before moving birds.", "Clean and disinfect vehicles and boots."],
     none: ["No movement restrictions here today.", "Keep birds away from wild waterfowl.", "Report sick or dead birds."]
   };
-  async function fitCard(pt) {
+  async function fitCard(pt, h) {
     const sp = view.toScreen(pt); if (!sp) return;
-    const need = Math.min(270, view.height * 0.5);
+    const need = Math.min(h || 270, view.height - 40);
     if (sp.y < need || sp.x < 160 || sp.x > view.width - 160) {
       const dy = Math.max(0, need - sp.y), dx = sp.x < 160 ? 160 - sp.x : sp.x > view.width - 160 ? view.width - 160 - sp.x : 0;
       const c = view.toScreen(view.center); await view.goTo(view.toMap({ x: c.x - dx, y: c.y - dy }), { duration: 250 }).catch(() => {});
@@ -311,7 +311,8 @@ require([
       <div class="r"><span>Past outbreaks</span><b>${hist.n ? hist.n + " · last " + fmtShort(hist.last) : "None on record"}</b></div>
       <div class="do"><b>What to do</b><ul>${DO[z.zone || "none"].map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div></div>`;
     el.innerHTML = `<div class="band ${band[0]}"><b>${band[1]}</b><small>${esc(where)}${sub ? " · " + esc(sub) : ""}</small></div><div class="bd"><div class="chips2">${chips.join("")}</div><p class="tip">${esc(tip)}</p>${more}<div class="pacts">${extra}<button class="pb ghostb" data-more>Details ▾</button></div></div>`;
-    const mb = el.querySelector("[data-more]"); mb.onclick = () => { const m = el.querySelector(".more"); m.hidden = !m.hidden; mb.textContent = m.hidden ? "Details ▾" : "Less ▴"; };
+    const mb = el.querySelector("[data-more]"); mb.onclick = async () => { const m = el.querySelector(".more"); m.hidden = !m.hidden; mb.textContent = m.hidden ? "Details ▾" : "Less ▴";
+      if (!m.hidden) { view.closePopup(); await fitCard(pt, el.offsetHeight + 60); view.openPopup({ location: pt, content: el }); } };
     await fitCard(pt); view.openPopup({ location: pt, content: el });
     el.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => { view.closePopup(); (ctx.actions[b.dataset.act] || (() => {}))(pt, title); }));
   }
