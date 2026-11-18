@@ -71,11 +71,15 @@ window.HPAI.modules.push(function (ctx) {
       const oP = new Point({ longitude: org.pt.longitude, latitude: org.pt.latitude }), dP = new Point({ longitude: dst.pt.longitude, latitude: dst.pt.latitude });
       const [oz, dz] = await Promise.all([ctx.zoneAt(oP), ctx.zoneAt(dP)]);
       const ca = S.areas.map((f) => f.geometry);
-      // 1. control areas: avoid completely unless the trip starts or ends inside one (then keep exposure low)
-      const polys = [];
+      // 1. control areas: a "fence" along each area's border blocks the roads that cross into it
+      //    (a filled shape would touch thousands of streets, over the routing service's 2,000-street limit).
+      //    Areas the trip starts or ends in are left open so the truck can get in or out.
+      const polys = [], fences = [];
       ca.forEach((g) => {
         const inside = ge.contains(g, wmu.geographicToWebMercator(oP)) || ge.contains(g, wmu.geographicToWebMercator(dP));
-        polys.push({ geometry: poly4326(g), attributes: inside ? { BarrierType: 1, Attr_TravelTime: 3, Attr_TruckTravelTime: 3 } : { BarrierType: 0 } });
+        if (inside) return;
+        const p = wmu.webMercatorToGeographic(ge.generalize(g, 40, true));
+        p.rings.forEach((r) => fences.push({ geometry: { paths: [r] }, attributes: { BarrierType: 0 } }));
       });
       if (ca.length) rules.push(["🛑", oz.zone === "control" || dz.zone === "control" ? "Shortest time inside the control area" : "Routed around control areas"]);
       // 2. other poultry farms (biosecurity): routes stay away where they can
@@ -83,8 +87,11 @@ window.HPAI.modules.push(function (ctx) {
         try {
           const ext = { xmin: Math.min(oP.longitude, dP.longitude) - 0.15, ymin: Math.min(oP.latitude, dP.latitude) - 0.15, xmax: Math.max(oP.longitude, dP.longitude) + 0.15, ymax: Math.max(oP.latitude, dP.latitude) + 0.15, spatialReference: { wkid: 4326 } };
           const r = await ctx.rest(C.farmsUrl + "/query", { geometry: JSON.stringify(ext), geometryType: "esriGeometryEnvelope", where: "1=1", returnGeometry: true, outSR: 102100, resultRecordCount: 600, f: "json" });
+          // only farms close to the direct line of travel (keeps the request small)
+          const direct = { type: "polyline", paths: [[[oP.longitude, oP.latitude], [dP.longitude, dP.latitude]]], spatialReference: { wkid: 4326 } }, dm = wmu.geographicToWebMercator(direct);
           const pts = r.features.map((f) => new Point({ x: f.geometry.x, y: f.geometry.y, spatialReference: { wkid: 102100 } }))
-            .filter((p) => ge.distance(p, wmu.geographicToWebMercator(oP), "kilometers") > 1 && ge.distance(p, wmu.geographicToWebMercator(dP), "kilometers") > 1);
+            .filter((p) => ge.distance(p, wmu.geographicToWebMercator(oP), "kilometers") > 1 && ge.distance(p, wmu.geographicToWebMercator(dP), "kilometers") > 1 && ge.distance(p, dm, "kilometers") <= 5)
+            .slice(0, 120);
           if (pts.length) {
             const buf = ge.union(ge.geodesicBuffer(pts, C.farmBufferKm, "kilometers"));
             const simple = ge.generalize(buf, 60, true);
@@ -119,11 +126,22 @@ window.HPAI.modules.push(function (ctx) {
       if (cm.hazmat) { tm.restrictionAttributeNames = (tm.restrictionAttributeNames || []).concat(["Any Hazmat Prohibited"]).filter((v, i, a) => a.indexOf(v) === i); rules.push(["☣️", "Hazmat-restricted roads avoided (dead-bird load)"]); }
       rules.push(["🚛", `Truck limits: ${vhFt} ft high, ${vwT} tons`]);
       const params = { stops: fs(stops, "esriGeometryPoint"), travelMode: JSON.stringify(tm), startTime: depart, startTimeIsUTC: true, returnRoutes: true, returnStops: false, outputLines: "esriNAOutputLineTrueShape", outSR: 102100, directionsLanguage: "en", returnDirections: false };
-      if (polys.length) params.polygonBarriers = fs(polys, "esriGeometryPolygon");
       if (pointBarriers.length) params.barriers = fs(pointBarriers, "esriGeometryPoint");
-      let res;
-      try { res = await ctx.rest(C.routeUrl + "/solve", params); }
-      catch (e) { if (polys.some((p) => p.attributes.BarrierType === 0)) { params.polygonBarriers = fs(polys.map((p) => ({ geometry: p.geometry, attributes: { BarrierType: 1, Attr_TravelTime: 4, Attr_TruckTravelTime: 4 } })), "esriGeometryPolygon"); res = await ctx.rest(C.routeUrl + "/solve", params); rules.push(["⚠️", "No route fully avoids the control areas; this one keeps exposure low"]); } else throw e; }
+      // try the full set of rules first, then relax step by step so a route is always found
+      const tries = [
+        { fences, polys, note: null },
+        { fences, polys: [], note: polys.length ? "Farm spacing skipped for this trip (too many farms along the way)" : null },
+        { fences: [], polys: [], note: "No road avoids the control areas completely. Check with MDA before entering." }
+      ];
+      let res, lastErr;
+      for (const t of tries) {
+        const q = Object.assign({}, params);
+        if (t.fences.length) q.polylineBarriers = JSON.stringify({ geometryType: "esriGeometryPolyline", spatialReference: { wkid: 4326 }, features: t.fences });
+        if (t.polys.length) q.polygonBarriers = fs(t.polys, "esriGeometryPolygon");
+        try { res = await ctx.rest(C.routeUrl + "/solve", q); if (res.routes && res.routes.features.length) { if (t.note) rules.push(["⚠️", t.note]); break; } }
+        catch (e) { lastErr = e; res = null; }
+      }
+      if (!res) throw lastErr || new Error("No route found");
       const feat = res.routes && res.routes.features[0]; if (!feat) throw new Error("No route found");
       const line = { type: "polyline", paths: feat.geometry.paths, spatialReference: { wkid: 102100 } };
       const km = ge.geodesicLength(line, "kilometers"), min = feat.attributes.Total_TravelTime || feat.attributes.Total_TruckTravelTime || feat.attributes.Total_Minutes || 0;
