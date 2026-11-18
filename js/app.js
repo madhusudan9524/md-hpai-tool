@@ -517,8 +517,8 @@ require([
   view.ui.add(keyEl, "bottom-right");
   const ROWS = () => [
     { sec: "Outbreak" },
-    { id: "ca", t: "Control area", n: `within ${H.mi(C.zones.controlKm, 0)} miles of infected premises`, sw: "ca", ls: () => [L.ca] },
-    { id: "sz", t: "Surveillance zone", n: `${H.mi(C.zones.controlKm, 0)}–${H.mi(C.zones.surveillanceKm, 0)} miles · shows as you zoom in`, sw: "sz", ls: () => [L.sz] },
+    { id: "ca", t: "Control area", n: `within ${H.mi(C.zones.controlKm)} miles of infected premises`, sw: "ca", ls: () => [L.ca] },
+    { id: "sz", t: "Surveillance zone", n: `${H.mi(C.zones.controlKm)}–${H.mi(C.zones.surveillanceKm)} miles · shows as you zoom in`, sw: "sz", ls: () => [L.sz] },
     { id: "pm", t: ctx.isStaff() ? "Infected premises (public view)" : "Infected premises", n: C.privacy.markerShiftKm[1] ? "approximate location" : "", sw: "barn", ls: () => [L.markers], off: ctx.isStaff() },
     { id: "ex", staff: 1, t: "Infected premises (exact)", n: "premises boundary · MDA only", sw: "perim", ls: () => [L.prem, L.perim] },
     { id: "cty", t: "Affected county", n: "detection or MDA notice", sw: "cty", ls: () => [tintLyr] },
