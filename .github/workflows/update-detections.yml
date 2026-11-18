@@ -40,5 +40,6 @@ jobs:
         run: |
           git config user.name "hpai-data-bot"
           git config user.email "hpai-data-bot@users.noreply.github.com"
-          git add data/detections.json; git add data/birds.json data/alerts_state.json 2>/dev/null || true
+          # one file at a time: a file that doesn't exist yet (e.g. alerts_state.json before alerts are set up) must not stop the others
+          for f in data/detections.json data/birds.json data/alerts_state.json; do [ -f "$f" ] && git add "$f"; done
           git diff --cached --quiet || (git commit -m "Update HPAI detections $(date -u +%F\ %H:%M) UTC" && git push)
