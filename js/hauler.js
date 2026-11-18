@@ -25,31 +25,10 @@ window.HPAI.modules.push(function (ctx) {
     routeLyr.removeAll();
     [[org, [30, 110, 190]], [dst, [200, 40, 30]]].forEach(([p, c]) => p && routeLyr.add(new Graphic({ geometry: new Point({ longitude: p.pt.longitude, latitude: p.pt.latitude }), symbol: { type: "simple-marker", size: 14, color: c.concat(1), outline: { color: [255, 255, 255, 1], width: 3 } } })));
   }
-  $("clearRoute").onclick = () => { org = dst = last = null; orgS.clear(); dstS.clear(); routeLyr.removeAll(); $("routeResult").innerHTML = ""; $("pinInfo").hidden = true; };
-  // coordinates of a dropped pin, e.g. 38.88412° N, 75.82917° W
-  const coords = (g) => `${Math.abs(g.latitude).toFixed(5)}° ${g.latitude >= 0 ? "N" : "S"}, ${Math.abs(g.longitude).toFixed(5)}° ${g.longitude >= 0 ? "E" : "W"}`;
-  async function nearest(g) {
-    try { const r = await fetch("https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?" + new URLSearchParams({ f: "json", location: `${g.longitude},${g.latitude}` })).then((x) => x.json());
-      return r.address && (r.address.Match_addr || r.address.LongLabel) ? r.address.Match_addr || r.address.LongLabel : null; } catch (e) { return null; }
-  }
-  async function setEnd(which, mp) {
-    const g = wgs(mp), label = coords(g), end = { pt: g, name: label };
-    if (which === "org") { org = end; orgS.searchTerm = label; } else { dst = end; dstS.searchTerm = label; }
-    pin();
-    const info = $("pinInfo"); info.hidden = false; info.innerHTML = `${H.icon("b")}<span><b>${which === "org" ? "Start" : "Destination"}:</b> ${esc(label)}<br><small>Finding the nearest address…</small></span>`;
-    const near = await nearest(g);
-    info.innerHTML = `${H.icon("b")}<span><b>${which === "org" ? "Start" : "Destination"}:</b> ${esc(label)}${near ? `<br><small>Near ${esc(near.replace(/, USA$/, ""))}</small>` : ""}</span>`;
-  }
-  let pinFor = null;
-  const armPin = (which) => {
-    pinFor = which; view.container.style.cursor = "crosshair";
-    document.querySelectorAll(".pinbtn").forEach((b) => b.classList.toggle("on", b.id === (which === "org" ? "pinOrg" : "pinDst")));
-    toast(which === "org" ? "Tap the map where the trip starts" : "Tap the map where the trip ends", 4000); ctx.sheetPeek();
-  };
-  $("pinOrg").onclick = () => armPin("org"); $("pinDst").onclick = () => armPin("dst");
-  ctx.on("pick", (mp) => { if (!pinFor) return false; const w = pinFor; pinFor = null; view.container.style.cursor = ""; document.querySelectorAll(".pinbtn").forEach((b) => b.classList.remove("on")); setEnd(w, mp); ctx.sheetHalf(); return true; });
-  ctx.actions.tripFrom = (pt) => { setEnd("org", pt); };
-  ctx.actions.tripTo = (pt) => { setEnd("dst", pt); };
+  $("clearRoute").onclick = () => { org = dst = last = null; orgS.clear(); dstS.clear(); routeLyr.removeAll(); $("routeResult").innerHTML = ""; document.querySelectorAll(".planner .addrnear").forEach((x) => (x.hidden = true)); };
+  // a start or end picked on the map goes through the box's own pin (app.js makeSearch): coordinates in the box, nearest address under it
+  ctx.actions.tripFrom = (pt) => $("orgBox")._fill(pt);
+  ctx.actions.tripTo = (pt) => $("dstBox")._fill(pt);
   ctx.on("card", () => S.ws === "industry" ? `<!--more--><div class="pacts"><button class="pb" data-act="tripFrom">Start trip here</button><button class="pb" data-act="tripTo">End trip here</button></div>` : "");
 
   // ---- road closures (MDOT CHART via Maryland Open Data) ----

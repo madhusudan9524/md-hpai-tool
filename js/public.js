@@ -79,7 +79,7 @@ window.HPAI.modules.push(function (ctx) {
       <label>Address<div id="plSearch"></div></label>
       <label>Name<input id="plName" placeholder="e.g. Home farm" value="${esc(name && name !== "This location" ? name : "")}"></label>
       <div class="seg" id="plKind"><button data-k="farm" class="${S.ws !== "public" ? "on" : ""}">Farm / premises</button><button data-k="home" class="${S.ws === "public" ? "on" : ""}">Home / other</button></div>
-      <p class="hint" id="plWhere">${g ? `Location set (${g.latitude.toFixed(4)}, ${g.longitude.toFixed(4)})` : "Type an address, or close this and tap the map."}</p>
+      <p class="hint" id="plWhere">${g ? `Location set (${g.latitude.toFixed(4)}, ${g.longitude.toFixed(4)})` : "Type an address, or tap the pin to pick it on the map."}</p>
       <button class="primary" id="plSave" ${g ? "" : "disabled"}>Save place</button>
       <p class="hint">Saved on this device only. For email alerts use “Email alerts”.</p></div>`);
     let loc = g, kind = S.ws !== "public" ? "farm" : "home";
@@ -137,7 +137,7 @@ window.HPAI.modules.push(function (ctx) {
     const body = sheet(wildR ? "Report a dead wild bird" : "Report a sick flock", `<div class="form">
       ${wildR ? `<p class="hint">Don't touch the bird. A photo from a distance helps.</p>` : `<p class="hint"><b>If birds are dying now, call MDA: ${esc(C.mdaPhone)}.</b> This form helps MDA follow up.</p>`}
       <label>Where<div id="rpSearch"></div></label>
-      <div class="btns" style="margin:0"><button class="ghost" id="rpPick">Pick on map</button><button class="ghost" id="rpHere">Use my location</button></div>
+      <div class="btns" style="margin:0"><button class="ghost" id="rpHere">Use my location</button></div>
       <p class="hint" id="rpWhere">No location yet.</p>
       ${wildR ? `<div class="two"><label>Kind of bird<select id="rpSp"><option>Duck or goose</option><option>Swan</option><option>Gull</option><option>Hawk, eagle or owl</option><option>Vulture</option><option>Other / not sure</option></select></label>
         <label>How many<input id="rpN" type="number" min="1" value="1"></label></div>`
@@ -151,7 +151,6 @@ window.HPAI.modules.push(function (ctx) {
     let loc = null, blob = null;
     const setLoc = (g, label) => { loc = g.spatialReference && !g.spatialReference.isWGS84 ? wmu.webMercatorToGeographic(g) : g; $("rpWhere").textContent = label || `${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}`; $("rpGo").disabled = false; };
     ctx.makeSearch("rpSearch", "Address or place", (g, nm) => setLoc(g, nm));
-    $("rpPick").onclick = () => { $("sheet").hidden = true; toast("Tap the map where you saw it"); picking = (mp) => { $("sheet").hidden = false; setLoc(mp); }; };
     $("rpHere").onclick = () => navigator.geolocation && navigator.geolocation.getCurrentPosition((p) => setLoc(new Point({ longitude: p.coords.longitude, latitude: p.coords.latitude }), "Your location"), () => toast("Location not available"));
     $("rpDrop").onclick = () => $("rpFile").click();
     $("rpFile").onchange = async () => { const f = $("rpFile").files[0]; if (!f) return; try { blob = await shrinkImage(f); $("rpDrop").innerHTML = `<img src="${URL.createObjectURL(blob)}" alt="Photo">`; } catch (e) { toast(e.message); } };

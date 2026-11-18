@@ -585,3 +585,38 @@ a.btnlink { display: block; text-align: center; text-decoration: none; }
 /* past outbreaks slider: back to today */
 .lk .ttoday { margin: 0 8px 8px; width: calc(100% - 16px); }
 .lk .ttoday[hidden] { display: none; }
+
+/* ---------- address boxes: the map pin sits inside the box, at its right end ---------- */
+.addr input { padding-right: 76px; }
+.addrx { top: 10px; right: 42px; transform: none; }
+.addrpin { position: absolute; top: 1px; right: 1px; width: 40px; height: 44px; display: grid; place-items: center; border: 0; border-left: 1px solid var(--line);
+  border-radius: 0 11px 11px 0; background: transparent; color: #4b5866; cursor: pointer; padding: 0; transition: background-color .15s, color .15s; }
+.addrpin svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.addrpin:hover { background: var(--hover); color: var(--accent); }
+.addrpin:active { background: var(--soft); }
+.addr.arming input { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(10, 108, 255, .15); }
+.addr.arming .addrpin { color: #fff; background: var(--accent); }
+.inputs .addrx { top: 8px; }
+.inputs .addrpin { height: 40px; }
+.addrnear { display: block; margin: 4px 2px 0; font-size: 12.5px; color: var(--mute); }
+.addrnear[hidden] { display: none; }
+.pinbtn, .pininfo { display: none !important; }
+
+/* ---------- info card: our own, slightly rounded, opens below the clicked spot with a soft pointer ---------- */
+.esri-popup { display: none !important; }
+.mcard { position: absolute; left: 0; top: 0; z-index: 20; width: min(300px, calc(100% - 16px)); background: var(--panel); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 25, 40, .22), 0 1px 3px rgba(15, 25, 40, .12); will-change: transform; }
+.mcard[hidden] { display: none; }
+.mcard .mbody { border-radius: 12px; overflow: hidden; max-height: 70vh; overflow-y: auto; }
+.mcard .pop .band { border-radius: 0; padding: 12px 52px 11px 16px; }
+.mcard .pop .bd { padding: 12px 16px 14px; }
+/* pointer: a small rounded tip that grows out of the card, no outline */
+.mcard .mtail { position: absolute; top: -7px; left: var(--tail, 50%); width: 16px; height: 16px; margin-left: -8px; transform: rotate(45deg); border-radius: 4px 0 0 0;
+  background: var(--tailbg, var(--panel)); }
+.mcard:has(.band.ca) { --tailbg: #d7263d; } .mcard:has(.band.sz) { --tailbg: #c9731a; } .mcard:has(.band.free) { --tailbg: #1f8a4c; } .mcard:has(.band.bird) { --tailbg: #0e9aa7; }
+.mcard:has(.band.info) { --tailbg: #46566a; } .mcard:has(.band.prem) { --tailbg: #4a0d0d; } .mcard:has(.band.mammal) { --tailbg: #8a5a2b; } .mcard:has(.band.ebird) { --tailbg: #2c5aa0; }
+/* close: a clear 32 px round button on the coloured band */
+.mcard .mx { position: absolute; top: 10px; right: 10px; z-index: 2; width: 32px; height: 32px; border: 0; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(0, 0, 0, .2); color: #fff; font-size: 22px; line-height: 1; cursor: pointer; padding: 0; }
+.mcard .mx:hover { background: rgba(0, 0, 0, .34); }
+@media (max-width: 760px) { .mcard { width: calc(100% - 16px); } }

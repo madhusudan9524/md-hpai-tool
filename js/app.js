@@ -332,11 +332,31 @@ require([
   const geoExt = JSON.stringify({ xmin: -79.6, ymin: 37.0, xmax: -74.9, ymax: 39.85, spatialReference: { wkid: 4326 } });
   const geo = (op, p) => fetch(`${GEO}/${op}?` + new URLSearchParams(Object.assign({ f: "json", searchExtent: geoExt, countryCode: "USA" }, p))).then((r) => r.json());
   const addrShort = (t) => (t || "").replace(/, USA$/, "").replace(/, (Maryland|MD), (\d{5})/, ", MD $2");
+  const PIN_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+  const coordsLabel = (g) => `${Math.abs(g.latitude).toFixed(5)}° ${g.latitude >= 0 ? "N" : "S"}, ${Math.abs(g.longitude).toFixed(5)}° ${g.longitude >= 0 ? "E" : "W"}`;
   ctx.makeSearch = (container, placeholder, onPick) => {
     const host = typeof container === "string" ? $(container) : container;
     host.classList.add("addr");
-    host.innerHTML = `<input type="text" autocomplete="off" spellcheck="false" placeholder="${esc(placeholder)}" aria-label="${esc(placeholder)}" role="combobox" aria-expanded="false"><button class="addrx" type="button" aria-label="Clear" hidden>×</button><ul class="sugg" role="listbox" hidden></ul>`;
-    const inp = host.querySelector("input"), ul = host.querySelector("ul"), clr = host.querySelector(".addrx");
+    host.innerHTML = `<input type="text" autocomplete="off" spellcheck="false" placeholder="${esc(placeholder)}" aria-label="${esc(placeholder)}" role="combobox" aria-expanded="false"><button class="addrx" type="button" aria-label="Clear" hidden>×</button><button class="addrpin" type="button" title="Pick on the map" aria-label="Pick this place on the map">${PIN_SVG}</button><ul class="sugg" role="listbox" hidden></ul>`;
+    const inp = host.querySelector("input"), ul = host.querySelector("ul"), clr = host.querySelector(".addrx"), pinB = host.querySelector(".addrpin");
+    // fill this box from a map tap: coordinates straight away, the nearest address as a hint underneath
+    const inSheet = !!host.closest("#sheet");
+    host._fill = async (mp) => {
+      const g = mp.spatialReference && !mp.spatialReference.isWGS84 ? wmu.webMercatorToGeographic(mp) : mp;
+      if (inSheet) $("sheet").hidden = false;
+      if (!ctx.inArea(wmu.geographicToWebMercator(g))) return toast("That place is outside Maryland and Delmarva");
+      const label = coordsLabel(g); inp.value = label; clr.hidden = false; close();
+      const pt = new Point({ longitude: g.longitude, latitude: g.latitude });
+      if (onPick) onPick(pt, label, { fromMap: true }); else locationCard(wmu.geographicToWebMercator(pt), label);
+      const r = await geo("reverseGeocode", { location: `${g.longitude},${g.latitude}` }).catch(() => null), near = r && r.address && (r.address.Match_addr || r.address.LongLabel);
+      let hint = host.querySelector(".addrnear"); if (!hint) { hint = document.createElement("small"); hint.className = "addrnear"; host.appendChild(hint); }
+      hint.textContent = near ? "Near " + addrShort(near) : ""; hint.hidden = !near || inp.value !== label;
+    };
+    pinB.onclick = () => {
+      host.classList.add("arming"); ctx.armAddr(host);
+      if (inSheet) $("sheet").hidden = true; else ctx.sheetPeek();
+      toast("Tap the map to fill in this place", 4000);
+    };
     let items = [], act = -1, tmo = null, seq = 0;
     const close = () => { ul.hidden = true; inp.setAttribute("aria-expanded", "false"); act = -1; };
     const show = (list, head) => {
@@ -362,7 +382,7 @@ require([
       show(c, c.length ? "Did you mean" : "No matching place in Maryland or Delmarva");
     }
     inp.addEventListener("input", () => {
-      clr.hidden = !inp.value; clearTimeout(tmo);
+      clr.hidden = !inp.value; clearTimeout(tmo); const nh = host.querySelector(".addrnear"); if (nh) nh.hidden = true;
       const t = inp.value.trim(); if (t.length < 3) return close();
       tmo = setTimeout(async () => {
         const my = ++seq, r = await geo("suggest", { text: t, location: "-76.2,38.7", maxSuggestions: 6 }).catch(() => null);
@@ -379,7 +399,7 @@ require([
       else if (e.key === "Escape") close();
     });
     inp.addEventListener("blur", () => setTimeout(close, 150));
-    clr.onclick = () => { inp.value = ""; clr.hidden = true; close(); inp.focus(); };
+    clr.onclick = () => { inp.value = ""; clr.hidden = true; close(); const nh = host.querySelector(".addrnear"); if (nh) nh.hidden = true; inp.focus(); };
     return { clear: () => { inp.value = ""; clr.hidden = true; close(); }, set searchTerm(v) { inp.value = v || ""; clr.hidden = !v; }, get searchTerm() { return inp.value; } };
   };
   ctx.makeSearch("search", "Search an address or place");
@@ -410,6 +430,26 @@ require([
     surveillance: ["Watch your birds closely and report illness.", "Movements may need testing. Check with MDA before moving birds.", "Clean and disinfect vehicles and boots."],
     none: ["No movement restrictions here today.", "Keep birds away from wild waterfowl.", "Report sick or dead birds."]
   };
+  // ---------------- info card (our own, not the ArcGIS popup) ----------------
+  // Opens just below the spot that was clicked, with a small soft pointer up to it, and follows the map as it moves.
+  const cardBox = document.createElement("div"); cardBox.className = "mcard"; cardBox.hidden = true; cardBox.setAttribute("role", "dialog");
+  cardBox.innerHTML = `<span class="mtail" aria-hidden="true"></span><button class="mx" type="button" aria-label="Close">&times;</button><div class="mbody"></div>`;
+  view.container.appendChild(cardBox);
+  let cardPt = null, locDot = null;   // locDot: the blue dot of the place card (other marks, e.g. a trace, stay)
+  function placeCard() {
+    if (!cardPt || cardBox.hidden) return;
+    const sp = view.toScreen(cardPt); if (!sp) return;
+    const w = cardBox.offsetWidth, left = Math.max(8, Math.min(view.width - w - 8, sp.x - w / 2));
+    cardBox.style.transform = `translate(${Math.round(left)}px, ${Math.round(sp.y + 16)}px)`;
+    cardBox.style.setProperty("--tail", Math.round(Math.max(18, Math.min(w - 18, sp.x - left))) + "px");
+  }
+  reactiveUtils.watch(() => [view.extent, view.width, view.height], placeCard);
+  function openCard(pt, el) { cardPt = pt; const b = cardBox.querySelector(".mbody"); b.innerHTML = ""; b.appendChild(el); cardBox.hidden = false; placeCard(); }
+  function closeCard() { if (cardBox.hidden) return false; cardBox.hidden = true; cardPt = null; cardBox.querySelector(".mbody").innerHTML = ""; if (locDot) { marks.remove(locDot); locDot = null; } return true; }
+  cardBox.querySelector(".mx").onclick = () => closeCard();
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("sheet").hidden) closeCard(); });
+  ctx.openCard = openCard; ctx.closeCard = closeCard;
+
   // the card opens BELOW the clicked spot: if it would run off the bottom (or behind the phone's bottom sheet), slide the map up
   async function fitCard(pt, h) {
     const sp = view.toScreen(pt); if (!sp) return;
@@ -422,7 +462,7 @@ require([
   async function locationCard(pt, title, place) {
     if (pt.spatialReference && pt.spatialReference.isWGS84) pt = wmu.geographicToWebMercator(pt);   // accept either coordinate system
     if (!ctx.inArea(pt)) return;
-    marks.removeAll(); marks.add(new Graphic({ geometry: pt, symbol: { type: "simple-marker", size: 14, color: [10, 108, 255, 1], outline: { color: [255, 255, 255, 1], width: 3 } } }));
+    marks.removeAll(); locDot = new Graphic({ geometry: pt, symbol: { type: "simple-marker", size: 14, color: [10, 108, 255, 1], outline: { color: [255, 255, 255, 1], width: 3 } } }); marks.add(locDot);
     const z = await ctx.zoneAt(pt), cty = ctx.countyAt(wmu.geographicToWebMercator(pt.spatialReference.isWGS84 ? pt : wmu.webMercatorToGeographic(pt)));
     const aff = cty && S.affected.find((a) => a.county === cty.name && a.state === cty.state);
     const wildN = ctx.wildNear(pt, 10, 28).length, wildY = ctx.wildNear(pt, 10, 365).length;
@@ -455,9 +495,9 @@ require([
       <div class="do"><b>What to do</b><ul>${DO[z.zone || "none"].map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>${extraMore}</div>`;
     el.innerHTML = `<div class="band ${band[0]}"><b>${band[1]}</b><small>${esc(where)}${sub ? " · " + esc(sub) : ""}</small></div><div class="bd"><div class="chips2">${chips.join("")}</div><p class="tip">${esc(tip)}</p>${more}<div class="pacts">${extra}<button class="pb ghostb" data-more>Details ▾</button></div></div>`;
     const mb = el.querySelector("[data-more]"); mb.onclick = async () => { const m = el.querySelector(".more"); m.hidden = !m.hidden; mb.textContent = m.hidden ? "Details ▾" : "Less ▴";
-      if (!m.hidden) { const hh = el.offsetHeight + 60; view.closePopup(); await fitCard(pt, hh); view.openPopup({ location: pt, content: el }); } };
-    await fitCard(pt); view.openPopup({ location: pt, content: el });
-    el.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => { view.closePopup(); (ctx.actions[b.dataset.act] || (() => {}))(pt, title); }));
+      if (!m.hidden) { await fitCard(pt, el.offsetHeight + 40); placeCard(); } };
+    await fitCard(pt); openCard(pt, el);
+    el.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => { cardBox.hidden = true; cardPt = null; (ctx.actions[b.dataset.act] || (() => {}))(pt, title); }));
   }
   ctx.locationCard = locationCard;
 
@@ -619,8 +659,16 @@ require([
   ctx.renderKey = renderKey;
 
   // ---------------- click on the map ----------------
+  // an address box that's waiting for a map tap: its pin was pressed, or the cursor was still in it when the map was clicked
+  let armedAddr = null, focusAddr = null;
+  view.on("pointer-down", () => { const a = document.activeElement; focusAddr = a && a.tagName === "INPUT" && a.closest ? a.closest(".addr") : null; });
+  ctx.armAddr = (host) => { armedAddr = host; view.container.style.cursor = "crosshair"; };
   view.on("click", async (e) => {
+    const box = armedAddr || focusAddr; armedAddr = focusAddr = null; view.container.style.cursor = "";
+    document.querySelectorAll(".addr.arming").forEach((x) => x.classList.remove("arming"));
+    if (box && box._fill && document.body.contains(box)) { closeCard(); return box._fill(e.mapPoint); }
     if (emit("pick", e.mapPoint).some(Boolean)) return;            // a module is waiting for a map pick
+    if (closeCard()) return;                                       // a card was open: this click only closes it
     if (!ctx.inArea(e.mapPoint)) return;                           // outside Maryland / Delmarva: do nothing
     if (S.lookBack) return pastCard(e.mapPoint);
     const include = [wild, L.markers, L.prem, closuresLyr].concat(emit("hitLayers").flat()).filter(Boolean);
@@ -655,14 +703,14 @@ require([
   function simpleCard(pt, band, small, big, rows, extra) {
     const el = document.createElement("div"); el.className = "pop";
     el.innerHTML = `<div class="band ${band}"><small>${esc(small)}</small><b>${esc(big || "")}</b></div><div class="bd">${(rows || []).map(([k, v]) => `<div class="r"><span>${esc(k)}</span><b>${esc(v == null ? "–" : v)}</b></div>`).join("")}${extra || ""}</div>`;
-    fitCard(pt).then(() => view.openPopup({ location: pt, content: el })); return el;
+    fitCard(pt).then(() => openCard(pt, el)); return el;
   }
   ctx.simpleCard = simpleCard;
   function wildCard(g) {
     const a = g.attributes;
     simpleCard(g.geometry, a.group === "mammal" ? "mammal" : "bird", a.group === "mammal" ? "HPAI in a mammal" : "HPAI in a wild bird", a.species || "Species not listed", [["Detected", fmtDate(a.detected) + " · " + H.ago(a.detected)], ["County", `${a.county}, ${a.state}`], ["Strain", a.strain]],
       `<div class="do">Shown at county level, not the exact site. Source: USDA APHIS.</div><button class="cta" data-act="wildReport">Report a dead wild bird</button>`)
-      .querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => { view.closePopup(); ctx.actions.wildReport(); }));
+      .querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => { closeCard(); ctx.actions.wildReport(); }));
   }
   function markerCard(g, pt) {
     const a = g.attributes, since = a.since;
