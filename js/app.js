@@ -531,6 +531,7 @@ require([
   ];
   const vis = store.get("vis", {});
   function renderKey() {
+    const $ = (id) => keyEl.querySelector("#" + id) || document.getElementById(id);   // works before the panel is on the page
     const rows = ROWS().filter((r) => (!r.staff || ctx.isStaff()) && (!r.roles || r.roles.includes(S.ws)));
     let html = `<header id="keyHead"><svg class="lki" viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 10-5z"/><path d="M2 13l10 5 10-5"/></svg><span>Layers &amp; key${S.sample ? ' <i class="smpl" title="The control areas shown are exercise data, not real outbreaks">Sample zones</i>' : ""}</span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></header><div class="body">`;
     rows.forEach((r, i) => {
