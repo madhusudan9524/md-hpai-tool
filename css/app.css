@@ -623,3 +623,10 @@ a.btnlink { display: block; text-align: center; text-decoration: none; }
 /* layers & key: one line per description */
 .lk .lrow small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lk .lrow .nm { min-width: 0; }
+/* farm risk: the levels as one coloured strip (meanings on hover, and in each farm's sheet) */
+.rkstrip { display: flex; gap: 3px; margin-top: 10px; font-size: 11.5px; font-weight: 650; }
+.rkstrip span { flex: 1; text-align: center; padding: 4px 2px; border-radius: 6px; white-space: nowrap; cursor: help; }
+.rkstrip i { font-style: normal; font-weight: 500; opacity: .85; }
+.rkstrip .t0 { background: #e6f1dc; color: #3d6b10; } .rkstrip .t1 { background: #fcefd9; color: #8a5a0c; }
+.rkstrip .t2 { background: #f9e1d8; color: #a33d17; } .rkstrip .t3 { background: #A32D2D; color: #fff; }
+@media (prefers-color-scheme: dark) { .rkstrip .t0 { background: #1f3312; color: #a7d67c; } .rkstrip .t1 { background: #3a2a0f; color: #f4c27a; } .rkstrip .t2 { background: #3d1d12; color: #f2a184; } }

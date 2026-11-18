@@ -255,9 +255,7 @@ window.HPAI.modules.push(function (ctx) {
       <div class="rklist">${top.map((x) => riskRow(x)).join("") || `<p class="hint">No farms match.</p>`}</div>
       ${list.length > top.length ? `<p class="hint">${list.length - top.length} more farm${list.length - top.length > 1 ? "s" : ""} in the full list.</p>` : ""}
       <div class="btns">${n > 1 ? `<button class="ghost" id="rkAll">See all ${n} farms</button>` : ""}<button class="ghost" id="rkMap">${myFarms.visible ? "Hide from map" : "Show on map"}</button></div>
-      ${scaleHtml(false)}
-      <p class="hint" style="margin-top:8px">Screening score, not a diagnosis. Based on <a href="${R.SOURCES.aphis2015.u}" target="_blank" rel="noopener">USDA APHIS</a> data and peer-reviewed studies. Wildlife detections are published by county, so their distances are approximate. Call MDA about any sick birds.</p>
-      <p class="hint"><b>Private to you.</b> Your farms and their scores are kept only on this device. MDA doesn't see them.</p>`;
+      <div class="rkstrip" aria-label="Risk levels">${[0, 1, 2, 3].map((t) => `<span class="t${t}" title="${TIER_N[t]}: ${TIER_PTS[t]}. ${TIER_MEAN[t]}">${TIER_N[t]} <i>${TIER_PTS[t].replace(" points", "")}</i></span>`).join("")}</div>`;
     box.querySelectorAll("[data-lv]").forEach((b) => (b.onclick = () => { const t = +b.dataset.lv; riskLevel = riskLevel === t ? null : t; drawRisk(); }));
     if ($("rkUp")) $("rkUp").onclick = () => { riskUpOnly = !riskUpOnly; drawRisk(); };
     if ($("rkQ")) $("rkQ").oninput = (e) => { riskQ = e.target.value.toLowerCase(); const pos = e.target.selectionStart; drawRisk(); const q = $("rkQ"); q.focus(); q.setSelectionRange(pos, pos); };
@@ -280,7 +278,7 @@ window.HPAI.modules.push(function (ctx) {
       <p class="rkmean"><b>${TIER_N[x.r.tier]} (${TIER_PTS[x.r.tier]}).</b> ${TIER_MEAN[x.r.tier]}</p>
       ${x.prev != null && x.prev !== x.r.tier ? `<p class="hint">${x.r.tier > x.prev ? "Up" : "Down"} from ${TIER_N[x.prev].toLowerCase()} since your last visit.</p>` : ""}
       <h4 class="subhead">Why ${x.r.points} point${x.r.points === 1 ? "" : "s"}</h4><ul class="why">${x.r.reasons.map((y) => `<li>${y.n > 0 ? "+" : ""}${y.n} ${esc(y.why)} <a href="${R.SOURCES[y.src].u}" target="_blank" rel="noopener" title="${esc(R.SOURCES[y.src].t)}">source</a></li>`).join("") || "<li>No risk factors found</li>"}</ul>
-      <div class="btns"><button class="ghost" id="rdMap">Show on map</button><button class="ghost" id="rdDel">Remove farm</button><button class="ghost" id="rdAudit">${p.audit ? "Last audit " + fmtShort(p.audit.date) + (p.audit.passed ? " · passed" : " · not passed") : "Add last biosecurity audit"}</button></div></div>`);
+      <div class="btns"><button class="ghost" id="rdMap">Show on map</button><button class="ghost" id="rdDel">Remove farm</button><button class="ghost" id="rdAudit">${p.audit ? "Last audit " + fmtShort(p.audit.date) + (p.audit.passed ? " · passed" : " · not passed") : "Add last biosecurity audit"}</button></div>${scaleHtml(false)}<p class="hint">Screening score, not a diagnosis. Based on <a href="${R.SOURCES.aphis2015.u}" target="_blank" rel="noopener">USDA APHIS</a> data and peer-reviewed studies; wildlife cases are placed by county, so distances are approximate. Your farms and scores stay on this device; MDA doesn't see them.</p></div>`);
     $("rdMap").onclick = () => { closeSheet(); view.goTo({ target: ptOf(p), zoom: 13 }); ctx.locationCard(ptOf(p), p.name); };
     $("rdAudit").onclick = () => auditForm(p);
     $("rdDel").onclick = () => { closeSheet(); removePlace(p.id); };
