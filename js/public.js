@@ -25,9 +25,11 @@ window.HPAI.modules.push(function (ctx) {
   }
   async function renderPlaces() {
     const box = $("places");
-    if (!places.length) { box.innerHTML = `<p class="hint">Save your farm or home to get alerts.</p>`; renderRisk(); return; }
+    if (!places.length) { box.innerHTML = S.ws === "industry" ? "" : `<p class="hint">Save your farm or home to get alerts.</p>`; renderRisk(); return; }
     const seen = store.get("placeSeen", {});
-    const rows = await Promise.all(places.map(async (p) => ({ p, s: await statusOf(p) })));
+    const ind = S.ws === "industry";
+    const all = await Promise.all(places.map(async (p) => ({ p, s: await statusOf(p) })));
+    const rows = ind ? all.filter(({ p }) => p.kind !== "farm") : all;
     let fresh = 0;
     const many = rows.length > 6 && !S.placesAll;
     box.innerHTML = rows.map(({ p, s }, i) => {
@@ -40,8 +42,11 @@ window.HPAI.modules.push(function (ctx) {
       box.insertAdjacentHTML("beforeend", `<button class="link" id="plAll" style="font-size:14px;margin-top:6px">${S.placesAll ? "Show fewer" : `Show all ${rows.length} places`}</button>`);
       $("plAll").onclick = () => { S.placesAll = !S.placesAll; renderPlaces(); };
     }
+    if (ind && rows.length) box.insertAdjacentHTML("afterbegin", `<h4 class="subhead">Other places</h4>`);
+    // status alerts still cover every place, farms included
+    if (ind) all.filter(({ p }) => p.kind === "farm").forEach(({ p, s }) => { if (s.key && seen[p.id] !== s.key) fresh++; });
     if (fresh) toast(`Alert: ${fresh} of your places has a new status`, 5000);
-    rows.forEach(({ p, s }) => (seen[p.id] = s.key)); store.set("placeSeen", seen);
+    all.forEach(({ p, s }) => (seen[p.id] = s.key)); store.set("placeSeen", seen);
     box.querySelectorAll(".place").forEach((el) => (el.onclick = (e) => {
       if (e.target.dataset.del) { places = places.filter((x) => x.id !== e.target.dataset.del); save(); renderPlaces(); return; }
       const p = places.find((x) => x.id === el.dataset.id); view.goTo({ target: ptOf(p), zoom: 12 }); ctx.locationCard(ptOf(p), p.name); ctx.sheetPeek();
@@ -198,7 +203,7 @@ window.HPAI.modules.push(function (ctx) {
     const box = $("riskList");
     if (S.ws !== "industry") { myFarms.removeAll(); myFarms.visible = false; return; }
     const farms = places.filter((p) => p.kind === "farm");
-    if (!farms.length) { riskRows = []; myFarms.removeAll(); box.innerHTML = `<p class="hint">Add your premises under My places (choose Farm), or <button class="link" id="rkImp0">import a list of farms</button>.</p>`; $("rkImp0").onclick = importFarms; return; }
+    if (!farms.length) { riskRows = []; myFarms.removeAll(); box.innerHTML = `<p class="hint">Add your farm with <b>+ Add</b>, or <button class="link" id="rkImp0">import a list of farms</button>. Each farm gets a risk score and alerts.</p>`; $("rkImp0").onclick = importFarms; return; }
     const job = ++riskBusy;
     if (!riskRows.length) box.innerHTML = `<p class="hint">Scoring ${farms.length} farm${farms.length > 1 ? "s" : ""}…</p>`;
     const ev = regionEvents(), out = [];
@@ -225,7 +230,7 @@ window.HPAI.modules.push(function (ctx) {
       ${n > 8 ? `<input id="rkQ" class="rkq" placeholder="Search farms or counties" value="${esc(riskQ)}">` : ""}
       <div class="rklist">${top.map((x) => riskRow(x)).join("") || `<p class="hint">No farms match.</p>`}</div>
       ${list.length > top.length ? `<p class="hint">${list.length - top.length} more farm${list.length - top.length > 1 ? "s" : ""} in the full list.</p>` : ""}
-      <div class="btns">${n > 1 ? `<button class="ghost" id="rkAll">See all ${n} farms</button>` : ""}<button class="ghost" id="rkMap">${myFarms.visible ? "Hide from map" : "Show on map"}</button><button class="ghost" id="rkImp">Import farms</button></div>
+      <div class="btns">${n > 1 ? `<button class="ghost" id="rkAll">See all ${n} farms</button>` : ""}<button class="ghost" id="rkMap">${myFarms.visible ? "Hide from map" : "Show on map"}</button></div>
       <p class="hint" style="margin-top:8px">Screening score, not a diagnosis. Based on <a href="${R.SOURCES.aphis2015.u}" target="_blank" rel="noopener">USDA APHIS</a> data and peer-reviewed studies. Wildlife detections are published by county, so their distances are approximate. Call MDA about any sick birds.</p>
       <p class="hint"><b>Private to you.</b> Your farms and their scores are kept only on this device. MDA doesn't see them.</p>`;
     box.querySelectorAll("[data-lv]").forEach((b) => (b.onclick = () => { const t = +b.dataset.lv; riskLevel = riskLevel === t ? null : t; drawRisk(); }));
@@ -234,7 +239,6 @@ window.HPAI.modules.push(function (ctx) {
     bindRows(box);
     if ($("rkAll")) $("rkAll").onclick = riskTable;
     $("rkMap").onclick = () => { myFarms.visible = !myFarms.visible; if (myFarms.visible && myFarms.graphics.length) view.goTo(myFarms.graphics.toArray(), { padding: 60 }).catch(() => {}); drawRisk(); };
-    $("rkImp").onclick = importFarms;
   }
   function riskRow(x) {
     return `<div class="rkrow" data-id="${x.p.id}"><div class="rkt"><b>${esc(x.p.name)}${x.up ? ` <span class="rkarrow t${x.r.tier}" title="Went up">▲</span>` : ""}</b>${pillOf(x)}</div>
@@ -250,9 +254,10 @@ window.HPAI.modules.push(function (ctx) {
       <span class="meter"><i style="left:${Math.min(96, (x.r.points / 14) * 100)}%"></i></span>
       ${x.prev != null && x.prev !== x.r.tier ? `<p class="hint">${x.r.tier > x.prev ? "Up" : "Down"} from ${TIER_N[x.prev].toLowerCase()} since your last visit.</p>` : ""}
       <ul class="why">${x.r.reasons.map((y) => `<li>${y.n > 0 ? "+" : ""}${y.n} ${esc(y.why)} <a href="${R.SOURCES[y.src].u}" target="_blank" rel="noopener" title="${esc(R.SOURCES[y.src].t)}">source</a></li>`).join("") || "<li>No risk factors found</li>"}</ul>
-      <div class="btns"><button class="ghost" id="rdMap">Show on map</button><button class="ghost" id="rdAudit">${p.audit ? "Last audit " + fmtShort(p.audit.date) + (p.audit.passed ? " · passed" : " · not passed") : "Add last biosecurity audit"}</button></div></div>`);
+      <div class="btns"><button class="ghost" id="rdMap">Show on map</button><button class="ghost" id="rdDel">Remove farm</button><button class="ghost" id="rdAudit">${p.audit ? "Last audit " + fmtShort(p.audit.date) + (p.audit.passed ? " · passed" : " · not passed") : "Add last biosecurity audit"}</button></div></div>`);
     $("rdMap").onclick = () => { closeSheet(); view.goTo({ target: ptOf(p), zoom: 13 }); ctx.locationCard(ptOf(p), p.name); };
     $("rdAudit").onclick = () => auditForm(p);
+    $("rdDel").onclick = () => { if (!confirm(`Remove ${p.name} from your farms?`)) return; places = places.filter((y) => y.id !== p.id); save(); closeSheet(); renderPlaces(); };
   }
   function auditForm(p) {
     sheet("Last biosecurity audit", `<div class="form"><p class="hint">${esc(p.name)}</p><label>Date<input type="date" id="auD" value="${p.audit ? new Date(p.audit.date).toISOString().slice(0, 10) : ""}"></label>

@@ -94,8 +94,9 @@
       </div>
     </section>
 
-    <section class="card" data-for="public industry">
-      <div class="ch"><h3>My places</h3><span><button class="link" id="importPlaces" data-for="industry" hidden>Import farms</button> <button class="link" id="addPlace">+ Add</button></span></div>
+    <section class="card" data-for="public industry" id="myPlaces">
+      <div class="ch"><h3><span data-for="public">My places</span><span data-for="industry" hidden>My farms</span></h3><span><button class="link" id="importPlaces" data-for="industry" hidden>Import</button> <button class="link" id="addPlace">+ Add</button></span></div>
+      <div id="riskList" data-for="industry" hidden><p class="hint">Add your premises (choose Farm).</p></div>
       <div id="places"><p class="hint">Save your farm or home to get alerts.</p></div>
     </section>
 
@@ -110,10 +111,6 @@
         <div class="hstat"><b id="kCty">–</b><span>counties</span></div>
         <div class="hstat teal"><b id="kWild">–</b><span>wildlife · 4 wk</span></div>
       </div>
-    </section>
-    <section class="card" data-for="industry" id="riskCard">
-      <div class="ch"><h3>Farm risk</h3><span class="sub">screening score</span></div>
-      <div id="riskList"><p class="hint">Add your premises under My places.</p></div>
     </section>
     <section class="card" id="sec-news">
       <div class="ch"><h3>Official notices</h3><span class="sub" id="updated"></span></div>
