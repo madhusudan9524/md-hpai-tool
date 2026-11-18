@@ -76,7 +76,7 @@ window.HPAI.modules.push(function (ctx) {
       ["layers", "Saved trips", "Plan again in one tap", go("#hTabs", () => document.querySelector('#hTabs [data-p="trips"]').click())],
       ["barn", "Farm check-in", "Log a farm visit", () => ctx.actions.checkin()]]],
       ["My farm & reports", [
-      ["barn", "My farms & risk levels", "Risk level and alerts for each farm", go("#myPlaces")],
+      ["barn", "My premises and HPAI risks", "Risk level and alerts for each premises", go("#myPlaces")],
       ["plus", "Add a place", "Farm or home, for alerts", () => document.getElementById("addPlace").click()],
       ["layers", "Import farms", "From a spreadsheet (CSV)", () => ctx.actions.importFarms()],
       ["flag", "Report a sick flock", "MDA follows up", () => ctx.actions.flockReport()],
