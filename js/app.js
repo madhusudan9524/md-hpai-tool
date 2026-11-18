@@ -651,7 +651,7 @@ require([
     const note = $("pendingNote");
     if (S.role === "pending") {
       note.hidden = false;
-      note.innerHTML = `<b>This ArcGIS account isn't on MDA's staff list.</b> You see the public map. Industry partners sign in with their email or mobile number instead: <a href="#" id="pendReq">sign out and use a code</a>.`;
+      note.innerHTML = `<b>This ArcGIS account isn't on MDA's staff list yet.</b> You see the public map. If you should have staff access, send your username <b>${esc(S.user.username)}</b> to the tool's administrator, then sign in again. Industry partners sign in with their email or mobile number instead: <a href="#" id="pendReq">sign out and use a code</a>.`;
       $("pendReq").onclick = (e) => { e.preventDefault(); esriId.destroyCredentials(); try { sessionStorage.removeItem("hpaiWs"); sessionStorage.setItem("hpaiInd", "1"); } catch (x) {} location.reload(); };
     } else note.hidden = true;
     setWorkspace(S.role === "pending" ? "public" : S.role);
