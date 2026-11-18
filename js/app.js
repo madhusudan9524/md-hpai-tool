@@ -158,12 +158,12 @@ require([
     }
     if (ctx.isStaff()) {
       const premUrl = has(C.core.premises) ? C.core.premises : C.legacy.premises, perimUrl = has(C.core.perimeters) ? C.core.perimeters : C.legacy.perimeters;
-      L.perim = new FeatureLayer({ url: perimUrl, title: "Premises boundary", outFields: ["*"], popupEnabled: false, minScale: 150000,
-        renderer: { type: "simple", symbol: { type: "simple-fill", style: "diagonal-cross", color: DRED.concat(0.7), outline: { color: DRED.concat(1), width: 2.5 } } } });
+      L.perim = new FeatureLayer({ url: perimUrl, title: "Premises boundary", outFields: ["*"], popupEnabled: false,
+        renderer: { type: "simple", symbol: { type: "simple-fill", color: DRED.concat(0.35), outline: { color: DRED.concat(1), width: 2.5 } } } });
       L.prem = new FeatureLayer({ url: premUrl, title: "Infected premises (exact)", outFields: ["*"], popupEnabled: false,
-        maxScale: 150000,   // zoomed in, the exact boundary takes over
-        renderer: { type: "unique-value", field: "status", defaultSymbol: { type: "picture-marker", url: ICONS.barn, width: "28px", height: "28px" },
-          uniqueValueInfos: [{ value: "Released", symbol: { type: "picture-marker", url: svgIcon(BARN, "#8a94a6"), width: "20px", height: "20px" } }] } });
+        maxScale: 300000,   // only a locator when zoomed far out (the boundary is too small to see there); zoomed in, the exact boundary shows
+        renderer: { type: "unique-value", field: "status", defaultSymbol: { type: "simple-marker", style: "square", size: 9, color: DRED.concat(1), outline: { color: [255, 255, 255, 1], width: 1.5 } },
+          uniqueValueInfos: [{ value: "Released", symbol: { type: "simple-marker", style: "square", size: 7, color: [138, 148, 166, 1], outline: { color: [255, 255, 255, 1], width: 1 } } }] } });
       map.addMany([L.perim, L.prem]);
     }
     [wild, closuresLyr, routeLyr, marks].forEach((l) => { map.remove(l); map.add(l); });
@@ -405,7 +405,7 @@ require([
     { id: "ca", t: "Control area", n: `0–${C.zones.controlKm} km from the premises edge`, sw: "ca", ls: () => [L.ca] },
     { id: "sz", t: "Surveillance zone", n: "appears as you zoom in", sw: "sz", ls: () => [L.sz] },
     { id: "pm", t: ctx.isStaff() ? "Infected premises (public view)" : "Infected premises", n: C.privacy.markerShiftKm[1] ? "approximate location" : "", sw: "barn", ls: () => [L.markers], off: ctx.isStaff() },
-    { id: "ex", staff: 1, t: "Infected premises (exact)", n: "boundary when zoomed in", sw: "perim", ls: () => [L.prem, L.perim] },
+    { id: "ex", staff: 1, t: "Infected premises (exact)", n: "premises boundary · MDA only", sw: "perim", ls: () => [L.prem, L.perim] },
     { id: "cty", t: "Affected county", n: "detection or MDA notice", sw: "cty", ls: () => [tintLyr] },
     { sec: "Wildlife" },
     { id: "wb", t: "Wildlife with HPAI", n: "birds and mammals · USDA APHIS", sw: "wb", ls: () => [wild], seg: true },
