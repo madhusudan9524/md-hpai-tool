@@ -64,7 +64,7 @@ window.HPAI_CONFIG = {
 
   // ---- zone rules (MDA can change) ----
   zones: { controlKm: 10, surveillanceKm: 20 },
-  tintDays: 30,                 // county tint lasts this long after a commercial-flock detection or declaration
+  tintDays: 28,                 // county tint lasts this long after a detection or declaration (28 days = two 14-day flock incubation periods, WOAH)
   privacy: {
     markerShiftKm: [0, 0],      // 0 = the public marker sits on the premises (MDA choice). e.g. [1.5, 3] moves it off-center for more privacy
     markerRadiusKm: 3,          // and drawn as an area this wide

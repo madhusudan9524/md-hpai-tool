@@ -582,3 +582,6 @@ a.btnlink { display: block; text-align: center; text-decoration: none; }
 .rklev > div { display: grid; grid-template-columns: 92px 1fr; gap: 8px; align-items: start; }
 .rklev .pill { justify-self: start; } .rklev small { font-size: 13px; color: var(--mute); line-height: 1.4; }
 .rkmean { margin: 2px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--soft); font-size: 14px; line-height: 1.45; }
+/* past outbreaks slider: back to today */
+.lk .ttoday { margin: 0 8px 8px; width: calc(100% - 16px); }
+.lk .ttoday[hidden] { display: none; }

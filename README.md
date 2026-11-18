@@ -49,7 +49,9 @@ The current zones are the prototype's **sample** data, migrated and labeled as s
 
 A premises created with "Confirmed by USDA" off has its zones stored with status **Pending**: it's tracked in the MDA panel but no circle is drawn or published, and no marker is shown, until MDA taps **Confirm**. Releasing a preliminary premises doesn't add it to Past outbreaks; it withdraws the county's declarations and adds a **Cleared** declaration, which ends the county's tint (and is skipped by email alerts).
 
-Releasing a confirmed premises ends its county's tint and keeps the area in light grey under Past outbreaks.
+Releasing a confirmed premises ends its county's tint; the area shows in light grey under Past outbreaks for 28 days (two 14-day flock incubation periods, the WOAH recovery period).
+
+**Past outbreaks slider** (Layers & key): weekly steps back to January 2022. On any date, areas in force that day are red, areas released in the 28 days before it are grey, and today's live areas are hidden until you go back to today. Clicking the map while looking back describes that date.
 
 ## MDA premises registry
 

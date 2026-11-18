@@ -191,7 +191,7 @@ require([
     const z = view.zoom, k = (a, b) => Math.max(0, Math.min(1, (z - a) / (b - a)));
     countyLyr.opacity = 1 - k(9, 11.5);
     tintLyr.opacity = 1 - 0.7 * k(9, 11.5);
-    if (L.sz) L.sz.opacity = ctx.isStaff() ? 1 : k(8.6, 10);
+    if (L.sz) L.sz.opacity = S.lookBack ? 0 : ctx.isStaff() ? 1 : k(8.6, 10);
   }
   reactiveUtils.watch(() => view.zoom, fadeByZoom);
 
@@ -464,7 +464,7 @@ require([
   // past outbreak areas at a point (released zones + real county history)
   async function pastAt(pt) {
     let n = 0, last = 0, real = 0;
-    histLyr.graphics.forEach((g) => { if (geometryEngine.intersects(g.geometry, pt.spatialReference.isWebMercator ? pt : wmu.geographicToWebMercator(pt))) { n++; if (g.attributes.kind !== "sample") real++; last = Math.max(last, g.attributes.start || 0); } });
+    histLyr.graphics.forEach((g) => { if (g.attributes.released && geometryEngine.intersects(g.geometry, pt.spatialReference.isWebMercator ? pt : wmu.geographicToWebMercator(pt))) { n++; if (g.attributes.kind !== "sample") real++; last = Math.max(last, g.attributes.start || 0); } });
     return { n, last, sample: n > 0 && !real };
   }
 
@@ -511,29 +511,44 @@ require([
   reactiveUtils.watch(() => riskLyr.visible, (v) => { if (v && !riskBuilt) { riskBuilt = true; toast("Building seasonal risk…"); buildRisk().then(() => toast("Seasonal risk: " + new Date().toLocaleString("en-US", { month: "long" }))); } });
   on("wild", () => { if (riskBuilt) buildRisk(); });
 
-  // ---------------- history (time slider): released control zones only ----------------
+  // ---------------- past outbreaks + time slider ----------------
+  // Every control area on one timeline: released ones from the public history layer (start = detection, end = release)
+  // plus the ones in force today (no end yet). On any date the slider shows, an area is RED if it was in force that day
+  // and GREY for 28 days after its release (WOAH / USDA: two 14-day flock incubation periods), and hidden otherwise.
+  const PAST_DAYS = 28;
   const pubHist = () => has(C.pub.history) ? new FeatureLayer({ url: C.pub.history }).queryFeatures({ where: "1=1", outFields: ["*"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((r) => r.features).catch(() => []) : Promise.resolve([]);
-  // "Past outbreaks" = control zones that were actually released (C.pub.history is only ever written to from the
-  // release+publish flow in mda.js). A past commercial detection or a zone that's still active isn't a past outbreak
-  // yet, so those aren't shown here even though they appear elsewhere (county shading, the current control area, etc.)
+  let pastItems = [];
   const loadHistory = () => pubHist().then((ph) => {
-    histLyr.removeAll();
-    const items = ph.map((f) => ({ geom: f.geometry, start: f.attributes.start_date, end: f.attributes.end_date, kind: f.attributes.sample ? "sample" : "zone", label: `${f.attributes.county || ""} County · past control area (released)` }));
+    pastItems = ph.map((f) => ({ geom: f.geometry, start: f.attributes.start_date, end: f.attributes.end_date, kind: f.attributes.sample ? "sample" : "zone", county: f.attributes.county || "", released: true }));
     S.released = ph.filter((f) => f.attributes.sample !== 1 && f.attributes.end_date).map((f) => ({ county: f.attributes.county, end: f.attributes.end_date }));
-    paintCounties();
-    items.forEach((i) => histLyr.add(new Graphic({ geometry: i.geom, attributes: { start: i.start, end: i.end, kind: i.kind, label: i.label },
-      symbol: fill(SLATE, i.kind === "zone" ? 0.3 : 0.22, SLATE.concat(0.95), 1.2, i.kind === "sample" ? "dash" : "solid") })));
-    return items;
+    paintCounties(); drawTimeline();
+    return pastItems;
   });
+  function drawTimeline() {
+    histLyr.removeAll();
+    const live = (S.areas || []).map((f) => ({ geom: f.geometry, start: f.attributes.since || f.attributes.confirmed_date || f.attributes.created_date || Date.now(), end: Infinity, kind: f.attributes.sample === 1 ? "sample" : "zone", county: f.attributes.county || "", released: false }));
+    pastItems.concat(live).forEach((i) => histLyr.add(new Graphic({ geometry: i.geom, attributes: { start: i.start, end: i.end, kind: i.kind, county: i.county, released: i.released } })));
+    applyTime();
+  }
+  on("areas", () => drawTimeline());
   const histReady = loadHistory();
-  ctx.reloadHistory = () => loadHistory().then(() => { if (typeof applyTime === "function") applyTime(); });
-  // look back in time: a "Past outbreaks" row in the layers panel with a month slider
-  S.timeAt = null; let timeT0 = null, playing = null;
+  ctx.reloadHistory = () => loadHistory();
+  S.timeAt = null; let timeT0 = null, playing = null;   // S.timeAt null = today
+  const statusAt = (a, t) => a.start <= t && t <= a.end ? "active" : a.end < t && t - a.end <= PAST_DAYS * DAY ? "recent" : null;
   function applyTime() {
-    const t = S.timeAt == null ? Date.now() : S.timeAt;
-    const today = S.timeAt == null || Date.now() - S.timeAt < 31 * DAY;   // slider at its end = today
-    histLyr.graphics.forEach((g) => (g.visible = today ? g.attributes.start <= t : g.attributes.start <= t && g.attributes.end >= t - 30 * DAY));
-    const lab = $("timeLab"); if (lab) lab.textContent = new Date(t).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    const today = S.timeAt == null, t = today ? Date.now() : S.timeAt;
+    histLyr.graphics.forEach((g) => {
+      const a = g.attributes, st = statusAt(a, t), show = today ? a.released && st === "recent" : !!st;   // today: the live layer draws the areas in force
+      g.visible = show; if (!show) return;
+      const dash = a.kind === "sample" ? "dash" : "solid";
+      g.symbol = st === "active" ? fill(RED, 0.24, RED.concat(1), 2, dash) : fill(SLATE, a.kind === "sample" ? 0.18 : 0.3, SLATE.concat(0.95), 1.2, dash);
+    });
+    // looking back: today's live areas, markers and premises step aside so the map shows only that date
+    S.lookBack = !today;
+    [L.ca, L.markers, L.prem, L.perim].forEach((l) => { if (l) l.opacity = today ? 1 : 0; });
+    fadeByZoom();
+    const lab = $("timeLab"); if (lab) lab.textContent = today ? "Today" : new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const tb = $("timeToday"); if (tb) tb.hidden = today;
   }
   histReady.then((items) => { timeT0 = Math.min(Date.parse("2022-01-01"), ...items.map((i) => i.start)); renderKey(); });
   // ---------------- floating layers & key (minimizable) ----------------
@@ -549,7 +564,7 @@ require([
     { id: "pm", roles: ["hauler", "industry"], t: "Infected premises", n: C.privacy.markerShiftKm[1] ? "approximate location" : "", sw: "barn", ls: () => [L.markers] },
     { id: "ex", staff: 1, t: "Infected premises (exact)", n: "premises boundary · MDA only", sw: "perim", ls: () => [L.prem, L.perim] },
     { id: "cty", t: "Affected county", n: "detection or MDA notice", sw: "cty", ls: () => [tintLyr] },
-    { id: "past", t: "Past outbreaks", n: "released areas in grey · slide to look back", sw: "past", ls: () => [histLyr], time: true },
+    { id: "past", t: "Past outbreaks", n: "grey = released in the last 28 days · slide back to see any date (red = in force then)", sw: "past", ls: () => [histLyr], time: true },
     { sec: "Wildlife" },
     { id: "wb", t: "Wildlife with HPAI", n: "birds and mammals · USDA APHIS", sw: "wb", ls: () => [wild], seg: true },
     { id: "risk", t: "Seasonal risk", n: "migration + detections + habitat", sw: "risk", ls: () => [riskLyr], off: true },
@@ -576,8 +591,8 @@ require([
       ls.forEach((l) => (l.visible = on));
       html += `<label class="lrow"><span class="sw ${r.sw}"></span><span class="nm">${esc(r.t)}${r.n ? `<small>${esc(r.n)}</small>` : ""}</span><input type="checkbox" class="tg" data-id="${r.id}" ${on ? "checked" : ""}></label>`;
       if (r.time && on && timeT0) {
-        const months = Math.max(1, Math.round((Date.now() - timeT0) / (30.44 * DAY))), cur = S.timeAt == null ? months : Math.round((S.timeAt - timeT0) / (30.44 * DAY));
-        html += `<div class="tline"><button class="tplay" id="timePlay" aria-label="Play">${playing ? "❚❚" : "▶"}</button><input type="range" id="timeRange" min="0" max="${months}" value="${cur}" aria-label="Month"><b id="timeLab"></b></div>`;
+        const weeks = Math.max(1, Math.ceil((Date.now() - timeT0) / (7 * DAY))), cur = S.timeAt == null ? weeks : Math.round((S.timeAt - timeT0) / (7 * DAY));
+        html += `<div class="tline"><button class="tplay" id="timePlay" aria-label="Play">${playing ? "❚❚" : "▶"}</button><input type="range" id="timeRange" min="0" max="${weeks}" value="${cur}" aria-label="Week"><b id="timeLab"></b></div><button class="mini ttoday" id="timeToday" hidden>Back to today</button>`;
       }
       if (r.seg) html += `<div class="seg" id="wildSeg"><button data-d="28" class="${S.wildRange === 28 ? "on" : ""}">4 weeks</button><button data-d="365" class="${S.wildRange === 365 ? "on" : ""}">12 months</button><button data-d="9999" class="${S.wildRange === 9999 ? "on" : ""}">All years</button></div>`;
     });
@@ -586,17 +601,18 @@ require([
     $("keyHead").onclick = () => keyEl.classList.toggle("shut");
     $("keyHead").setAttribute("role", "button"); $("keyHead").setAttribute("tabindex", "0"); $("keyHead").setAttribute("aria-expanded", String(!keyEl.classList.contains("shut")));
     $("keyHead").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); keyEl.classList.toggle("shut"); } };
-    keyEl.querySelectorAll(".tg").forEach((t) => (t.onchange = () => { const r = ROWS().find((x) => x.id === t.dataset.id); vis[r.id] = t.checked; store.set("vis", vis); r.ls().filter(Boolean).forEach((l) => (l.visible = t.checked)); if (r.time) renderKey(); }));
+    keyEl.querySelectorAll(".tg").forEach((t) => (t.onchange = () => { const r = ROWS().find((x) => x.id === t.dataset.id); vis[r.id] = t.checked; store.set("vis", vis); r.ls().filter(Boolean).forEach((l) => (l.visible = t.checked)); if (r.time && !t.checked) { if (playing) { clearInterval(playing); playing = null; } S.timeAt = null; applyTime(); } if (r.time) renderKey(); }));
     const seg = $("wildSeg"); if (seg) seg.querySelectorAll("button").forEach((b) => (b.onclick = () => { S.wildRange = +b.dataset.d; store.set("wildRange", S.wildRange); seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); loadWild(); }));
     const tr = $("timeRange");
     if (tr) {
-      const set = () => { S.timeAt = Math.min(Date.now(), timeT0 + +tr.value * 30.44 * DAY); applyTime(); };
+      const set = () => { S.timeAt = +tr.value >= +tr.max ? null : timeT0 + +tr.value * 7 * DAY; applyTime(); };
+      $("timeToday").onclick = () => { if (playing) { clearInterval(playing); playing = null; $("timePlay").textContent = "▶"; } tr.value = tr.max; set(); };
       tr.oninput = set; set();
       $("timePlay").onclick = () => {
         if (playing) { clearInterval(playing); playing = null; $("timePlay").textContent = "▶"; return; }
         if (+tr.value >= +tr.max) tr.value = 0;
         $("timePlay").textContent = "❚❚";
-        playing = setInterval(() => { if (+tr.value >= +tr.max) { clearInterval(playing); playing = null; const p = $("timePlay"); if (p) p.textContent = "▶"; return; } tr.value = +tr.value + 1; set(); }, 450);
+        playing = setInterval(() => { if (+tr.value >= +tr.max) { clearInterval(playing); playing = null; const p = $("timePlay"); if (p) p.textContent = "▶"; return; } tr.value = +tr.value + 1; set(); }, 180);
       };
     }
   }
@@ -606,6 +622,7 @@ require([
   view.on("click", async (e) => {
     if (emit("pick", e.mapPoint).some(Boolean)) return;            // a module is waiting for a map pick
     if (!ctx.inArea(e.mapPoint)) return;                           // outside Maryland / Delmarva: do nothing
+    if (S.lookBack) return pastCard(e.mapPoint);
     const include = [wild, L.markers, L.prem, closuresLyr].concat(emit("hitLayers").flat()).filter(Boolean);
     const hit = await view.hitTest(e, { include }).catch(() => null);
     const g = hit && hit.results.find((r) => r.graphic && r.graphic.layer);
@@ -626,6 +643,15 @@ require([
     const place = eg ? (eg.graphic.layer === env.refuges ? (eg.graphic.attributes.ORGNAME || "National wildlife refuge") : eg.graphic.layer === env.wma ? (eg.graphic.attributes.DNRName || "Wildlife management area") : "Waterfowl concentration area") : "";
     locationCard(e.mapPoint, "This location", place);
   });
+  // looking back on the slider: what was at this spot on that date
+  function pastCard(pt) {
+    const t = S.timeAt, day = fmtDate(t), hits = histLyr.graphics.toArray().filter((g) => g.visible && geometryEngine.intersects(g.geometry, pt));
+    const act = hits.find((g) => statusAt(g.attributes, t) === "active"), g = act || hits[0], a = g && g.attributes, cty = ctx.countyAt(pt);
+    const span = a ? `${fmtDate(a.start)} – ${a.end === Infinity ? "still in force" : fmtDate(a.end)}` : "";
+    if (!a) return simpleCard(pt, "free", "On " + day, "No control area", [["County", cty ? cty.name : "–"]], `<div class="do">Showing the map as it was on ${esc(day)}. Slide to today for the current status.</div>`);
+    simpleCard(pt, act ? "ca" : "info", `On ${day}${a.kind === "sample" ? " · SAMPLE" : ""}`, act ? "Control area in force" : "Released control area", [["County", a.county || (cty ? cty.name : "–")], ["Control area", span]],
+      `<div class="do">${act ? "Movement permits were required here on this date." : `Released ${esc(fmtDate(a.end))}, within the 28 days before this date.`} Slide to today for the current status.</div>`);
+  }
   function simpleCard(pt, band, small, big, rows, extra) {
     const el = document.createElement("div"); el.className = "pop";
     el.innerHTML = `<div class="band ${band}"><small>${esc(small)}</small><b>${esc(big || "")}</b></div><div class="bd">${(rows || []).map(([k, v]) => `<div class="r"><span>${esc(k)}</span><b>${esc(v == null ? "–" : v)}</b></div>`).join("")}${extra || ""}</div>`;
