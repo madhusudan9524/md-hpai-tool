@@ -431,7 +431,7 @@ window.HPAI.modules.push(function (ctx) {
   };
 
   // MDA extra in the click card: farms around this spot
-  ctx.on("card", ({ pt }) => (ctx.isStaff() ? `<div class="btns"><button class="ghost" data-act="declareHere" style="flex:1">Declare county</button><button class="ghost" data-act="newHere" style="flex:1">New premises</button></div>` : ""));
+  ctx.on("card", ({ pt }) => (ctx.isStaff() ? `<button class="pb" data-act="declareHere">Declare county</button><button class="pb" data-act="newHere">New premises</button>` : ""));
   ctx.actions.declareHere = () => declare();
   ctx.actions.newHere = () => newPremises();
 });

@@ -28,7 +28,7 @@ window.HPAI.modules.push(function (ctx) {
   $("clearRoute").onclick = () => { org = dst = last = null; orgS.clear(); dstS.clear(); routeLyr.removeAll(); $("routeResult").innerHTML = ""; };
   ctx.actions.tripFrom = (pt, name) => { ctx.setWorkspace("hauler"); org = { pt: wgs(pt), name: name || "Picked point" }; orgS.searchTerm = org.name; pin(); };
   ctx.actions.tripTo = (pt, name) => { ctx.setWorkspace("hauler"); dst = { pt: wgs(pt), name: name || "Picked point" }; dstS.searchTerm = dst.name; pin(); };
-  ctx.on("card", () => S.ws === "hauler" ? `<div class="btns"><button class="ghost" data-act="tripFrom" style="flex:1">Start here</button><button class="ghost" data-act="tripTo" style="flex:1">End here</button></div>` : "");
+  ctx.on("card", () => S.ws === "hauler" ? `<button class="pb" data-act="tripFrom">Start here</button><button class="pb" data-act="tripTo">End here</button>` : "");
 
   // ---- road closures (MDOT CHART via Maryland Open Data) ----
   let closures = [];

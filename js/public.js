@@ -63,7 +63,7 @@ window.HPAI.modules.push(function (ctx) {
   }
   $("addPlace").onclick = () => addPlace();
   ctx.actions.savePlace = (pt, name) => addPlace(pt, name);
-  ctx.on("card", ({ pt }) => S.ws === "regulator" ? "" : `<button class="cta" data-act="savePlace">Save this place for alerts</button>`);
+  ctx.on("card", ({ pt }) => S.ws === "regulator" ? "" : `<button class="pb" data-act="savePlace">☆ Save</button>`);
 
   // ---- email alerts (subscription stored in a create-only layer; emails sent by the twice-daily job) ----
   ctx.actions.alerts = () => {

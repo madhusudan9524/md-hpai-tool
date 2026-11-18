@@ -1,7 +1,7 @@
 /* Maryland HPAI map. Hybrid design: solid readable panel, light frosted glass only over the map. */
 :root {
   --bg: #f5f6f8; --panel: #ffffff; --ink: #14202e; --mute: #5d6b7a; --line: #e3e7ec; --soft: #f1f3f6;
-  --accent: #0a6cff; --red: #c8281e; --dred: #7a0f0f; --amber: #d98a00; --teal: #13808f; --green: #1f8a4c; --blue: #1e6ebe;
+  --accent: #0a6cff; --red: #d7263d; --dred: #4a0d0d; --amber: #c9731a; --teal: #0e9aa7; --violet: #6a4c93; --green: #1f8a4c; --blue: #1e6ebe;
   --glass: rgba(255, 255, 255, 0.74); --glass-line: rgba(255, 255, 255, 0.6); --shadow: 0 10px 30px rgba(15, 25, 40, 0.14), 0 1px 3px rgba(15, 25, 40, 0.08);
   --r: 16px; --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --ws: #0a6cff;
@@ -165,14 +165,14 @@ section { margin-bottom: 14px; }
 .tg { position: relative; width: 38px; height: 22px; flex: none; appearance: none; -webkit-appearance: none; border-radius: 99px; background: rgba(127, 127, 127, .3); transition: background .2s; cursor: pointer; margin: 0; }
 .tg::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .2s; }
 .tg:checked { background: var(--green); } .tg:checked::after { transform: translateX(16px); }
-.sw.ca { background: rgba(200, 40, 30, .35); border: 2px solid #c8281e; } .sw.sz { background: rgba(217, 138, 0, .2); border: 2px dashed #d98a00; }
-.sw.pm { background: radial-gradient(circle, #7a0f0f 35%, rgba(122, 15, 15, .25) 38%); border-radius: 50%; width: 18px; height: 18px; margin: 0 2px; }
-.sw.cty { background: rgba(200, 40, 30, .14); border: 1px solid rgba(200, 40, 30, .5); } .sw.past { background: rgba(120, 120, 140, .25); border: 1px solid #8a8aa0; }
-.sw.wb { background: radial-gradient(circle, #13808f 45%, transparent 50%); } .sw.risk { background: linear-gradient(90deg, #fff2c6, #f6a04d, #c8281e); }
+.sw.ca { background: rgba(215, 38, 61, .3); border: 2px solid #d7263d; } .sw.sz { background: rgba(244, 162, 89, .3); border: 2px dashed #c9731a; }
+.sw.pm { background: radial-gradient(circle, #4a0d0d 45%, #fff 48%, #fff 56%, transparent 58%); border-radius: 50%; width: 18px; height: 18px; margin: 0 2px; }
+.sw.cty { background: rgba(232, 120, 130, .2); border: 1px solid rgba(232, 120, 130, .8); } .sw.past { background: rgba(138, 148, 166, .3); border: 1px solid #8a94a6; }
+.sw.wb { background: radial-gradient(circle, #0e9aa7 45%, transparent 50%); } .sw.risk { background: linear-gradient(90deg, #d1c4e9, #9575cd, #5e35b1); }
 .sw.wet { background: #79b8c9; } .sw.for { background: #5f9a52; } .sw.lake { background: #5b9bd5; } .sw.riv { background: linear-gradient(transparent 40%, #3b7bd0 40% 60%, transparent 60%); }
 .sw.wsh { border: 2px solid #7f6fb5; } .sw.wma { background: rgba(132, 160, 60, .45); border: 1px solid #6a8a2a; } .sw.wf { background: repeating-linear-gradient(45deg, rgba(19, 128, 143, .5) 0 3px, transparent 3px 6px); border: 1px solid #13808f; }
 .sw.nwr { background: rgba(70, 130, 90, .3); border: 1px solid #46825a; } .sw.farm { background: radial-gradient(circle, #6d5a3a 40%, transparent 45%); } .sw.road { background: linear-gradient(90deg, #e6a100 50%, #333 50%); height: 6px; }
-.sw.exact { background: #7a0f0f; transform: rotate(45deg) scale(.7); border-radius: 2px; }
+.sw.exact { background: #4a0d0d; transform: rotate(45deg) scale(.7); border-radius: 2px; }
 .lk .seg { margin: 2px 8px 6px; }
 .lk .seg button { padding: 5px; font-size: 12.5px; }
 .lk .tbtn { margin: 8px; width: calc(100% - 16px); border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 10px; font-weight: 650; display: flex; align-items: center; gap: 8px; justify-content: center; }
@@ -186,24 +186,32 @@ section { margin-bottom: 14px; }
 .esri-popup__main-container, .esri-popup .esri-features { max-height: none !important; }
 .esri-popup .esri-features__container, .esri-popup .esri-feature__content-element { padding: 0 !important; }
 .esri-popup .esri-features__footer, .esri-popup .esri-features__header .esri-features__heading, .esri-popup calcite-action[title="Zoom to"], .esri-popup calcite-action[title="Dock"] { display: none !important; }
-.esri-popup__main-container { border-radius: 18px !important; overflow: hidden; box-shadow: var(--shadow) !important; background: var(--glass) !important; -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); max-width: 360px !important; }
+.esri-popup__main-container { border-radius: 18px !important; overflow: hidden; box-shadow: var(--shadow) !important; background: var(--glass) !important; -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); max-width: 280px !important; }
 .esri-popup__header { display: none !important; }
 .esri-popup__content { margin: 0 !important; }
 .esri-popup__footer, .esri-popup__navigation, .esri-popup__button--dock { display: none !important; }
 .esri-popup__pointer-direction { background: var(--glass) !important; }
 .pop { font-family: var(--font); color: var(--ink); }
-.pop .band { padding: 14px 16px 12px; color: #fff; }
-.pop .band.ca { background: linear-gradient(135deg, #c8281e, #8f1414); } .pop .band.sz { background: linear-gradient(135deg, #e09a10, #b66f00); }
-.pop .band.free { background: linear-gradient(135deg, #1f8a4c, #136a38); } .pop .band.bird { background: linear-gradient(135deg, #13808f, #0b5b66); }
-.pop .band.info { background: linear-gradient(135deg, #46566a, #2c3846); } .pop .band.prem { background: linear-gradient(135deg, #7a0f0f, #4a0808); }
-.pop .band small { display: block; opacity: .85; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; font-weight: 650; }
-.pop .band b { display: block; font-size: 21px; letter-spacing: -0.01em; line-height: 1.2; margin-top: 2px; }
-.pop .bd { padding: 10px 16px 14px; }
+.pop .band { padding: 10px 14px 9px; color: #fff; }
+.pop .band.ca { background: #d7263d; } .pop .band.sz { background: #c9731a; }
+.pop .band.free { background: #1f8a4c; } .pop .band.bird { background: #0e9aa7; }
+.pop .band.info { background: #46566a; } .pop .band.prem { background: #4a0d0d; }
+.pop .band small { display: block; opacity: .9; font-size: 12.5px; font-weight: 500; margin-top: 1px; }
+.pop .band b { display: block; font-size: 17px; letter-spacing: -0.01em; line-height: 1.2; }
+.pop .bd { padding: 8px 12px 10px; }
+.pop .r { font-size: 13px !important; padding: 5px 0 !important; }
+.chips2 { display: flex; flex-wrap: wrap; gap: 4px; }
+.chips2 .c { font-style: normal; font-size: 11.5px; font-weight: 650; padding: 3px 8px; border-radius: 99px; background: rgba(127,127,127,.14); }
+.chips2 .c.teal { background: rgba(14,154,167,.14); color: var(--teal); } .chips2 .c.violet { background: rgba(106,76,147,.14); color: var(--violet); } .chips2 .c.amber { background: rgba(201,115,26,.16); color: var(--amber); }
+.pop .tip { margin: 7px 0 0; font-size: 13px; color: var(--mute); line-height: 1.35; }
+.pacts { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.pb { border: 1px solid var(--line); background: var(--panel); border-radius: 99px; padding: 5px 11px; font-size: 13px; font-weight: 650; color: var(--ws); }
+.pb:hover { border-color: var(--ws); }
 .pop .r { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid rgba(127, 127, 127, .18); font-size: 14px; }
 .pop .r:first-child { border-top: 0; } .pop .r span { color: var(--mute); } .pop .r b { text-align: right; }
 .pop .do { margin-top: 8px; font-size: 13.5px; background: rgba(127, 127, 127, .1); border-radius: 12px; padding: 10px 12px; }
 .pop .do ul { margin: 4px 0 0; padding-left: 18px; }
-.pop .cta { display: block; text-align: center; margin-top: 10px; padding: 11px; border-radius: 12px; background: var(--ws); color: #fff; font-weight: 700; text-decoration: none; border: 0; width: 100%; }
+.pop .cta { display: block; text-align: center; margin-top: 8px; padding: 8px; border-radius: 12px; background: var(--ws); color: #fff; font-weight: 700; text-decoration: none; border: 0; width: 100%; }
 .pop .tl { display: flex; gap: 4px; margin-top: 6px; } .pop .tl i { flex: 1; height: 6px; border-radius: 3px; background: rgba(127, 127, 127, .2); } .pop .tl i.on { background: var(--red); }
 
 /* esri widgets */

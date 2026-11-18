@@ -27,7 +27,7 @@ require([
   // ---------------- layers ----------------
   const COUNTY_URL = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Counties_Generalized_Boundaries/FeatureServer/0";
   const DELMARVA = "STATE_NAME IN ('Maryland','Delaware') OR (STATE_NAME = 'Virginia' AND NAME IN ('Accomack County','Northampton County'))";
-  const RED = [200, 40, 30], AMBER = [217, 138, 0], TEAL = [19, 128, 143], DRED = [122, 15, 15];
+  const RED = [215, 38, 61], AMBER = [201, 115, 26], APRICOT = [244, 162, 89], TEAL = [14, 154, 167], DRED = [74, 13, 13], ROSE = [232, 120, 130], SLATE = [138, 148, 166];
   const fill = (c, a, oc, ow, st) => ({ type: "simple-fill", color: c.concat(a), outline: { color: (oc || c).concat(oc ? [] : [0.95]).slice(0, 4), width: ow || 1.2, style: st || "solid" } });
 
   const maskLyr = new GraphicsLayer({ listMode: "hide" });
@@ -61,7 +61,7 @@ require([
   const wild = new FeatureLayer({
     title: "Wild birds with HPAI", source: [], objectIdField: "OID", geometryType: "point", spatialReference: { wkid: 4326 }, outFields: ["*"],
     fields: [{ name: "OID", type: "oid" }, { name: "state", type: "string" }, { name: "county", type: "string" }, { name: "species", type: "string" }, { name: "strain", type: "string" }, { name: "detected", type: "date" }, { name: "age", type: "integer" }],
-    renderer: { type: "simple", symbol: { type: "simple-marker", size: 9, color: TEAL.concat(0.95), outline: { color: [255, 255, 255, 1], width: 1.5 } },
+    renderer: { type: "simple", symbol: { type: "simple-marker", size: 8, color: TEAL.concat(0.95), outline: { color: [255, 255, 255, 1], width: 1.5 } },
       visualVariables: [{ type: "opacity", field: "age", stops: [{ value: 0, opacity: 1 }, { value: 28, opacity: 0.9 }, { value: 365, opacity: 0.35 }] }] },
     popupEnabled: false
   });
@@ -127,7 +127,7 @@ require([
   function zoneLayer(url, type, extra) {
     return new FeatureLayer(Object.assign({ url, outFields: ["*"], popupEnabled: false,
       definitionExpression: `zone_type = '${type}' AND status = 'Active'`,
-      renderer: { type: "simple", symbol: type === "Control Area" ? fill(RED, 0.3, RED.concat(0.95), 1.6) : fill(AMBER, 0.14, AMBER.concat(0.95), 1.4, "dash") } }, extra || {}));
+      renderer: { type: "simple", symbol: type === "Control Area" ? fill(RED, 0.24, RED.concat(1), 2) : fill(APRICOT, 0.18, AMBER.concat(1), 1.6, "dash") } }, extra || {}));
   }
   function buildOutbreakLayers() {
     ["ca", "sz", "markers", "decl", "prem", "perim", "zonesAll"].forEach((k) => { if (L[k]) { map.remove(L[k]); delete L[k]; } });
@@ -140,7 +140,7 @@ require([
     }
     if (has(C.pub.markers)) {
       L.markers = new FeatureLayer({ url: C.pub.markers, title: "Infected premises (approximate)", outFields: ["*"], popupEnabled: false, definitionExpression: "status = 'Active'",
-        renderer: { type: "simple", symbol: { type: "simple-marker", size: 16, color: DRED.concat(0.85), outline: { color: [255, 255, 255, 0.95], width: 2 } } } });
+        renderer: { type: "simple", symbol: { type: "simple-marker", size: 15, color: DRED.concat(0.92), outline: { color: [255, 255, 255, 1], width: 2.5 } } } });
       map.add(L.markers);
     }
     if (has(C.pub.declarations)) {
@@ -187,7 +187,7 @@ require([
     }
     S.areas.forEach((f) => { const c = S.counties.find((x) => geometryEngine.contains(x.geom, f.geometry.extent.center)); if (c) mark(c.state, c.name, { kind: "zone", sample: f.attributes.sample === 1, t: f.attributes.since || f.attributes.confirmed_date || f.attributes.created_date }); });
     S.affected = [...aff.values()].map((o) => ({ county: o.c.name, state: o.c.state, geom: o.c.geom, items: o.items, since: Math.min(...o.items.map((i) => i.t || Date.now())) })).sort((a, b) => b.since - a.since);
-    S.affected.forEach((a) => tintLyr.add(new Graphic({ geometry: a.geom, attributes: { county: a.county }, symbol: fill(RED, 0.12, RED.concat(0.45), 1) })));
+    S.affected.forEach((a) => tintLyr.add(new Graphic({ geometry: a.geom, attributes: { county: a.county }, symbol: fill(ROSE, 0.16, ROSE.concat(0.7), 1) })));
     emit("affected", S.affected); kpis();
   }
   ctx.paintCounties = paintCounties;
@@ -282,18 +282,20 @@ require([
     const g = pt.spatialReference.isWGS84 ? pt : wmu.webMercatorToGeographic(pt);
     const sr = R.seasonalRisk({ pt: { lat: g.latitude, lon: g.longitude }, month: new Date().getMonth(), seasonCounts: S.season, detections: S.wildPts, habitat: await habitatAt(g), now: Date.now() });
     const hist = await pastAt(pt);
-    const smp = z.f && z.f.attributes.sample === 1 ? " · SAMPLE (exercise data)" : "";
-    const band = z.zone === "control" ? ["ca", "Inside a control area"] : z.zone === "surveillance" ? ["sz", "Inside a surveillance zone"] : ["free", aff ? "Not in a zone" : "No restrictions"];
+    const smp = z.f && z.f.attributes.sample === 1;
+    const band = z.zone === "control" ? ["ca", "Control area"] : z.zone === "surveillance" ? ["sz", "Surveillance zone"] : ["free", "No restrictions"];
     const since = z.f && (z.f.attributes.since || z.f.attributes.confirmed_date || z.f.attributes.created_date);
-    let rows = `<div class="r"><span>County</span><b>${cty ? esc(cty.name) + (cty.state !== "Maryland" ? ", " + esc(cty.state) : "") : "–"}</b></div>`;
-    if (since) rows += `<div class="r"><span>Zone since</span><b>${fmtDate(since)} · day ${Math.max(1, Math.floor((Date.now() - since) / DAY) + 1)}</b></div>`;
-    if (aff) rows += `<div class="r"><span>County status</span><b>${aff.items.every((i) => i.sample) ? "Sample zone (exercise)" : aff.items.some((i) => i.kind === "detection" && i.status === "preliminary") ? "Preliminary detection" : "HPAI reported"} · ${fmtShort(aff.since)}</b></div>`;
-    rows += `<div class="r"><span>Wild birds, 10 km</span><b>${wildN} in 4 wk · ${wildY} in 12 mo</b></div>`;
-    rows += `<div class="r"><span>Seasonal risk</span><b>${R.TIERS[sr.tier]}</b></div>`;
-    rows += `<div class="r"><span>Past outbreaks here</span><b>${hist.n ? hist.n + " · last " + fmtShort(hist.last) : "None on record"}</b></div>`;
+    const where = cty ? cty.name + (cty.state !== "Maryland" ? ", " + cty.state.slice(0, 2).toUpperCase() : " County") : "";
+    const sub = since ? `since ${fmtShort(since)} · day ${Math.max(1, Math.floor((Date.now() - since) / DAY) + 1)}` : aff ? (aff.items.every((i) => i.sample) ? "sample zone in county" : "HPAI reported in county · " + fmtShort(aff.since)) : "";
+    const chips = [];
+    if (smp) chips.push(`<i class="c amber">Sample</i>`);
+    chips.push(`<i class="c teal">${wildN} wild bird${wildN === 1 ? "" : "s"} · 4 wk</i>`);
+    if (sr.tier) chips.push(`<i class="c violet">${R.TIERS[sr.tier]} seasonal risk</i>`);
+    if (hist.n) chips.push(`<i class="c">${hist.n} past · ${fmtShort(hist.last)}</i>`);
+    const tip = { control: "MDA permit needed to move birds, eggs, feed or litter.", surveillance: "Watch birds closely. Check with MDA before moving birds.", none: "Keep birds away from wild waterfowl. Report sick birds." }[z.zone || "none"];
     const extra = emit("card", { pt, zone: z, county: cty }).filter(Boolean).join("");
     const el = document.createElement("div"); el.className = "pop";
-    el.innerHTML = `<div class="band ${band[0]}"><small>${esc(title || "This location")}${smp}</small><b>${band[1]}</b></div><div class="bd">${rows}<div class="do"><b>What to do</b><ul>${DO[z.zone || "none"].map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>${extra}</div>`;
+    el.innerHTML = `<div class="band ${band[0]}"><b>${band[1]}</b><small>${esc(where)}${sub ? " · " + esc(sub) : ""}</small></div><div class="bd"><div class="chips2">${chips.join("")}</div><p class="tip">${esc(tip)}</p>${extra ? `<div class="pacts">${extra}</div>` : ""}</div>`;
     await fitCard(pt); view.openPopup({ location: pt, content: el });
     el.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => { view.closePopup(); (ctx.actions[b.dataset.act] || (() => {}))(pt, title); }));
   }
@@ -329,7 +331,7 @@ require([
   async function buildRisk() {
     await ready; riskLyr.removeAll();
     const hg = await loadHabitat(), ext = S.clearGeom.extent, r = 3500, w = Math.sqrt(3) * r, month = new Date().getMonth(), now = Date.now();
-    const cols = { 0: [255, 242, 198, 0.0], 1: [252, 214, 120, 0.55], 2: [244, 140, 60, 0.62], 3: [200, 40, 30, 0.6] };
+    const cols = { 0: [0, 0, 0, 0], 1: [209, 196, 233, 0.5], 2: [149, 117, 205, 0.55], 3: [94, 53, 177, 0.6] };   // purples: advisory, not a regulatory zone
     for (let y = ext.ymin, row = 0; y < ext.ymax; y += 1.5 * r, row++) {
       for (let x = ext.xmin + (row % 2 ? w / 2 : 0); x < ext.xmax; x += w) {
         const c = new Point({ x, y, spatialReference: { wkid: 102100 } });
@@ -353,7 +355,7 @@ require([
     ((Ld && (Ld.history || Ld.commercial)) || []).forEach((d) => { const c = S.counties.find((x) => x.state === d.state && x.name === d.county); if (c) items.push({ geom: c.geom, start: Date.parse(d.date + "T12:00:00Z"), end: Date.parse(d.date + "T12:00:00Z") + 90 * DAY, kind: "county", label: `${d.county} County · ${d.flock || "commercial flock"}`, src: d.source }); });
     (sample || []).forEach((s) => { const p = new Polygon({ rings: s.rings, spatialReference: { wkid: 4326 } }); items.push({ geom: wmu.geographicToWebMercator(p), start: Date.parse(s.start), end: Date.parse(s.end), kind: "sample", label: s.label }); });
     items.forEach((i) => histLyr.add(new Graphic({ geometry: i.geom, attributes: { start: i.start, end: i.end, kind: i.kind, label: i.label },
-      symbol: i.kind === "county" ? fill(RED, 0.1, RED.concat(0.6), 1, "dash") : i.kind === "zone" ? fill(RED, 0.18, RED.concat(0.7), 1.2) : fill([120, 120, 140], 0.25, [110, 110, 135, 0.9], 1.2) })));
+      symbol: i.kind === "county" ? fill(ROSE, 0.14, ROSE.concat(0.8), 1, "dash") : fill(SLATE, i.kind === "zone" ? 0.3 : 0.22, SLATE.concat(0.95), 1.2, i.kind === "sample" ? "dash" : "solid") })));
     return items;
   });
   let slider = null;
