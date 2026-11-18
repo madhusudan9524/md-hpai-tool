@@ -144,6 +144,14 @@ window.HPAI.modules.push(function (ctx) {
   ctx.actions.flockReport = () => reportForm("flock");
 
   // ================= grower farm risk =================
+  // all HPAI detections in the region (wild birds, mammals, flocks), for the trend
+  function regionEvents() {
+    const w = (S.wildPts || []).map((x) => ({ t: x.t }));
+    const f = ((S.live && S.live.commercial) || []).map((c) => ({ t: Date.parse(c.date + "T12:00:00Z") }));
+    return w.concat(f).filter((e) => e.t);
+  }
+  // a county and the counties that touch it
+  function neighbours(c) { return (S.counties || []).filter((x) => x === c || ctx.esri.geometryEngine.touches(x.geom, c.geom) || ctx.esri.geometryEngine.intersects(x.geom, c.geom)); }
   async function renderRisk() {
     if (S.ws !== "industry") return;
     const farms = places.filter((p) => p.kind === "farm"), box = $("riskList");
@@ -158,17 +166,25 @@ window.HPAI.modules.push(function (ctx) {
           visits = r.features.length; zoneVisits = r.features.filter((f) => f.attributes.from_zone === 1).length;
         } catch (e) {}
       }
-      const inp = { zone: z.zone, kmToArea: ctx.distToArea(pt), wildNear: ctx.wildNear(pt, 10, 28).length,
+      const here = { lat: p.lat, lon: p.lon }, now = Date.now(), ev = regionEvents();
+      // active infected premises (centre of each control area), last 30 days
+      const outbreaksNear = (S.areas || []).filter((f) => { const c = wmu.webMercatorToGeographic(f.geometry.extent.center), t = f.attributes.since || f.attributes.confirmed_date || f.attributes.created_date;
+        return R.km(here, { lat: c.y, lon: c.x }) <= 32.2 && (!t || now - t <= 30 * DAY); }).length;
+      const nb = cty ? neighbours(cty) : [];
+      const countyOutbreak = !!(cty && ((S.live && S.live.commercial) || []).some((c) => now - Date.parse(c.date + "T12:00:00Z") <= 30 * DAY && nb.some((n) => n.state === c.state && n.name === c.county)));
+      const mammalsNear = (S.wildPts || []).filter((w) => w.group === "mammal" && now - w.t <= 56 * DAY && R.km(here, w) <= 16.1).length;
+      const inp = { zone: z.zone, kmToArea: ctx.distToArea(pt), wildNear: ctx.wildNear(pt, 10, 28).length, outbreaksNear, countyOutbreak, mammalsNear, trend: R.regionalTrend(ev, now),
         wildCounty: !!(cty && (S.wildPts || []).some((w) => w.county === cty.name && w.state === cty.state && Date.now() - w.t <= 28 * DAY)),
         habitatKm: await ctx.habitatKm({ longitude: p.lon, latitude: p.lat }), season: ctx.seasonNow(), zoneVisits, visits, audit: p.audit || null };
       return { p, r: R.farmRisk(inp, Date.now()) };
     }));
     const col = ["green", "amber", "red", "dred"];
     box.innerHTML = out.map(({ p, r }) => `<div class="prow" data-id="${p.id}" style="display:block">
-      <div class="risk"><b style="flex:none;min-width:0">${esc(p.name)}</b><span class="meter"><i style="left:${Math.min(96, (r.points / 12) * 100)}%"></i></span><span class="pill ${col[r.tier]}">${r.label}</span></div>
+      <div class="risk"><b style="flex:none;min-width:0">${esc(p.name)}</b><span class="meter"><i style="left:${Math.min(96, (r.points / 14) * 100)}%"></i></span><span class="pill ${col[r.tier]}">${r.label}</span></div>
       <ul class="why">${r.reasons.map((x) => `<li>${x.n > 0 ? "+" : ""}${x.n} ${esc(x.why)}</li>`).join("") || "<li>No risk factors found</li>"}</ul>
       <button class="link" data-audit="${p.id}" style="font-size:13px;margin-top:6px">${p.audit ? "Last audit " + fmtShort(p.audit.date) + (p.audit.passed ? " · passed" : " · not passed") : "Add last biosecurity audit"}</button></div>`).join("") +
-      `<p class="hint" style="margin-top:8px">Screening score, not a diagnosis. Based on <a href="${R.SOURCES.aphis2015.u}" target="_blank" rel="noopener">USDA APHIS</a> and peer-reviewed studies. Call MDA about any sick birds.</p>`;
+      `<p class="hint" style="margin-top:8px">Screening score, not a diagnosis. Based on <a href="${R.SOURCES.aphis2015.u}" target="_blank" rel="noopener">USDA APHIS</a> data and peer-reviewed studies. Wildlife detections are published by county, so their distances are approximate. Call MDA about any sick birds.</p>
+      <p class="hint"><b>Private to you.</b> Your farm and its score are kept only on this device. MDA doesn't see them.</p>`;
     box.querySelectorAll("[data-audit]").forEach((b) => (b.onclick = () => {
       const p = places.find((x) => x.id === b.dataset.audit);
       sheet("Last biosecurity audit", `<div class="form"><label>Date<input type="date" id="auD" value="${p.audit ? new Date(p.audit.date).toISOString().slice(0, 10) : ""}"></label>

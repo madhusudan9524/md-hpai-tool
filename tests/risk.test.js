@@ -22,6 +22,20 @@ assert.strictEqual(low.label, "Low");
 const high = R.farmRisk({ zone: "control", wildNear: 2, habitatKm: 0.5, season: 1, zoneVisits: 1, visits: 3, audit: null }, now);
 assert.strictEqual(high.label, "Very high");
 assert.ok(high.reasons.every((r) => R.SOURCES[r.src]));
+// regional trend: quiet then a burst
+const ev = (days) => days.map((d) => ({ t: now - d * DAY }));
+const flat = R.regionalTrend(ev([1, 5, 9, 16, 25, 33, 40, 48, 55]), now);
+assert.ok(!flat.rising);
+const burst = R.regionalTrend(ev([1, 2, 3, 4, 6, 8, 11, 20, 45]), now);
+assert.ok(burst.rising && burst.sharp, JSON.stringify(burst));
+const quiet = R.regionalTrend(ev([2, 20]), now);
+assert.ok(!quiet.rising);
+const busy = R.farmRisk({ zone: null, kmToArea: 30, wildNear: 0, wildCounty: false, habitatKm: 5, season: 0.2, zoneVisits: 0, visits: 0, audit: undefined, outbreaksNear: 2, mammalsNear: 1, trend: burst }, now);
+assert.deepStrictEqual(busy.reasons.map((r) => r.src).sort(), ["aphisMammals", "aphisPoultry", "usgs2025"].sort());
+assert.strictEqual(busy.points, 4);
+assert.ok(busy.reasons.every((r) => R.SOURCES[r.src]));
+const cty = R.farmRisk({ zone: null, kmToArea: 30, countyOutbreak: true, audit: undefined }, now);
+assert.ok(cty.reasons.some((r) => /county/.test(r.why)));
 console.log("risk tests passed", { low: low.points, high: high.points, jan: jan.value.toFixed(2) });
 
 // poultry-house shape test (registry auto-outline)
