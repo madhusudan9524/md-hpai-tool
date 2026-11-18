@@ -185,7 +185,7 @@ require([
       } catch (e) { /* not signed in / layer missing */ }
     }
     S.sample = S.areas.some((f) => f.attributes.sample === 1);
-    $("sampleBadge").hidden = !S.sample;
+    renderKey();
     paintCounties(); emit("areas", S.areas);
   }
   ctx.refreshAreas = refreshAreas;
@@ -450,7 +450,10 @@ require([
   histReady.then((items) => { timeT0 = Math.min(Date.parse("2022-01-01"), ...items.map((i) => i.start)); renderKey(); });
   // ---------------- floating layers & key (minimizable) ----------------
   const keyEl = document.createElement("div"); keyEl.className = "lk glass" + (window.innerWidth < 760 || store.get("keyShut", false) ? " shut" : "");
-  view.ui.add(keyEl, "top-right");
+  const acctEl = document.createElement("div"); acctEl.id = "acctFloat";
+  view.ui.add(acctEl, { position: "top-right", index: 0 });
+  ctx.acctEl = acctEl;
+  view.ui.add(keyEl, { position: "top-right", index: 1 });
   const ROWS = () => [
     { sec: "Outbreak" },
     { id: "ca", t: "Control area", n: `within ${H.mi(C.zones.controlKm, 0)} miles of infected premises`, sw: "ca", ls: () => [L.ca] },
@@ -483,7 +486,7 @@ require([
   const vis = store.get("vis", {});
   function renderKey() {
     const rows = ROWS().filter((r) => (!r.staff || ctx.isStaff()) && (!r.roles || r.roles.includes(S.ws)));
-    let html = `<header id="keyHead"><span>Layers &amp; key</span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></header><div class="body">`;
+    let html = `<header id="keyHead"><span>Layers &amp; key${S.sample ? ' <i class="smpl" title="The control areas shown are exercise data, not real outbreaks">Sample zones</i>' : ""}</span><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></header><div class="body">`;
     rows.forEach((r, i) => {
       if (r.sec) { if (rows[i + 1] && !rows[i + 1].sec) html += `<h4>${esc(r.sec)}</h4>`; return; }
       const ls = r.ls().filter(Boolean); if (!ls.length) return;
@@ -564,22 +567,11 @@ require([
     renderAcct(); buildOutbreakLayers(); emit("ws", w);
   }
   ctx.setWorkspace = setWorkspace;
-  function renderAcct() {
-    const a = $("acct");
-    if (!S.user) { a.innerHTML = `<button class="signin" id="signinBtn">Sign in</button>`; $("signinBtn").onclick = () => ($("modal").hidden = false); return; }
-    const ini = (S.user.fullName || S.user.username).split(/\s+/).map((s) => s[0]).join("").slice(0, 2).toUpperCase();
-    a.innerHTML = `<button class="who" id="whoBtn"><span class="av">${esc(ini)}</span><span class="rl">${esc(WS[S.ws])}<small>${esc(S.user.fullName || S.user.username)}</small></span></button>`;
-    $("whoBtn").onclick = (ev) => {
-      ev.stopPropagation(); let m = document.querySelector(".menu"); if (m) return m.remove();
-      m = document.createElement("div"); m.className = "menu";
-      const choices = S.roles.concat(S.roles.includes("regulator") ? ["hauler", "industry", "public"] : ["public"]).filter((v, i, x) => x.indexOf(v) === i && v !== S.ws);
-      m.innerHTML = (choices.length ? `<div class="va">View as</div>` + choices.map((c) => `<button data-w="${c}">${esc(WS[c])}</button>`).join("") : "") + `<button id="soBtn">Sign out</button>`;
-      document.body.appendChild(m);
-      m.querySelectorAll("[data-w]").forEach((b) => (b.onclick = () => { m.remove(); setWorkspace(b.dataset.w); }));
-      $("soBtn").onclick = () => { esriId.destroyCredentials(); try { sessionStorage.removeItem("hpaiWs"); } catch (e) {} location.reload(); };
-      setTimeout(() => document.addEventListener("click", () => m.remove(), { once: true }));
-    };
-  }
+  // the account button + dropdown live in menu.js; it re-renders on these events
+  function renderAcct() { emit("acct"); }
+  ctx.WS = WS;
+  ctx.signIn = (kind) => { try { sessionStorage.setItem("hpaiWs", kind === "partner" ? "hauler" : "regulator"); } catch (e) {} esriId.getCredential(sharing).then(initUser).catch(() => {}); };
+  ctx.signOut = () => { esriId.destroyCredentials(); try { sessionStorage.removeItem("hpaiWs"); } catch (e) {} location.reload(); };
   async function initUser() {
     const portal = new Portal({ url: C.portalUrl, authMode: "immediate" });
     await portal.load(); S.user = portal.user;
@@ -595,10 +587,7 @@ require([
     setWorkspace(want && (S.roles.includes(want) || isReg) ? want : S.roles[0]);
     emit("signin", S.user);
   }
-  document.querySelectorAll(".role").forEach((b) => (b.onclick = () => {
-    try { sessionStorage.setItem("hpaiWs", b.dataset.ws === "partner" ? "hauler" : "regulator"); } catch (e) {}
-    $("modal").hidden = true; esriId.getCredential(sharing).then(initUser).catch(() => {});
-  }));
+  document.querySelectorAll(".role").forEach((b) => (b.onclick = () => { $("modal").hidden = true; ctx.signIn(b.dataset.ws); }));
   $("mclose").onclick = () => ($("modal").hidden = true);
   $("modal").addEventListener("click", (e) => { if (e.target.id === "modal") $("modal").hidden = true; });
   $("signupLink").onclick = (e) => { e.preventDefault(); $("modal").hidden = true; (ctx.actions.signup || (() => {}))(); };

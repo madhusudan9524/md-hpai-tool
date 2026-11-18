@@ -396,3 +396,33 @@ h1 { color: #0e1823; }
 .help p { margin: 0 0 8px; font-size: 14px; line-height: 1.45; }
 @media (max-width: 900px) { .mega { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 760px) { .mega { top: 56px; left: 8px; right: 8px; width: auto; grid-template-columns: 1fr; } .mmbtn span { display: none; } .mmbtn { padding: 0 11px; } }
+
+/* ===== round 6: no top bar; floating account button + menu ===== */
+main { top: 0 !important; }
+#panel { border-top: 0; }
+.acbtn { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 12px 0 5px; border-radius: 99px; font-weight: 650; font-size: 14.5px; color: var(--ink); cursor: pointer; }
+.acbtn.signin { padding: 0 16px 0 12px; }
+.acbtn .li { width: 18px; height: 18px; }
+.acbtn:hover { transform: scale(1.03); }
+.acbtn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--accent), var(--shadow); }
+.av { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 12.5px; font-weight: 750; color: #fff; background: #46566a; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #46566a; flex: none; }
+.av.regulator { background: #d7263d; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #d7263d; }
+.av.hauler { background: #1e6ebe; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1e6ebe; }
+.av.industry { background: #1f8a4c; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1f8a4c; }
+#acctFloat { display: flex; justify-content: flex-end; box-shadow: none !important; background: none !important; overflow: visible !important; }
+.esri-ui-top-right { gap: 10px; }
+.mega { top: 64px; }
+.mega.small { width: 320px; grid-template-columns: 1fr; }
+.mega .macct { border-left: 1px solid var(--line); padding-left: 14px; }
+.mega.small .macct { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 8px; }
+.mwho { display: flex; align-items: center; gap: 10px; padding: 8px 8px 10px; }
+.mwho b { display: block; font-size: 15px; } .mwho small { color: var(--mute); font-size: 12.5px; }
+.msep { height: 1px; background: var(--line); margin: 6px 8px; }
+.mega:not(.small) { grid-template-columns: repeat(3, 1fr); width: min(980px, calc(100vw - 32px)); }
+.mega:not(.small) .macct { grid-column: 3; grid-row: 1 / span 2; }
+@media (max-width: 760px) {
+  .mega, .mega.small, .mega:not(.small) { left: 8px !important; right: 8px !important; width: auto; grid-template-columns: 1fr; max-height: calc(100vh - 80px); }
+  .mega:not(.small) .macct { grid-column: auto; grid-row: auto; border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 8px; }
+  .acbtn .acl { display: none; } .acbtn { padding: 0 8px 0 5px; }
+}
+.smpl { font-style: normal; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 99px; background: rgba(201,115,26,.16); color: var(--amber); margin-left: 6px; vertical-align: 1px; }

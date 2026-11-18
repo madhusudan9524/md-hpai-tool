@@ -1,5 +1,8 @@
-/* MDA menu (top bar, next to the account button): every MDA workflow in one place,
- * plus data export, full backups, data-feed status, users and groups, current rules and help.
+/* Account button + menu (floating, top-right of the map).
+ * Signed out: Sign in (MDA staff / Haulers & industry) and Request access.
+ * Signed in: account (view as, sign out) and the tools that fit the current view:
+ * MDA staff get every workflow (operations, reviews, premises, movement, data export and backup, administration);
+ * haulers and growers get their own short lists.
  */
 window.HPAI.modules.push(function (ctx) {
   const { H, C, S } = ctx, { $, esc, fmtTime, toast, sheet, closeSheet, csv } = H;
@@ -62,21 +65,63 @@ window.HPAI.modules.push(function (ctx) {
       ["help", "Help", "How the tools work", () => helpSheet()]]]
   ];
 
-  // ---------------- top-bar button + dropdown ----------------
-  const btn = document.createElement("button"); btn.className = "mmbtn"; btn.hidden = true;
-  btn.innerHTML = `<svg class="li" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>MDA menu</span>`;
-  btn.setAttribute("aria-haspopup", "true"); btn.setAttribute("aria-expanded", "false");
-  document.querySelector("header .tops").insertBefore(btn, $("acct"));
-  const menu = document.createElement("div"); menu.className = "mega"; menu.hidden = true; menu.setAttribute("role", "menu");
-  menu.innerHTML = GROUPS.map(([g, items], gi) => `<div class="mg"><h4>${esc(g)}</h4>${items.map(([i, t, d], ii) => `<button class="mi" role="menuitem" data-g="${gi}" data-i="${ii}">${ic(i)}<span><b>${esc(t)}</b><small>${esc(d)}</small></span></button>`).join("")}</div>`).join("");
-  document.body.appendChild(menu);
-  const close = () => { menu.hidden = true; btn.setAttribute("aria-expanded", "false"); };
-  btn.onclick = (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; btn.setAttribute("aria-expanded", String(!menu.hidden)); if (!menu.hidden) menu.querySelector(".mi").focus(); };
-  menu.addEventListener("click", (e) => { const b = e.target.closest(".mi"); if (!b) return; close(); GROUPS[+b.dataset.g][1][+b.dataset.i][3](); });
-  document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target)) close(); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) { close(); btn.focus(); } });
-  const showBtn = () => (btn.hidden = !(S.roles || []).includes("regulator"));
-  ctx.on("signin", showBtn); ctx.on("ws", showBtn);
+  // tools for haulers and growers (their panel already holds these; the menu is a shortcut)
+  const go = (sel, fn) => () => { ctx.sheetHalf(); const el = document.querySelector(sel); if (el) { el.scrollIntoView({ behavior: "smooth", block: "start" }); if (fn) setTimeout(() => fn(el), 350); } };
+  const focusIn = (sel) => (el) => { const f = el.querySelector(sel) || document.querySelector(sel); if (f) f.focus(); };
+  const ROLE = {
+    hauler: [["Trips", [
+      ["route", "Plan a trip", "Route around control areas", go(".planner", focusIn("#orgBox input"))],
+      ["truck", "My permits", "Status and QR codes", go("#hTabs", () => document.querySelector('#hTabs [data-p="permits"]').click())],
+      ["layers", "Saved trips", "Plan again in one tap", go("#hTabs", () => document.querySelector('#hTabs [data-p="trips"]').click())]]],
+      ["On the road", [
+      ["barn", "Farm check-in", "Log a farm visit", () => ctx.actions.checkin()],
+      ["inbox", "Report dead wild birds", "With a photo", () => ctx.actions.wildReport()],
+      ["help", "Help", "How trip planning works", () => helpSheet("hauler")]]]],
+    industry: [["My farm", [
+      ["barn", "Farm risk", "Screening score for your premises", go("#riskCard")],
+      ["plus", "Add a place", "Farm or home, for alerts", () => document.getElementById("addPlace").click()]]],
+      ["Report", [
+      ["flag", "Report a sick flock", "MDA follows up", () => ctx.actions.flockReport()],
+      ["inbox", "Report dead wild birds", "With a photo", () => ctx.actions.wildReport()],
+      ["help", "Help", "Risk score and reports", () => helpSheet("industry")]]]]
+  };
+
+  // ---------------- account button + dropdown ----------------
+  const host = ctx.acctEl, menu = document.createElement("div");
+  menu.className = "mega"; menu.hidden = true; menu.setAttribute("role", "menu"); document.body.appendChild(menu);
+  let actions = [];
+  const item = (i, t, d, fn) => { actions.push(fn); return `<button class="mi" role="menuitem" data-a="${actions.length - 1}">${ic(i)}<span><b>${esc(t)}</b>${d ? `<small>${esc(d)}</small>` : ""}</span></button>`; };
+  function build() {
+    actions = [];
+    if (!S.user) {
+      menu.className = "mega small";
+      menu.innerHTML = `<div class="mg"><h4>Sign in</h4>${item("user", "MDA staff", "Zones, reviews, tracing", () => ctx.signIn("regulator"))}${item("truck", "Haulers & industry", "Routes, permits, farm risk", () => ctx.signIn("partner"))}
+        <div class="msep"></div>${item("plus", "Request access", "New haulers and growers", () => ctx.actions.signup())}</div>`;
+      return;
+    }
+    const views = S.roles.concat(S.roles.includes("regulator") ? ["hauler", "industry", "public"] : ["public"]).filter((v, k, x) => x.indexOf(v) === k && v !== S.ws);
+    const acct = `<div class="mg macct"><div class="mwho"><span class="av ${S.ws}">${esc(ini())}</span><span><b>${esc(S.user.fullName || S.user.username)}</b><small>Viewing as ${esc(ctx.WS[S.ws])}</small></span></div>
+      ${views.length ? `<h4>View as</h4>${views.map((v) => item(v === "regulator" ? "user" : v === "hauler" ? "truck" : v === "industry" ? "barn" : "globe", ctx.WS[v], "", () => ctx.setWorkspace(v))).join("")}` : ""}
+      <div class="msep"></div>${item("log", "Sign out", "", () => ctx.signOut())}</div>`;
+    const groups = S.ws === "regulator" ? GROUPS : ROLE[S.ws] || [];
+    menu.className = "mega" + (S.ws === "regulator" ? "" : " small");
+    menu.innerHTML = groups.map(([g, items]) => `<div class="mg"><h4>${esc(g)}</h4>${items.map(([i, t, d, fn]) => item(i, t, d, fn)).join("")}</div>`).join("") + acct;
+  }
+  const ini = () => (S.user.fullName || S.user.username).split(/\s+/).map((x) => x[0]).join("").slice(0, 2).toUpperCase();
+  function renderBtn() {
+    host.innerHTML = S.user
+      ? `<button class="acbtn glass" aria-haspopup="true" aria-expanded="false" title="Account and tools"><span class="av ${S.ws}">${esc(ini())}</span><span class="acl">${S.ws === "regulator" ? "MDA menu" : S.ws === "public" ? "Account" : "Menu"}</span><svg class="li" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>`
+      : `<button class="acbtn glass signin" aria-haspopup="true" aria-expanded="false"><svg class="li" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span class="acl">Sign in</span></button>`;
+    const b = host.querySelector("button");
+    b.onclick = (e) => { e.stopPropagation(); if (!menu.hidden) return close(); build(); place(b); menu.hidden = false; b.setAttribute("aria-expanded", "true"); const f = menu.querySelector(".mi"); if (f) f.focus(); };
+  }
+  function place(b) { const r = b.getBoundingClientRect(); menu.style.top = r.bottom + 8 + "px"; menu.style.right = Math.max(8, window.innerWidth - r.right) + "px"; }
+  const close = () => { menu.hidden = true; const b = host.querySelector("button"); if (b) b.setAttribute("aria-expanded", "false"); };
+  menu.addEventListener("click", (e) => { const b = e.target.closest(".mi"); if (!b) return; const fn = actions[+b.dataset.a]; close(); fn(); });
+  document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target) && !host.contains(e.target)) close(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) { close(); const b = host.querySelector("button"); if (b) b.focus(); } });
+  window.addEventListener("resize", close);
+  ctx.on("acct", renderBtn); ctx.on("signin", renderBtn); renderBtn();
 
   // ---------------- data export ----------------
   const TABLES = () => [
@@ -186,7 +231,14 @@ window.HPAI.modules.push(function (ctx) {
   }
 
   // ---------------- help ----------------
-  function helpSheet() {
+  function helpSheet(kind) {
+    if (kind === "hauler") return sheet("Help", `<div class="form help">
+      <p><b>Plan a trip.</b> Enter where you start and where you're going, pick the load, check truck height and weight, then Plan route. Routes go around control areas, keep away from other poultry farms and add a cleaning stop when needed.</p>
+      <p><b>Permits.</b> If a trip has to enter a control area, tap Request permit. The form is filled in from the route. Approved permits show a QR code to present at checkpoints.</p>
+      <p><b>Farm check-in.</b> Log each farm you visit. If a farm later tests positive, MDA can reach the right drivers quickly.</p></div>`);
+    if (kind === "industry") return sheet("Help", `<div class="form help">
+      <p><b>Farm risk.</b> Save your farm under My places. The score adds up nearby control areas, wild-bird detections, vehicle visits from control areas, waterfowl habitat and season. It's a screening aid, not a diagnosis.</p>
+      <p><b>Sick birds.</b> If birds are dying now, call MDA at ${esc(C.mdaPhone)}. The Report a sick flock form helps MDA follow up.</p></div>`);
     sheet("Help", `<div class="form help">
       <p><b>New outbreak.</b> MDA menu → New infected premises. Tap the premises (a registered boundary is used if there is one), check the zones, create. Then Publish public map.</p>
       <p><b>Announcement before zones.</b> MDA menu → Declare a county. The county gets a mild shade for everyone.</p>
