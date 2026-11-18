@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-18T02:13:29+00:00",
+ "updated": "2026-11-18T06:14:55+00:00",
  "wild": [],
  "notices": [
   {
@@ -21,14 +21,18 @@
    "kind": "general",
    "status": null,
    "county": null,
-   "state": "Delaware"
+   "state": "Delaware",
+   "flock_type": null,
+   "birds": null,
+   "summary": "Delaware Department of Agriculture reminds residents of poultry safety tips as the avian influenza risk rises with the 2026-27 migratory season.",
+   "method": "ai"
   },
   {
    "date": "2026-11-11",
    "source": "Maryland Department of Agriculture",
    "title": "Preliminary testing finds HPAI in a commercial broiler flock in Worcester County",
-   "url": "https://www.wmdt.com/2026/11/1case-of-avian-influenza-detected-in-worcester-county/",
-   "via": "reported by WMDT",
+   "url": "https://mda.maryland.gov/Pages/AvianFlu.aspx",
+   "via": "replace with MDA press release link",
    "kind": "commercial",
    "status": "preliminary",
    "county": "Worcester",
@@ -51,7 +55,547 @@
   }
  ],
  "problems": [
-  "VDACS: no VDACS list page reachable"
+  "VDACS: no VDACS list page reachable",
+  "AI reading failed for 'Update on Delaware H5 Avian Influenza Case on Kent County Fa': Expecting value: line 1 column 1 (char 0) (used keyword rules)",
+  "AI reading failed for 'Update on Delaware H5 Avian Influenza Case on Kent County Fa': Expecting value: line 1 column 1 (char 0) (used keyword rules)",
+  "AI reading failed for 'Two Additional Cases Of Avian Influenza Confirmed On Delawar': Expecting value: line 1 column 1 (char 0) (used keyword rules)",
+  "AI reading failed for 'Avian Influenza Found In Delaware Chicken Flock; Producers U': Expecting value: line 1 column 1 (char 0) (used keyword rules)"
+ ],
+ "wild_year": [
+  {
+   "state": "Maryland",
+   "county": "Anne Arundel",
+   "species": "Turkey vulture",
+   "date": "2026-08-10",
+   "strain": "EA H5",
+   "lon": -76.63828,
+   "lat": 39.00906,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Harford",
+   "species": "Black vulture",
+   "date": "2026-04-30",
+   "strain": "EA/AM H5N1",
+   "lon": -76.32034,
+   "lat": 39.48027,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Harford",
+   "species": "Black vulture",
+   "date": "2026-04-30",
+   "strain": "EA/AM H5N1",
+   "lon": -76.26802,
+   "lat": 39.489,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Montgomery",
+   "species": "Bald eagle",
+   "date": "2026-04-06",
+   "strain": "EA/AM H5N1",
+   "lon": -77.19194,
+   "lat": 39.11761,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Calvert",
+   "species": "Bald eagle",
+   "date": "2026-04-06",
+   "strain": "EA/AM H5N1",
+   "lon": -76.5408,
+   "lat": 38.58092,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Queen Anne's",
+   "species": "Great horned owl",
+   "date": "2026-04-06",
+   "strain": "EA/AM H5N1",
+   "lon": -76.0166,
+   "lat": 39.08632,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Montgomery",
+   "species": "Red-shouldered hawk",
+   "date": "2026-04-06",
+   "strain": "EA/AM H5N1",
+   "lon": -77.15366,
+   "lat": 39.1114,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Talbot",
+   "species": "Red-tailed hawk",
+   "date": "2026-04-06",
+   "strain": "EA/AM H5N1",
+   "lon": -76.13628,
+   "lat": 38.79405,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Prince George's",
+   "species": "Red-shouldered hawk",
+   "date": "2026-04-06",
+   "strain": "EA/AM H5N1",
+   "lon": -76.8182,
+   "lat": 38.8594,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Carroll",
+   "species": "Red-shouldered hawk",
+   "date": "2026-04-06",
+   "strain": "EA/AM H5N1",
+   "lon": -77.07402,
+   "lat": 39.54127,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Howard",
+   "species": "Turkey vulture",
+   "date": "2026-04-06",
+   "strain": "EA/AM H5N1",
+   "lon": -76.93824,
+   "lat": 39.2596,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Anne Arundel",
+   "species": "Canada goose",
+   "date": "2026-04-06",
+   "strain": "EA/AM H5N1",
+   "lon": -76.60216,
+   "lat": 38.98737,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Prince George's",
+   "species": "Fish crow",
+   "date": "2026-04-06",
+   "strain": "EA/AM H5N1",
+   "lon": -76.86236,
+   "lat": 38.79388,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Talbot",
+   "species": "Canada goose",
+   "date": "2026-03-09",
+   "strain": "EA/AM H5N1",
+   "lon": -76.10388,
+   "lat": 38.76102,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Carroll",
+   "species": "Canada goose",
+   "date": "2026-03-09",
+   "strain": "EA/AM H5N1",
+   "lon": -77.10402,
+   "lat": 39.52048,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Kent",
+   "species": "Canada goose",
+   "date": "2026-03-03",
+   "strain": "EA/AM H5N1",
+   "lon": -76.05224,
+   "lat": 39.21638,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Queen Anne's",
+   "species": "Canada goose",
+   "date": "2026-03-03",
+   "strain": "EA/AM H5N1",
+   "lon": -76.05872,
+   "lat": 39.05599,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Kent",
+   "species": "Canada goose",
+   "date": "2026-03-03",
+   "strain": "EA/AM H5N1",
+   "lon": -76.08788,
+   "lat": 39.22448,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Harford",
+   "species": "Black vulture",
+   "date": "2026-02-26",
+   "strain": "EA/AM H5N1",
+   "lon": -76.3549,
+   "lat": 39.52716,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Harford",
+   "species": "Black vulture",
+   "date": "2026-02-26",
+   "strain": "EA/AM H5N1",
+   "lon": -76.27678,
+   "lat": 39.507,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Harford",
+   "species": "Black vulture",
+   "date": "2026-02-26",
+   "strain": "EA/AM H5N1",
+   "lon": -76.26094,
+   "lat": 39.50205,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Harford",
+   "species": "Black vulture",
+   "date": "2026-02-26",
+   "strain": "EA/AM H5N1",
+   "lon": -76.35226,
+   "lat": 39.49296,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "St. Mary's",
+   "species": "Black vulture",
+   "date": "2026-02-26",
+   "strain": "EA/AM H5N1",
+   "lon": -76.60312,
+   "lat": 38.2557,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Charles",
+   "species": "Black vulture",
+   "date": "2026-02-26",
+   "strain": "EA/AM H5N1",
+   "lon": -76.92866,
+   "lat": 38.48182,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Harford",
+   "species": "Black vulture",
+   "date": "2026-02-26",
+   "strain": "EA/AM H5N1",
+   "lon": -76.27078,
+   "lat": 39.55371,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "St. Mary's",
+   "species": "Black vulture",
+   "date": "2026-02-26",
+   "strain": "EA/AM H5N1",
+   "lon": -76.65028,
+   "lat": 38.24436,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "St. Mary's",
+   "species": "Bald eagle",
+   "date": "2026-02-03",
+   "strain": "EA/AM H5N1",
+   "lon": -76.56904,
+   "lat": 38.2575,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Montgomery",
+   "species": "Bald eagle",
+   "date": "2026-02-03",
+   "strain": "EA/AM H5N1",
+   "lon": -77.21882,
+   "lat": 39.18358,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Montgomery",
+   "species": "Canada goose",
+   "date": "2026-02-03",
+   "strain": "EA/AM H5N1",
+   "lon": -77.17358,
+   "lat": 39.17224,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Dorchester",
+   "species": "Wood duck",
+   "date": "2026-01-26",
+   "strain": "EA H5",
+   "lon": -76.0749,
+   "lat": 38.38285,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Dorchester",
+   "species": "Wood duck",
+   "date": "2026-01-26",
+   "strain": "EA H5",
+   "lon": -76.04538,
+   "lat": 38.4409,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Wicomico",
+   "species": "Canada goose",
+   "date": "2026-01-16",
+   "strain": "EA/AM H5N1",
+   "lon": -75.6412,
+   "lat": 38.38786,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Dorchester",
+   "species": "Wood duck",
+   "date": "2026-01-16",
+   "strain": "EA/AM H5N1",
+   "lon": -76.02978,
+   "lat": 38.36737,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Dorchester",
+   "species": "Wood duck",
+   "date": "2026-01-16",
+   "strain": "EA H5",
+   "lon": -76.07154,
+   "lat": 38.44792,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Dorchester",
+   "species": "Wood duck",
+   "date": "2026-01-16",
+   "strain": "EA H5",
+   "lon": -75.9993,
+   "lat": 38.44567,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Dorchester",
+   "species": "Wood duck",
+   "date": "2026-01-16",
+   "strain": "EA H5",
+   "lon": -76.0503,
+   "lat": 38.42434,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Dorchester",
+   "species": "Wood duck",
+   "date": "2026-01-16",
+   "strain": "EA H5",
+   "lon": -76.0173,
+   "lat": 38.42758,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Dorchester",
+   "species": "Wood duck",
+   "date": "2026-01-16",
+   "strain": "EA H5",
+   "lon": -76.07442,
+   "lat": 38.39707,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Dorchester",
+   "species": "Wood duck",
+   "date": "2026-01-16",
+   "strain": "EA H5",
+   "lon": -76.05186,
+   "lat": 38.42326,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Northern shoveler",
+   "date": "2026-01-06",
+   "strain": "EA/AM H5N1",
+   "lon": -75.57156,
+   "lat": 39.08665,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "American black duck",
+   "date": "2026-01-06",
+   "strain": "EA/AM H5N1",
+   "lon": -75.49584,
+   "lat": 39.12256,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Gadwall",
+   "date": "2026-01-06",
+   "strain": "EA/AM H5N1",
+   "lon": -75.501,
+   "lat": 39.10609,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Harford",
+   "species": "Bald eagle",
+   "date": "2025-12-23",
+   "strain": "EA H5",
+   "lon": -76.36678,
+   "lat": 39.53085,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Sussex",
+   "species": "Bald eagle",
+   "date": "2025-12-23",
+   "strain": "EA H5N1",
+   "lon": -75.41956,
+   "lat": 38.67807,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Anne Arundel",
+   "species": "Black vulture",
+   "date": "2025-12-16",
+   "strain": "EA/AM H5N1",
+   "lon": -76.64512,
+   "lat": 38.97117,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Calvert",
+   "species": "Black vulture",
+   "date": "2025-12-16",
+   "strain": "EA/AM H5N1",
+   "lon": -76.60164,
+   "lat": 38.53754,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Anne Arundel",
+   "species": "Black vulture",
+   "date": "2025-12-16",
+   "strain": "EA/AM H5N1",
+   "lon": -76.59928,
+   "lat": 38.997,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Anne Arundel",
+   "species": "Black vulture",
+   "date": "2025-12-16",
+   "strain": "EA/AM H5N1",
+   "lon": -76.62868,
+   "lat": 38.97558,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Snow goose",
+   "date": "2025-12-15",
+   "strain": "EA/AM H5N1",
+   "lon": -75.52008,
+   "lat": 39.08287,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Canada goose",
+   "date": "2025-11-21",
+   "strain": "EA/AM H5N1",
+   "lon": -75.53124,
+   "lat": 39.10294,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2025-11-18",
+   "strain": "EA H5",
+   "lon": -75.57228,
+   "lat": 39.07054,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2025-11-18",
+   "strain": "EA/AM H5N1",
+   "lon": -75.57708,
+   "lat": 39.06694,
+   "source": "USDA APHIS"
+  }
+ ],
+ "season": [
+  1415,
+  1305,
+  555,
+  271,
+  140,
+  175,
+  135,
+  111,
+  384,
+  306,
+  659,
+  844
  ],
  "history": [
   {
@@ -72,11 +616,14 @@
    "state": "Delaware",
    "county": "Kent",
    "date": "2026-01-10",
-   "flock": "Commercial flock",
+   "flock": "Commercial broiler",
+   "birds": null,
    "status": "preliminary",
+   "status_text": "Preliminary testing found presumptive H5 avian influenza in a Kent County commercial broiler flock, which is being depopulated.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2026/01/10/delaware-announces-presumptive-positive-avian-influenza-case-in-kent-county-commercial-flock/",
-   "auto": true
+   "auto": true,
+   "method": "ai"
   },
   {
    "id": "auto-e9da8c48",
@@ -84,568 +631,55 @@
    "county": "Kent",
    "date": "2025-01-05",
    "flock": "Commercial flock",
+   "birds": null,
    "status": "preliminary",
+   "status_text": "",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2025/01/05/update-on-delaware-h5-avian-influenza-case-on-kent-county-farm/",
-   "auto": true
+   "auto": true,
+   "method": "rules"
   },
   {
    "id": "auto-ed27eed3",
    "state": "Delaware",
    "county": "Kent",
    "date": "2025-01-03",
-   "flock": "Commercial flock",
+   "flock": "Commercial broiler",
+   "birds": null,
    "status": "preliminary",
+   "status_text": "Preliminary testing found presumptive positive H5 avian influenza in a commercial broiler flock in Kent County, Delaware; samples sent to NVSL for confirmation.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2025/01/03/delaware-announces-first-presumptive-positive-h5-avian-influenza-case-detected-on-kent-county-farm-in-2025/",
-   "auto": true
+   "auto": true,
+   "method": "ai"
+  },
+  {
+   "id": "auto-d4e515f0",
+   "state": "Maryland",
+   "county": "Caroline",
+   "date": "2023-11-21",
+   "flock": "Commercial broiler",
+   "birds": null,
+   "status": "preliminary",
+   "status_text": "A commercial broiler flock in Caroline County, Maryland, preliminarily tested positive for HPAI; USDA NVSL confirmation is pending.",
+   "source": "Delaware Department of Agriculture",
+   "url": "https://news.delaware.gov/2023/11/21/delaware-poultry-owners-urged-to-take-precautions-due-to-hpai-on-delmarva/",
+   "auto": true,
+   "method": "ai"
   },
   {
    "id": "auto-0d21ea4f",
    "state": "Delaware",
    "county": "Kent",
    "date": "2022-03-17",
-   "flock": "Commercial flock",
+   "flock": "Commercial broiler",
+   "birds": null,
    "status": "confirmed",
+   "status_text": "Federal testing confirmed highly pathogenic H5N1 avian influenza in a commercial broiler farm in Kent County, Delaware.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2022/03/17/first-case-of-avian-influenza-detected-on-kent-county-delaware-farm/",
-   "auto": true
+   "auto": true,
+   "method": "ai"
   }
- ],
- "wild_year": [
-  {
-   "state": "Maryland",
-   "county": "Anne Arundel",
-   "species": "Turkey vulture",
-   "date": "2026-08-10",
-   "strain": "EA H5",
-   "lon": -76.60012,
-   "lat": 38.93814,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Harford",
-   "species": "Black vulture",
-   "date": "2026-04-30",
-   "strain": "EA/AM H5N1",
-   "lon": -76.28374,
-   "lat": 39.50502,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Harford",
-   "species": "Black vulture",
-   "date": "2026-04-30",
-   "strain": "EA/AM H5N1",
-   "lon": -76.3015,
-   "lat": 39.48027,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Montgomery",
-   "species": "Bald eagle",
-   "date": "2026-04-06",
-   "strain": "EA/AM H5N1",
-   "lon": -77.2433,
-   "lat": 39.17485,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Calvert",
-   "species": "Bald eagle",
-   "date": "2026-04-06",
-   "strain": "EA/AM H5N1",
-   "lon": -76.54428,
-   "lat": 38.53538,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Queen Anne's",
-   "species": "Great horned owl",
-   "date": "2026-04-06",
-   "strain": "EA/AM H5N1",
-   "lon": -76.02584,
-   "lat": 39.01963,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Montgomery",
-   "species": "Red-shouldered hawk",
-   "date": "2026-04-06",
-   "strain": "EA/AM H5N1",
-   "lon": -77.1503,
-   "lat": 39.16396,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Talbot",
-   "species": "Red-tailed hawk",
-   "date": "2026-04-06",
-   "strain": "EA/AM H5N1",
-   "lon": -76.15836,
-   "lat": 38.79711,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Prince George's",
-   "species": "Red-shouldered hawk",
-   "date": "2026-04-06",
-   "strain": "EA/AM H5N1",
-   "lon": -76.89752,
-   "lat": 38.80108,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Carroll",
-   "species": "Red-shouldered hawk",
-   "date": "2026-04-06",
-   "strain": "EA/AM H5N1",
-   "lon": -77.09286,
-   "lat": 39.52291,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Howard",
-   "species": "Turkey vulture",
-   "date": "2026-04-06",
-   "strain": "EA/AM H5N1",
-   "lon": -76.93932,
-   "lat": 39.26959,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Anne Arundel",
-   "species": "Canada goose",
-   "date": "2026-04-06",
-   "strain": "EA/AM H5N1",
-   "lon": -76.6384,
-   "lat": 38.97495,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Prince George's",
-   "species": "Fish crow",
-   "date": "2026-04-06",
-   "strain": "EA/AM H5N1",
-   "lon": -76.853,
-   "lat": 38.7883,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Talbot",
-   "species": "Canada goose",
-   "date": "2026-03-09",
-   "strain": "EA/AM H5N1",
-   "lon": -76.12548,
-   "lat": 38.74905,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Carroll",
-   "species": "Canada goose",
-   "date": "2026-03-09",
-   "strain": "EA/AM H5N1",
-   "lon": -76.9923,
-   "lat": 39.56449,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Kent",
-   "species": "Canada goose",
-   "date": "2026-03-03",
-   "strain": "EA/AM H5N1",
-   "lon": -76.0172,
-   "lat": 39.21962,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Kent",
-   "species": "Canada goose",
-   "date": "2026-03-03",
-   "strain": "EA/AM H5N1",
-   "lon": -76.01744,
-   "lat": 39.21278,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Queen Anne's",
-   "species": "Canada goose",
-   "date": "2026-03-03",
-   "strain": "EA/AM H5N1",
-   "lon": -76.00676,
-   "lat": 39.05734,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Harford",
-   "species": "Black vulture",
-   "date": "2026-02-26",
-   "strain": "EA/AM H5N1",
-   "lon": -76.2985,
-   "lat": 39.53355,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Harford",
-   "species": "Black vulture",
-   "date": "2026-02-26",
-   "strain": "EA/AM H5N1",
-   "lon": -76.2991,
-   "lat": 39.51951,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Harford",
-   "species": "Black vulture",
-   "date": "2026-02-26",
-   "strain": "EA/AM H5N1",
-   "lon": -76.31182,
-   "lat": 39.54777,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Harford",
-   "species": "Black vulture",
-   "date": "2026-02-26",
-   "strain": "EA/AM H5N1",
-   "lon": -76.36774,
-   "lat": 39.54309,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Harford",
-   "species": "Black vulture",
-   "date": "2026-02-26",
-   "strain": "EA/AM H5N1",
-   "lon": -76.37086,
-   "lat": 39.46866,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "St. Mary's",
-   "species": "Black vulture",
-   "date": "2026-02-26",
-   "strain": "EA/AM H5N1",
-   "lon": -76.5568,
-   "lat": 38.29458,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "St. Mary's",
-   "species": "Black vulture",
-   "date": "2026-02-26",
-   "strain": "EA/AM H5N1",
-   "lon": -76.555,
-   "lat": 38.27739,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Charles",
-   "species": "Black vulture",
-   "date": "2026-02-26",
-   "strain": "EA/AM H5N1",
-   "lon": -77.02622,
-   "lat": 38.46067,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "St. Mary's",
-   "species": "Bald eagle",
-   "date": "2026-02-03",
-   "strain": "EA/AM H5N1",
-   "lon": -76.62172,
-   "lat": 38.28135,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Montgomery",
-   "species": "Bald eagle",
-   "date": "2026-02-03",
-   "strain": "EA/AM H5N1",
-   "lon": -77.2643,
-   "lat": 39.15172,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Montgomery",
-   "species": "Canada goose",
-   "date": "2026-02-03",
-   "strain": "EA/AM H5N1",
-   "lon": -77.15402,
-   "lat": 39.14776,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Dorchester",
-   "species": "Wood duck",
-   "date": "2026-01-26",
-   "strain": "EA H5",
-   "lon": -76.05594,
-   "lat": 38.4481,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Dorchester",
-   "species": "Wood duck",
-   "date": "2026-01-26",
-   "strain": "EA H5",
-   "lon": -76.05906,
-   "lat": 38.41948,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Wicomico",
-   "species": "Canada goose",
-   "date": "2026-01-16",
-   "strain": "EA/AM H5N1",
-   "lon": -75.5824,
-   "lat": 38.39155,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Dorchester",
-   "species": "Wood duck",
-   "date": "2026-01-16",
-   "strain": "EA/AM H5N1",
-   "lon": -76.02834,
-   "lat": 38.40436,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Dorchester",
-   "species": "Wood duck",
-   "date": "2026-01-16",
-   "strain": "EA H5",
-   "lon": -75.99078,
-   "lat": 38.36863,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Dorchester",
-   "species": "Wood duck",
-   "date": "2026-01-16",
-   "strain": "EA H5",
-   "lon": -75.9747,
-   "lat": 38.38789,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Dorchester",
-   "species": "Wood duck",
-   "date": "2026-01-16",
-   "strain": "EA H5",
-   "lon": -76.05306,
-   "lat": 38.36656,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Dorchester",
-   "species": "Wood duck",
-   "date": "2026-01-16",
-   "strain": "EA H5",
-   "lon": -75.95862,
-   "lat": 38.44495,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Dorchester",
-   "species": "Wood duck",
-   "date": "2026-01-16",
-   "strain": "EA H5",
-   "lon": -76.02174,
-   "lat": 38.43469,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Dorchester",
-   "species": "Wood duck",
-   "date": "2026-01-16",
-   "strain": "EA H5",
-   "lon": -76.00782,
-   "lat": 38.42551,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Delaware",
-   "county": "Kent",
-   "species": "Northern shoveler",
-   "date": "2026-01-06",
-   "strain": "EA/AM H5N1",
-   "lon": -75.48864,
-   "lat": 39.08638,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Delaware",
-   "county": "Kent",
-   "species": "American black duck",
-   "date": "2026-01-06",
-   "strain": "EA/AM H5N1",
-   "lon": -75.51516,
-   "lat": 39.12112,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Delaware",
-   "county": "Kent",
-   "species": "Gadwall",
-   "date": "2026-01-06",
-   "strain": "EA/AM H5N1",
-   "lon": -75.54348,
-   "lat": 39.09268,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Harford",
-   "species": "Bald eagle",
-   "date": "2025-12-23",
-   "strain": "EA H5",
-   "lon": -76.35394,
-   "lat": 39.50961,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Delaware",
-   "county": "Sussex",
-   "species": "Bald eagle",
-   "date": "2025-12-23",
-   "strain": "EA/AM H5N1",
-   "lon": -75.34048,
-   "lat": 38.71911,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Anne Arundel",
-   "species": "Black vulture",
-   "date": "2025-12-16",
-   "strain": "EA/AM H5N1",
-   "lon": -76.6732,
-   "lat": 38.93679,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Anne Arundel",
-   "species": "Black vulture",
-   "date": "2025-12-16",
-   "strain": "EA/AM H5N1",
-   "lon": -76.64248,
-   "lat": 38.97243,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Anne Arundel",
-   "species": "Black vulture",
-   "date": "2025-12-16",
-   "strain": "EA/AM H5N1",
-   "lon": -76.597,
-   "lat": 38.95272,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Calvert",
-   "species": "Black vulture",
-   "date": "2025-12-16",
-   "strain": "EA/AM H5N1",
-   "lon": -76.4862,
-   "lat": 38.57894,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Delaware",
-   "county": "Kent",
-   "species": "Snow goose",
-   "date": "2025-12-15",
-   "strain": "EA/AM H5N1",
-   "lon": -75.54684,
-   "lat": 39.08071,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Delaware",
-   "county": "Kent",
-   "species": "Canada goose",
-   "date": "2025-11-21",
-   "strain": "EA/AM H5N1",
-   "lon": -75.54372,
-   "lat": 39.0898,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Delaware",
-   "county": "Kent",
-   "species": "Green-winged teal",
-   "date": "2025-11-18",
-   "strain": "EA H5",
-   "lon": -75.48624,
-   "lat": 39.09385,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Delaware",
-   "county": "Kent",
-   "species": "Green-winged teal",
-   "date": "2025-11-18",
-   "strain": "EA/AM H5N1",
-   "lon": -75.57228,
-   "lat": 39.09583,
-   "source": "USDA APHIS"
-  }
- ],
- "season": [
-  1418,
-  1334,
-  557,
-  273,
-  140,
-  176,
-  142,
-  111,
-  384,
-  311,
-  663,
-  847
  ]
 }
