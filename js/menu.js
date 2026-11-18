@@ -41,6 +41,7 @@ window.HPAI.modules.push(function (ctx) {
       ["doc", "Daily situation summary", "Printable briefing (PDF)", later(() => ctx.mda.summary())],
       ["plus", "New infected premises", "Mark premises, draw zones", later(() => ctx.mda.newPremises())],
       ["flag", "Declare a county", "Before zones are drawn", later(() => ctx.mda.declare())],
+      ["layers", "Zones and county declarations", "Release premises or counties", later(() => ctx.mda.open("z"))],
       ["globe", "Publish public map", "Update what the public sees", later(() => ctx.mda.publish())]]],
     ["Reviews", [
       ["inbox", "Reports", "Dead wild birds, sick flocks", later(() => ctx.mda.queue("rep"))],

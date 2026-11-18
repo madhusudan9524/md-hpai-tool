@@ -289,8 +289,8 @@ window.HPAI.modules.push(function (ctx) {
     if (!has(C.core.declarations)) { dl.innerHTML = `<p class="hint">County declarations come from data/curated_detections.json until the declarations layer is connected.</p>`; return; }
     try {
       const d = await Q(C.core.declarations, { where: "status <> 'Withdrawn'", orderByFields: "declared DESC" });
-      dl.innerHTML = d.features.length ? d.features.map((f) => `<div class="prow"><span class="tx"><b>${esc(f.attributes.county)}, ${esc(f.attributes.state)}</b><small>${fmtShort(f.attributes.declared)} · ${esc(f.attributes.status_text || "")}</small></span><button class="mini" data-w="${f.attributes.OBJECTID}">Withdraw</button></div>`).join("") : `<p class="hint">None.</p>`;
-      dl.querySelectorAll("[data-w]").forEach((b) => (b.onclick = async () => { await edit(C.core.declarations, { updates: JSON.stringify([{ attributes: { OBJECTID: +b.dataset.w, status: "Withdrawn" } }]) }); ctx.audit("declaration:withdraw", b.dataset.w); ctx.paintCounties(); loaders.z(); }));
+      dl.innerHTML = d.features.length ? d.features.map((f) => `<div class="prow"><span class="tx"><b>${esc(f.attributes.county)}, ${esc(f.attributes.state)}</b><small>${fmtShort(f.attributes.declared)} · ${esc(f.attributes.status_text || "")}</small></span><button class="mini no" data-w="${f.attributes.OBJECTID}" data-c="${esc(f.attributes.county)}">Release</button></div>`).join("") : `<p class="hint">None.</p>`;
+      dl.querySelectorAll("[data-w]").forEach((b) => (b.onclick = async () => { if (!confirm(`Release the declaration for ${b.dataset.c} County? Its shading is removed from the public map.`)) return; await edit(C.core.declarations, { updates: JSON.stringify([{ attributes: { OBJECTID: +b.dataset.w, status: "Withdrawn" } }]) }); ctx.audit("declaration:release", b.dataset.c, "declaration " + b.dataset.w); ctx.paintCounties(); loaders.z(); toast(b.dataset.c + " County released"); }));
     } catch (e) { dl.innerHTML = `<p class="hint">${esc(e.message)}</p>`; }
   };
 
