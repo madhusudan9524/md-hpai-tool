@@ -620,3 +620,6 @@ a.btnlink { display: block; text-align: center; text-decoration: none; }
   background: rgba(0, 0, 0, .2); color: #fff; font-size: 22px; line-height: 1; cursor: pointer; padding: 0; }
 .mcard .mx:hover { background: rgba(0, 0, 0, .34); }
 @media (max-width: 760px) { .mcard { width: calc(100% - 16px); } }
+/* layers & key: one line per description */
+.lk .lrow small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lk .lrow .nm { min-width: 0; }

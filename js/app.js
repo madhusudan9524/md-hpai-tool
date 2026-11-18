@@ -298,9 +298,9 @@ require([
   });
 
   // always listed in the layers panel; the note says why it is empty (no sightings yet, key not set, eBird unreachable)
-  S.birdsNote = "eBird · loading…";
-  const birdsNote = (B) => !B ? "eBird · no sightings loaded yet" : B.status === "nokey" ? "eBird · not connected yet" : B.status === "error" && !(B.places || []).length ? "eBird · couldn't reach eBird at the last update"
-    : !(B.places || []).length ? "eBird · no waterfowl reported this week" : `eBird · ${B.places.length} places · updated ${new Date(B.updated).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+  S.birdsNote = "eBird, last 7 days";
+  const birdsNote = (B) => !B ? "eBird · not loaded yet" : B.status === "nokey" ? "eBird · not connected yet" : B.status === "error" && !(B.places || []).length ? "eBird · unavailable right now"
+    : !(B.places || []).length ? "eBird · none this week" : "eBird, last 7 days";
   fetch((C.birdsUrl || "data/birds.json") + "?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).catch(() => null).then(async (B) => {
     S.birdsNote = birdsNote(B); renderKey();
     if (!B || !B.places || !B.places.length) return;
@@ -599,25 +599,25 @@ require([
   view.ui.add(keyEl, "bottom-right");
   const ROWS = () => [
     { sec: "Outbreak" },
-    { id: "ca", t: "Control area", n: `within ${H.mi(C.zones.controlKm)} miles of infected premises`, sw: "ca", ls: () => [L.ca] },
-    { id: "sz", t: "Surveillance zone", n: `${H.mi(C.zones.controlKm)}–${H.mi(C.zones.surveillanceKm)} miles · shows as you zoom in`, sw: "sz", ls: () => [L.sz] },
+    { id: "ca", t: "Control area", n: `${H.mi(C.zones.controlKm)} mi around infected premises`, sw: "ca", ls: () => [L.ca] },
+    { id: "sz", t: "Surveillance zone", n: `${H.mi(C.zones.controlKm)}–${H.mi(C.zones.surveillanceKm)} mi out · zoom in to see`, sw: "sz", ls: () => [L.sz] },
     { id: "pm", roles: ["hauler", "industry"], t: "Infected premises", n: C.privacy.markerShiftKm[1] ? "approximate location" : "", sw: "barn", ls: () => [L.markers] },
-    { id: "ex", staff: 1, t: "Infected premises (exact)", n: "premises boundary · MDA only", sw: "perim", ls: () => [L.prem, L.perim] },
-    { id: "cty", t: "Affected county", n: "detection or MDA notice", sw: "cty", ls: () => [tintLyr] },
-    { id: "past", t: "Past outbreaks", n: "grey = released in the last 28 days · slide back to see any date (red = in force then)", sw: "past", ls: () => [histLyr], time: true },
+    { id: "ex", staff: 1, t: "Infected premises (exact)", n: "MDA only", sw: "perim", ls: () => [L.prem, L.perim] },
+    { id: "cty", t: "Affected county", n: "HPAI reported in the last 28 days", sw: "cty", ls: () => [tintLyr] },
+    { id: "past", t: "Past outbreaks", n: "Released in the last 28 days", sw: "past", ls: () => [histLyr], time: true },
     { sec: "Wildlife" },
-    { id: "wb", t: "Wildlife with HPAI", n: "birds and mammals · USDA APHIS", sw: "wb", ls: () => [wild], seg: true },
-    { id: "risk", t: "Seasonal risk", n: "migration + detections + habitat", sw: "risk", ls: () => [riskLyr], off: true },
-    { id: "ebd", t: "Waterfowl sightings", n: S.birdsNote || "eBird · 7 days", sw: "ebd", ls: () => [birdsLyr], off: true },
-    { id: "wf", t: "Waterfowl areas", n: "MD DNR", sw: "wf", ls: () => [env.waterfowl], off: true },
-    { id: "nwr", t: "Wildlife refuges", n: "USFWS", sw: "nwr", ls: () => [env.refuges], off: true },
-    { id: "wma", t: "Wildlife management areas", n: "MD DNR", sw: "wma", ls: () => [env.wma], off: true },
+    { id: "wb", t: "Wildlife with HPAI", n: "Birds and mammals", sw: "wb", ls: () => [wild], seg: true },
+    { id: "risk", t: "Seasonal risk", n: "Advisory only, not a control zone", sw: "risk", ls: () => [riskLyr], off: true },
+    { id: "ebd", t: "Waterfowl sightings", n: S.birdsNote || "eBird, last 7 days", sw: "ebd", ls: () => [birdsLyr], off: true },
+    { id: "wf", t: "Waterfowl areas", sw: "wf", ls: () => [env.waterfowl], off: true },
+    { id: "nwr", t: "Wildlife refuges", sw: "nwr", ls: () => [env.refuges], off: true },
+    { id: "wma", t: "Wildlife management areas", sw: "wma", ls: () => [env.wma], off: true },
     { sec: "Land and water" },
-    { id: "for", t: "Forests and land cover", n: "NLCD 2021", sw: "for", ls: () => [env.land], off: true },
+    { id: "for", t: "Forests and land cover", sw: "for", ls: () => [env.land], off: true },
     { sec: "Farms and roads", roles: ["regulator", "industry"] },
-    { id: "reg", staff: 1, t: "Registered premises", n: "solid = MDA validated, dashed = review", sw: "reg", ls: () => [ctx.layers.registry] },
-    { id: "farm", staff: 1, t: "Poultry farms", n: "estimated, USGS study", sw: "farm", ls: () => [ctx.layers.farms], off: true },
-    { id: "road", roles: ["regulator", "industry"], t: "Road closures", n: "MDOT CHART · live", sw: "road", ls: () => [closuresLyr], off: true }
+    { id: "reg", staff: 1, t: "Registered premises", n: "Dashed = not yet validated", sw: "reg", ls: () => [ctx.layers.registry] },
+    { id: "farm", staff: 1, t: "Poultry farms", n: "Estimated locations", sw: "farm", ls: () => [ctx.layers.farms], off: true },
+    { id: "road", roles: ["regulator", "industry"], t: "Road closures", sw: "road", ls: () => [closuresLyr], off: true }
   ];
   const vis = store.get("vis", {});
   function renderKey() {
@@ -629,7 +629,7 @@ require([
       const ls = r.ls().filter(Boolean); if (!ls.length) return;
       const on = vis[r.id] != null ? vis[r.id] : !r.off;
       ls.forEach((l) => (l.visible = on));
-      html += `<label class="lrow"><span class="sw ${r.sw}"></span><span class="nm">${esc(r.t)}${r.n ? `<small>${esc(r.n)}</small>` : ""}</span><input type="checkbox" class="tg" data-id="${r.id}" ${on ? "checked" : ""}></label>`;
+      html += `<label class="lrow"><span class="sw ${r.sw}"></span><span class="nm">${esc(r.t)}${r.n ? `<small title="${esc(r.n)}">${esc(r.n)}</small>` : ""}</span><input type="checkbox" class="tg" data-id="${r.id}" ${on ? "checked" : ""}></label>`;
       if (r.time && on && timeT0) {
         const weeks = Math.max(1, Math.ceil((Date.now() - timeT0) / (7 * DAY))), cur = S.timeAt == null ? weeks : Math.round((S.timeAt - timeT0) / (7 * DAY));
         html += `<div class="tline"><button class="tplay" id="timePlay" aria-label="Play">${playing ? "❚❚" : "▶"}</button><input type="range" id="timeRange" min="0" max="${weeks}" value="${cur}" aria-label="Week"><b id="timeLab"></b></div><button class="mini ttoday" id="timeToday" hidden>Back to today</button>`;
