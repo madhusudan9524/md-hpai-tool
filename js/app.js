@@ -278,9 +278,9 @@ require([
       close(); inp.value = addrShort(x.text); clr.hidden = false;
       let loc = x.location;
       if (!loc) { const r = await geo("findAddressCandidates", { SingleLine: x.text, magicKey: x.magicKey || "", maxLocations: 1, outFields: "Match_addr" }).catch(() => null); const c = r && r.candidates && r.candidates[0]; if (!c) return toast("Couldn't find that place"); loc = c.location; inp.value = addrShort(c.address); }
-      const pt = new Point({ longitude: loc.x, latitude: loc.y });
-      if (!ctx.inArea(wmu.geographicToWebMercator(pt))) return toast("That place is outside Maryland and Delmarva");
-      if (onPick) onPick(pt, inp.value); else { await view.goTo({ target: pt, zoom: 13 }).catch(() => {}); locationCard(pt, inp.value); ctx.sheetPeek(); }
+      const pt = new Point({ longitude: loc.x, latitude: loc.y }), mp = wmu.geographicToWebMercator(pt);
+      if (!ctx.inArea(mp)) return toast("That place is outside Maryland and Delmarva");
+      if (onPick) onPick(pt, inp.value); else { await view.goTo({ target: mp, zoom: 13 }).catch(() => {}); locationCard(mp, inp.value); ctx.sheetPeek(); }
     }
     // nothing typed matches → closest addresses ("Did you mean…?")
     async function fuzzy(text, auto) {
@@ -311,7 +311,7 @@ require([
     return { clear: () => { inp.value = ""; clr.hidden = true; close(); }, set searchTerm(v) { inp.value = v || ""; clr.hidden = !v; }, get searchTerm() { return inp.value; } };
   };
   ctx.makeSearch("search", "Search an address or place");
-  $("locBtn").onclick = () => navigator.geolocation ? navigator.geolocation.getCurrentPosition((p) => { const pt = new Point({ longitude: p.coords.longitude, latitude: p.coords.latitude }); view.goTo({ target: pt, zoom: 12 }); locationCard(pt, "Your location"); }, () => toast("Location not available")) : toast("Location not available");
+  $("locBtn").onclick = () => navigator.geolocation ? navigator.geolocation.getCurrentPosition((p) => { const pt = wmu.geographicToWebMercator(new Point({ longitude: p.coords.longitude, latitude: p.coords.latitude })); view.goTo({ target: pt, zoom: 12 }); locationCard(pt, "Your location"); }, () => toast("Location not available")) : toast("Location not available");
 
   // ---------------- status of a place ----------------
   // Which public zone a point is in, using the zone layers the viewer is allowed to see
@@ -343,6 +343,7 @@ require([
   }
   ctx.fitCard = fitCard;
   async function locationCard(pt, title) {
+    if (pt.spatialReference && pt.spatialReference.isWGS84) pt = wmu.geographicToWebMercator(pt);   // accept either coordinate system
     if (!ctx.inArea(pt)) return;
     marks.removeAll(); marks.add(new Graphic({ geometry: pt, symbol: { type: "simple-marker", size: 14, color: [10, 108, 255, 1], outline: { color: [255, 255, 255, 1], width: 3 } } }));
     const z = await ctx.zoneAt(pt), cty = ctx.countyAt(wmu.geographicToWebMercator(pt.spatialReference.isWGS84 ? pt : wmu.webMercatorToGeographic(pt)));
