@@ -22,6 +22,8 @@ POINTS = json.load(open(os.path.join(ROOT, "tools", "county_points.json")))
 
 WILD_CSV = "https://www.aphis.usda.gov/sites/default/files/hpai-wild-birds.csv"
 MDA_LIST = "https://mda.maryland.gov/news/press-releases"
+# extra MDA pages to look at, because the release list can lag days behind new releases
+MDA_EXTRA = [MDA_LIST + "?page=1", "https://mda.maryland.gov/Pages/AvianFlu.aspx", "https://mda.maryland.gov/news"]
 DDA_FEEDS = ["https://news.delaware.gov/tag/avian-influenza/feed/", "https://news.delaware.gov/category/agriculture/feed/"]
 VDACS_LISTS = ["https://www.vdacs.virginia.gov/news.shtml", "https://www.vdacs.virginia.gov/press-releases.shtml"]
 WILD_DAYS, WILD_YEAR, NOTICE_DAYS, KEEP_NOTICES = 28, 365, 120, 12
@@ -171,6 +173,11 @@ def wild_birds(today, raw=None):
 
 def mda_notices():
     html = get(MDA_LIST)
+    for u in MDA_EXTRA:
+        try:
+            html += get(u)
+        except Exception:
+            pass
     links = re.findall(r'<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', html, re.S)
     seen, out = set(), []
     for href, label in links:
@@ -249,6 +256,19 @@ def main():
         problems.append(f"USDA APHIS wild birds: {e} (kept previous values)")
 
     found = []
+    # official release addresses pasted by staff into data/curated_detections.json "read_urls": read by the AI on the next run
+    for url in curated.get("read_urls", []):
+        try:
+            page = get(url)
+            body = clean(re.sub(r"(?is)<(script|style|nav|header|footer).*?</\1>", " ", page))[:6000]
+            m = re.search(r"<h1[^>]*>(.*?)</h1>", page, re.S) or re.search(r"<title>(.*?)</title>", page, re.S)
+            host = url.split("/")[2]
+            src = "Maryland Department of Agriculture" if "maryland.gov" in host else "Delaware Department of Agriculture" if "delaware.gov" in host else "Virginia Department of Agriculture and Consumer Services" if "virginia.gov" in host else None
+            if not src:
+                problems.append(f"read_urls: {url} is not a Maryland, Delaware or Virginia government page; skipped"); continue
+            found.append({"title": clean(m.group(1)) if m else url, "url": url, "date": (find_date(body) or today).isoformat(), "body": body, "source": src})
+        except Exception as e:
+            problems.append(f"read_urls {url}: {e}")
     for label, fn in (("MDA", mda_notices), ("DDA", lambda: sum((rss_items(u, "Delaware Department of Agriculture") for u in DDA_FEEDS), [])), ("VDACS", vdacs_notices)):
         try:
             found += fn()

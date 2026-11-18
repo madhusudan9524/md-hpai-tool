@@ -1,40 +1,9 @@
 {
   "_help": "Detections entered or approved by MDA staff. These always win over automatic ones. Dates are YYYY-MM-DD. Premises locations are NOT stored here; add them in the regulator layer.",
-  "commercial": [
-    {
-      "id": "MD-2026-11-11-worcester",
-      "state": "Maryland",
-      "county": "Worcester",
-      "date": "2026-11-11",
-      "flock": "Commercial broiler",
-      "status": "preliminary",
-      "status_text": "Preliminary positive (state laboratory, routine surveillance). USDA NVSL confirmation pending. Property quarantined; flock being depopulated.",
-      "source": "Maryland Department of Agriculture",
-      "url": "https://mda.maryland.gov/news/press-releases/preliminary-testing-confirms-highly-pathogenic-avian-influenza-worcester-county",
-      "note": "From MDA press release, Nov 11, 2026. Bird count and control-area radius not stated in the release."
-    }
+  "read_urls_help": "Paste official release addresses (mda.maryland.gov, news.delaware.gov, vdacs.virginia.gov) here. The AI reads them on the next run and adds detections automatically.",
+  "read_urls": [
+    "https://mda.maryland.gov/news/press-releases/preliminary-testing-confirms-highly-pathogenic-avian-influenza-worcester-county"
   ],
-  "notices": [
-    {
-      "date": "2026-11-11",
-      "source": "Maryland Department of Agriculture",
-      "title": "Preliminary Testing Confirms Highly Pathogenic Avian Influenza in Worcester County",
-      "url": "https://mda.maryland.gov/news/press-releases/preliminary-testing-confirms-highly-pathogenic-avian-influenza-worcester-county",
-      "kind": "commercial",
-      "status": "preliminary",
-      "county": "Worcester",
-      "state": "Maryland"
-    },
-    {
-      "date": "2026-11-16",
-      "source": "Delaware Department of Agriculture",
-      "title": "DDA reminds residents of poultry safety tips as avian influenza season arrives",
-      "url": "https://www.morningagclips.com/dda-reminds-residents-of-poultry-safety-tips-as-avian-influenza-season-arrives/",
-      "via": "republished by Morning Ag Clips",
-      "kind": "general",
-      "status": null,
-      "county": null,
-      "state": "Delaware"
-    }
-  ]
+  "commercial": [],
+  "notices": []
 }
