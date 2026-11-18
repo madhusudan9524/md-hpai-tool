@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-18T02:13:29+00:00",
+ "updated": "2026-11-18T19:23:25+00:00",
  "wild": [],
  "notices": [
   {
@@ -27,8 +27,8 @@
    "date": "2026-11-11",
    "source": "Maryland Department of Agriculture",
    "title": "Preliminary testing finds HPAI in a commercial broiler flock in Worcester County",
-   "url": "https://www.wmdt.com/2026/11/1case-of-avian-influenza-detected-in-worcester-county/",
-   "via": "reported by WMDT",
+   "url": "https://mda.maryland.gov/Pages/AvianFlu.aspx",
+   "via": "replace with MDA press release link",
    "kind": "commercial",
    "status": "preliminary",
    "county": "Worcester",
