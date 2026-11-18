@@ -349,3 +349,32 @@ h1 { color: #0e1823; }
 /* notices: fixed-height list you can scroll for older ones */
 .newsscroll { max-height: 330px; overflow-y: auto; overscroll-behavior: contain; margin: 0 -8px; padding: 0 8px; scrollbar-width: thin; }
 .newsscroll .nw { margin: 0; }
+
+/* ===== round 4: boxed sections on a warm stone background, larger titles, plain line icons ===== */
+:root { --panelbg: #e9e6df; --groupbg: #f8f7f4; --hover: #f1efea; }
+@media (prefers-color-scheme: dark) { :root { --panelbg: #0c0f13; --groupbg: #161b21; --hover: #20262e; } }
+.pscroll { padding: 12px 12px 24px; }
+.group { background: var(--groupbg); border: 1px solid rgba(60, 50, 30, .1); border-radius: 20px; padding: 6px 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(40, 30, 10, .06); }
+.group > section:last-child, .group > a:last-child { margin-bottom: 0; }
+.group:empty { display: none; }
+.sec, .sec:first-child { margin: 10px 2px 12px; font-size: 18px; font-weight: 750; letter-spacing: -0.01em; text-transform: none; color: #17202b; }
+.sec.sub2 { margin-top: 16px; font-size: 15.5px; color: #2c3a49; }
+@media (prefers-color-scheme: dark) { .sec, .sec:first-child { color: #f2f5f8; } .sec.sub2 { color: #c9d3dd; } .group { border-color: rgba(255,255,255,.06); } }
+/* cards inside a section box: lighter edges so the box reads as one unit */
+.group .card, .group .hstat, .group .act, .group .callbtn { box-shadow: none; border: 1px solid rgba(60, 50, 30, .1); }
+.group .card { background: var(--panel); }
+.foot { margin-top: 4px; }
+
+/* plain line icons */
+.li { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.rule { align-items: center; } .rule .li { width: 20px; height: 20px; color: var(--mute); }
+.place .ic .li, .trip .ic .li { width: 24px; height: 24px; color: #4b5866; }
+.place .ic, .trip .ic { width: 42px; height: 42px; background: var(--hover); }
+
+/* movement type: large simple tiles instead of small colored chips */
+.chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.chip.ctile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px 10px; border-radius: 14px; font-size: 13.5px; font-weight: 650; color: #2c3a49; background: var(--panel); }
+.chip.ctile .li { width: 30px; height: 30px; stroke-width: 1.5; color: #4b5866; }
+.chip.ctile.on { background: #eef3fb; border-color: var(--ws); color: var(--ws); box-shadow: inset 0 0 0 1px var(--ws); }
+.chip.ctile.on .li { color: var(--ws); }
+@media (prefers-color-scheme: dark) { .chip.ctile { color: #d6dee6; } .chip.ctile.on { background: #18263a; } .chip.ctile .li, .place .ic .li, .trip .ic .li { color: #b8c4d0; } }

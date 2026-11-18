@@ -32,7 +32,7 @@ window.HPAI.modules.push(function (ctx) {
     box.innerHTML = rows.map(({ p, s }) => {
       const isNew = s.key && seen[p.id] !== s.key; if (isNew) fresh++;
       const pill = s.flags.length ? s.flags.map(([c, t]) => `<span class="pill ${c}">${esc(t)}</span>`).join(" ") : `<span class="pill green">All clear</span>`;
-      return `<div class="place" data-id="${p.id}"><span class="ic">${p.kind === "farm" ? "🐔" : "🏠"}</span><span class="tx"><b>${esc(p.name)}${isNew ? ' <span class="pill red">New</span>' : ""}</b><small>${pill}</small></span><button class="mini" data-del="${p.id}" aria-label="Remove">✕</button></div>`;
+      return `<div class="place" data-id="${p.id}"><span class="ic">${H.icon(p.kind === "farm" ? "farm" : "home")}</span><span class="tx"><b>${esc(p.name)}${isNew ? ' <span class="pill red">New</span>' : ""}</b><small>${pill}</small></span><button class="mini" data-del="${p.id}" aria-label="Remove">✕</button></div>`;
     }).join("");
     if (fresh) toast(`Alert: ${fresh} of your places has a new status`, 5000);
     rows.forEach(({ p, s }) => (seen[p.id] = s.key)); store.set("placeSeen", seen);

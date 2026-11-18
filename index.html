@@ -7,7 +7,7 @@
 <title>Maryland HPAI Map</title>
 <meta name="description" content="Check whether a Maryland address is in an avian influenza (HPAI) control area, see wildlife detections and official notices, plan poultry movements and request permits.">
 <meta property="og:title" content="Maryland HPAI Map"><meta property="og:description" content="Avian influenza control areas, wildlife detections and movement permits for Maryland and Delmarva.">
-<meta name="theme-color" content="#d7263d">
+<meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23d7263d'/%3E%3Cpath fill='%23fff' d='M7 25V15l3-4 6-4 6 4 3 4v10z'/%3E%3Cpath fill='%23d7263d' d='M13 25v-5h6v5zM14.5 13.5h3v2.5h-3z'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/light/main.css" id="esriTheme">
 <link rel="stylesheet" href="css/app.css">
@@ -27,6 +27,7 @@
     <div class="pscroll">
 
     <!-- 1. FIND A PLACE (+ trip planning for haulers) -->
+    <div class="group">
     <h2 class="sec">Find a place</h2>
     <section class="search"><div id="search"></div>
       <button class="iconbtn" id="locBtn" title="Use my location" aria-label="Use my location"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
@@ -48,7 +49,10 @@
       <div id="routeResult"></div>
     </section>
 
+    </div>
+
     <!-- 2. TAKE ACTION -->
+    <div class="group">
     <h2 class="sec">Take action</h2>
     <section data-for="public"><div class="acts">
       <button class="act" data-t="wildReport"><svg viewBox="0 0 24 24"><path d="M3 15c3-1 4-4 6-6 2.5-2.5 6-2 7.5 0L21 8l-1.5 3.5c0 5-4 8.5-9 8.5-3 0-5-1.5-7.5-5z"/><circle cx="15.5" cy="8.5" r=".6"/></svg><span>Report dead wild birds</span></button>
@@ -92,7 +96,10 @@
       <div id="places"><p class="hint">Save your farm or home to get alerts.</p></div>
     </section>
 
+    </div>
+
     <!-- 3. STAY INFORMED -->
+    <div class="group">
     <h2 class="sec">Stay informed</h2>
     <section data-for="public industry hauler">
       <div class="hero" id="hero">
@@ -109,6 +116,8 @@
       <div class="ch"><h3>Official notices</h3><span class="sub" id="updated"></span></div>
       <div id="newsList" class="newsscroll" tabindex="0" aria-label="Official notices"><p class="hint">Loading…</p></div>
     </section>
+
+    </div>
 
     <p class="foot">For general information. Official decisions and permits come from the Maryland Department of Agriculture.</p>
     </div>

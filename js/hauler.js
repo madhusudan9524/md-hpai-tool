@@ -7,7 +7,7 @@
 window.HPAI.modules.push(function (ctx) {
   const { H, C, S, view } = ctx, { $, esc, DAY, fmtDate, fmtTime, toast, store, sheet, closeSheet, qrSvg } = H;
   const { Graphic, Point, Polygon, geometryEngine: ge, wmu } = ctx.esri, { routeLyr, closuresLyr } = ctx.layers;
-  const ICON = { live: "🐔", eggs: "🥚", feed: "🌾", litter: "🧺", dead: "⚠️", service: "🛠️" };
+  const ICON = new Proxy({}, { get: (_, k) => H.icon(typeof k === "string" && ["live", "eggs", "feed", "litter", "dead", "service"].includes(k) ? k : "truck") });
   const local = { trips: store.get("trips", []), permits: store.get("permits", []) };
 
   // ---- inputs ----
@@ -16,7 +16,7 @@ window.HPAI.modules.push(function (ctx) {
   const orgS = ctx.makeSearch("orgBox", "From: farm, mill or address", (g, n) => { org = { pt: wgs(g), name: n }; pin(); });
   const dstS = ctx.makeSearch("dstBox", "To: destination", (g, n) => { dst = { pt: wgs(g), name: n }; pin(); });
   const chips = $("commChips");
-  chips.innerHTML = Object.entries(C.commodities).map(([k, v]) => `<button class="chip ${k === commodity ? "on" : ""}" data-k="${k}">${ICON[k] || ""} ${esc(v.label)}</button>`).join("");
+  chips.innerHTML = Object.entries(C.commodities).map(([k, v]) => `<button class="chip ctile ${k === commodity ? "on" : ""}" data-k="${k}">${ICON[k]}<span>${esc(v.label)}</span></button>`).join("");
   chips.querySelectorAll(".chip").forEach((b) => (b.onclick = () => { commodity = b.dataset.k; store.set("commodity", commodity); chips.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x === b)); }));
   const now = new Date(Date.now() - new Date().getTimezoneOffset() * 6e4); $("depart").value = now.toISOString().slice(0, 16);
   const veh = store.get("vehicle", null); if (veh && veh.hft) { $("vehH").value = veh.hft; $("vehW").value = veh.wt; }
@@ -81,7 +81,7 @@ window.HPAI.modules.push(function (ctx) {
         const p = wmu.webMercatorToGeographic(ge.generalize(g, 40, true));
         p.rings.forEach((r) => fences.push({ geometry: { paths: [r] }, attributes: { BarrierType: 0 } }));
       });
-      if (ca.length) rules.push(["🛑", oz.zone === "control" || dz.zone === "control" ? "Shortest time inside the control area" : "Routed around control areas"]);
+      if (ca.length) rules.push(["block", oz.zone === "control" || dz.zone === "control" ? "Shortest time inside the control area" : "Routed around control areas"]);
       // 2. other poultry farms (biosecurity): routes stay away where they can
       if (cm.farmBuffer && ctx.layers.farmsUrlReadable !== false) {
         try {
@@ -96,7 +96,7 @@ window.HPAI.modules.push(function (ctx) {
             const buf = ge.union(ge.geodesicBuffer(pts, C.farmBufferKm, "kilometers"));
             const simple = ge.generalize(buf, 60, true);
             (simple.rings.length > 400 ? [] : [simple]).forEach((g) => polys.push({ geometry: poly4326(g), attributes: { BarrierType: 1, Attr_TravelTime: 1.6, Attr_TruckTravelTime: 1.6 } }));
-            rules.push(["🐔", `Keeps about ${Math.round(C.farmBufferKm * 3280.84 / 100) * 100} ft from ${pts.length} other poultry farms where it can`]);
+            rules.push(["spacing", `Keeps about ${Math.round(C.farmBufferKm * 3280.84 / 100) * 100} ft from ${pts.length} other poultry farms where it can`]);
           }
         } catch (e) { ctx.layers.farmsUrlReadable = false; }
       }
@@ -105,7 +105,7 @@ window.HPAI.modules.push(function (ctx) {
       if (!closures.length) await loadClosures();
       const near = closures.filter(bb).slice(0, 150);
       const pointBarriers = near.map((c) => ({ geometry: { x: c.x, y: c.y }, attributes: c.full ? { BarrierType: 0 } : { BarrierType: 2, Attr_TravelTime: 5, Attr_TruckTravelTime: 5 } }));
-      if (near.length) rules.push(["🚧", `${near.length} MDOT CHART closures considered`]);
+      if (near.length) rules.push(["cone", `${near.length} MDOT CHART closures considered`]);
       // 4. cleaning & disinfection stop when leaving a control area
       const stops = [{ geometry: { x: oP.longitude, y: oP.latitude }, attributes: { Name: "Start" } }];
       const needCD = (cm.cd === true && (oz.zone === "control" || dz.zone === "control")) || (cm.cd === "leaving" && oz.zone === "control");
@@ -113,7 +113,7 @@ window.HPAI.modules.push(function (ctx) {
       if (needCD && stations.length) {
         cd = stations.map((s) => ({ s, d: ge.distance(wmu.geographicToWebMercator(new Point({ longitude: s.lon, latitude: s.lat })), wmu.geographicToWebMercator(oz.zone === "control" ? oP : dP), "kilometers") }))
           .filter(({ s }) => !ca.some((g) => ge.contains(g, wmu.geographicToWebMercator(new Point({ longitude: s.lon, latitude: s.lat }))))).sort((a, b) => a.d - b.d)[0];
-        if (cd) { stops.push({ geometry: { x: cd.s.lon, y: cd.s.lat }, attributes: { Name: cd.s.name } }); rules.push(["🧼", `Cleaning & disinfection stop: ${cd.s.name.replace(/^Sample C&D station: /, "")}`]); }
+        if (cd) { stops.push({ geometry: { x: cd.s.lon, y: cd.s.lat }, attributes: { Name: cd.s.name } }); rules.push(["wash", `Cleaning & disinfection stop: ${cd.s.name.replace(/^Sample C&D station: /, "")}`]); }
       }
       stops.push({ geometry: { x: dP.longitude, y: dP.latitude }, attributes: { Name: "End" } });
       // 5. truck limits (height, weight, hazmat) + live traffic at the departure time
@@ -123,8 +123,8 @@ window.HPAI.modules.push(function (ctx) {
         if (/weight/i.test(p.parameterName) && /weight/i.test(p.attributeName) && !/axle/i.test(p.attributeName)) p.value = vw * 1000;
         return p;
       });
-      if (cm.hazmat) { tm.restrictionAttributeNames = (tm.restrictionAttributeNames || []).concat(["Any Hazmat Prohibited"]).filter((v, i, a) => a.indexOf(v) === i); rules.push(["☣️", "Hazmat-restricted roads avoided (dead-bird load)"]); }
-      rules.push(["🚛", `Truck limits: ${vhFt} ft high, ${vwT} tons`]);
+      if (cm.hazmat) { tm.restrictionAttributeNames = (tm.restrictionAttributeNames || []).concat(["Any Hazmat Prohibited"]).filter((v, i, a) => a.indexOf(v) === i); rules.push(["hazard", "Hazmat-restricted roads avoided (dead-bird load)"]); }
+      rules.push(["truck", `Truck limits: ${vhFt} ft high, ${vwT} tons`]);
       const params = { stops: fs(stops, "esriGeometryPoint"), travelMode: JSON.stringify(tm), startTime: depart, startTimeIsUTC: true, returnRoutes: true, returnStops: false, outputLines: "esriNAOutputLineTrueShape", outSR: 102100, directionsLanguage: "en", returnDirections: false };
       if (pointBarriers.length) params.barriers = fs(pointBarriers, "esriGeometryPoint");
       // try the full set of rules first, then relax step by step so a route is always found
@@ -138,7 +138,7 @@ window.HPAI.modules.push(function (ctx) {
         const q = Object.assign({}, params);
         if (t.fences.length) q.polylineBarriers = JSON.stringify({ geometryType: "esriGeometryPolyline", spatialReference: { wkid: 4326 }, features: t.fences });
         if (t.polys.length) q.polygonBarriers = fs(t.polys, "esriGeometryPolygon");
-        try { res = await ctx.rest(C.routeUrl + "/solve", q); if (res.routes && res.routes.features.length) { if (t.note) rules.push(["⚠️", t.note]); break; } }
+        try { res = await ctx.rest(C.routeUrl + "/solve", q); if (res.routes && res.routes.features.length) { if (t.note) rules.push(["warn", t.note]); break; } }
         catch (e) { lastErr = e; res = null; }
       }
       if (!res) throw lastErr || new Error("No route found");
@@ -153,8 +153,8 @@ window.HPAI.modules.push(function (ctx) {
       // allowed hours for this movement type
       const hrs = cm.hours, dh = new Date(depart).getHours(), arr = new Date(depart + min * 6e4).getHours();
       const hoursOk = !hrs || (dh >= hrs[0] && arr < hrs[1]);
-      if (hrs) rules.push([hoursOk ? "🕒" : "⛔", hoursOk ? `Within allowed hours (${hrs[0]}:00–${hrs[1]}:00)` : `Outside allowed hours for ${cm.label.toLowerCase()} (${hrs[0]}:00–${hrs[1]}:00)`]);
-      rules.push(["🚦", "Live and typical traffic at departure time"]);
+      if (hrs) rules.push([hoursOk ? "clock" : "block", hoursOk ? `Within allowed hours (${hrs[0]}:00–${hrs[1]}:00)` : `Outside allowed hours for ${cm.label.toLowerCase()} (${hrs[0]}:00–${hrs[1]}:00)`]);
+      rules.push(["traffic", "Live and typical traffic at departure time"]);
 
       routeLyr.removeAll(); pin();
       routeLyr.add(new Graphic({ geometry: line, symbol: { type: "simple-line", color: [255, 255, 255, 0.95], width: 9 } }));
@@ -167,7 +167,7 @@ window.HPAI.modules.push(function (ctx) {
         <div class="ch" style="margin:0"><h3>${permit ? "Permit needed" : "No permit needed"}</h3><span class="pill ${permit ? "red" : "green"}">${permit ? "Control area" : "Clear"}</span></div>
         <div class="rbar"><i class="c" style="width:${(caKm / km) * 100}%"></i><i class="s" style="width:${(szKm / km) * 100}%"></i><i class="f" style="width:${(free / km) * 100}%"></i></div>
         <div class="rkv"><div><b>${Math.round(min)}</b><span>min</span></div><div><b>${H.mi(km, 0)}</b><span>miles</span></div><div><b>${H.mi(caKm)}</b><span>mi in zone</span></div></div>
-        <div style="margin-top:8px">${rules.map(([i, t]) => `<div class="rule"><i>${i}</i><span>${esc(t)}</span></div>`).join("")}</div>
+        <div style="margin-top:8px">${rules.map(([i, t]) => `<div class="rule">${H.icon(i)}<span>${esc(t)}</span></div>`).join("")}</div>
         <div class="btns">${permit ? `<button class="primary" id="permitBtn">Request permit</button>` : ""}<button class="ghost" id="saveTrip">Save</button><button class="ghost" id="sheetBtn">Trip sheet</button></div></div>`;
       if (permit) $("permitBtn").onclick = () => permitForm(last);
       $("saveTrip").onclick = () => saveTrip(last);
@@ -191,7 +191,7 @@ window.HPAI.modules.push(function (ctx) {
   function loadTrips() {
     const box = $("tripList");
     if (!local.trips.length) { box.innerHTML = `<p class="hint">Plan a route and tap Save.</p>`; return; }
-    box.innerHTML = local.trips.map((t) => `<div class="trip" data-id="${t.id}"><span class="ic">${ICON[t.commodity] || "🚛"}</span><span class="tx"><b>${esc(t.name)}</b><small>${Math.round(t.min)} min · ${H.mi(t.km, 0)} mi${t.inZone ? " · through zone" : ""}</small></span><button class="mini" data-go="${t.id}">Plan</button></div>`).join("");
+    box.innerHTML = local.trips.map((t) => `<div class="trip" data-id="${t.id}"><span class="ic">${ICON[t.commodity]}</span><span class="tx"><b>${esc(t.name)}</b><small>${Math.round(t.min)} min · ${H.mi(t.km, 0)} mi${t.inZone ? " · through zone" : ""}</small></span><button class="mini" data-go="${t.id}">Plan</button></div>`).join("");
     box.querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => {
       const t = local.trips.find((x) => x.id === b.dataset.go); org = t.org; dst = t.dst; commodity = t.commodity;
       orgS.searchTerm = org.name; dstS.searchTerm = dst.name; chips.querySelectorAll(".chip").forEach((x) => x.classList.toggle("on", x.dataset.k === commodity)); pin(); plan();
@@ -204,8 +204,8 @@ window.HPAI.modules.push(function (ctx) {
     const prof = store.get("profile", {}), cm = C.commodities[t.commodity];
     const tomorrow = new Date(t.depart + DAY).toISOString().slice(0, 10);
     sheet("Movement permit request", `<div class="form">
-      <div class="rres" style="margin:0"><div class="rule"><i>🅰</i><span>${esc(t.org.name)}</span></div><div class="rule"><i>🅱</i><span>${esc(t.dst.name)}</span></div>
-        <div class="rule"><i>${ICON[t.commodity] || ""}</i><span>${esc(cm.label)} · ${H.mi(t.km, 0)} mi · ${H.mi(t.caKm)} mi in control area</span></div></div>
+      <div class="rres" style="margin:0"><div class="rule">${H.icon("a")}<span>${esc(t.org.name)}</span></div><div class="rule">${H.icon("b")}<span>${esc(t.dst.name)}</span></div>
+        <div class="rule">${ICON[t.commodity]}<span>${esc(cm.label)} · ${H.mi(t.km, 0)} mi · ${H.mi(t.caKm)} mi in control area</span></div></div>
       <div class="two"><label>Leave<input id="pmFrom" type="date" value="${new Date(t.depart).toISOString().slice(0, 10)}"></label><label>Valid until<input id="pmTo" type="date" value="${tomorrow}"></label></div>
       <div class="two"><label>Loads<input id="pmLoads" type="number" min="1" value="1"></label><label>Plate / unit<input id="pmPlate" value="${esc(prof.plate || "")}"></label></div>
       <div class="two"><label>Company<input id="pmCo" value="${esc(prof.company || "")}"></label><label>Driver<input id="pmDrv" value="${esc(prof.driver || (S.user && S.user.fullName) || "")}"></label></div>
@@ -249,8 +249,8 @@ window.HPAI.modules.push(function (ctx) {
     sheet("Permit " + p.permit_id, `<div class="form">
       <div class="pill ${ok ? "green" : p.status === "Denied" ? "red" : "amber"}" style="justify-self:start;font-size:14px">${ok ? "Approved" : p.status === "Approved" ? "Expired" : esc(p.status)}</div>
       ${ok ? `<div class="qr">${qrSvg(url)}</div><p class="hint" style="text-align:center">Show this at checkpoints. MDA scans it to confirm.</p>` : `<p class="hint">${p.status === "Pending" ? "MDA is reviewing your request. You'll see the QR code here once it's approved." : esc(p.reason || "")}</p>`}
-      <div class="rres" style="margin:0"><div class="rule"><i>🅰</i><span>${esc(p.origin)}</span></div><div class="rule"><i>🅱</i><span>${esc(p.destination)}</span></div>
-      <div class="rule"><i>📅</i><span>${fmtDate(p.depart)} – ${fmtDate(p.valid_to)}</span></div><div class="rule"><i>${ICON[p.commodity] || ""}</i><span>${esc((C.commodities[p.commodity] || {}).label || p.commodity)} · ${p.loads || 1} load(s) · ${esc(p.plate || "")}</span></div></div>
+      <div class="rres" style="margin:0"><div class="rule">${H.icon("a")}<span>${esc(p.origin)}</span></div><div class="rule">${H.icon("b")}<span>${esc(p.destination)}</span></div>
+      <div class="rule">${H.icon("date")}<span>${fmtDate(p.depart)} – ${fmtDate(p.valid_to)}</span></div><div class="rule">${ICON[p.commodity]}<span>${esc((C.commodities[p.commodity] || {}).label || p.commodity)} · ${p.loads || 1} load(s) · ${esc(p.plate || "")}</span></div></div>
       ${ok && ctx.has(C.walletPassUrl) ? `<a class="wallet" href="${esc(C.walletPassUrl.replace("{id}", encodeURIComponent(p.permit_id)))}"> Add to Apple Wallet</a>` : ""}
       ${ok ? `<button class="ghost" id="pmPrint">Print permit</button>` : ""}</div>`);
     if (ok) $("pmPrint").onclick = () => printDoc(`Movement permit ${p.permit_id}`, `<div style="display:flex;gap:24px;align-items:center"><div style="width:220px">${qrSvg(url)}</div><div><h2>Approved</h2><p>${esc(p.origin)} → ${esc(p.destination)}</p><p>${fmtDate(p.depart)} – ${fmtDate(p.valid_to)}</p><p>${esc(p.company)} · ${esc(p.driver)} · ${esc(p.plate || "")}</p></div></div>`);

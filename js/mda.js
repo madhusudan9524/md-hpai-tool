@@ -440,7 +440,7 @@ window.HPAI.modules.push(function (ctx) {
       const p = r.features[0] && r.features[0].attributes; if (!p) return sheet("Permit " + id, `<p class="hint">Not found.</p>`);
       const ok = p.status === "Approved" && p.valid_to >= Date.now();
       sheet("Permit " + id, `<div class="form"><div class="pop"><div class="band ${ok ? "free" : "ca"}"><small>Verification</small><b>${ok ? "Valid" : p.status === "Approved" ? "Expired" : esc(p.status)}</b></div></div>
-        <div class="rres" style="margin:0"><div class="rule"><i>🅰</i><span>${esc(p.origin)}</span></div><div class="rule"><i>🅱</i><span>${esc(p.destination)}</span></div><div class="rule"><i>📅</i><span>${fmtDate(p.depart)} – ${fmtDate(p.valid_to)}</span></div><div class="rule"><i>🚛</i><span>${esc(p.company)} · ${esc(p.driver)} · ${esc(p.plate)}</span></div></div></div>`);
+        <div class="rres" style="margin:0"><div class="rule">${H.icon("a")}<span>${esc(p.origin)}</span></div><div class="rule">${H.icon("b")}<span>${esc(p.destination)}</span></div><div class="rule">${H.icon("date")}<span>${fmtDate(p.depart)} – ${fmtDate(p.valid_to)}</span></div><div class="rule">${H.icon("truck")}<span>${esc(p.company)} · ${esc(p.driver)} · ${esc(p.plate)}</span></div></div></div>`);
       ctx.audit("permit:verify", id, ok ? "valid" : p.status);
       if (r.features[0].geometry) { marks.removeAll(); marks.add(new Graphic({ geometry: { type: "polyline", paths: r.features[0].geometry.paths, spatialReference: { wkid: 4326 } }, symbol: { type: "simple-line", color: BLUE.concat(1), width: 4 } })); }
     } catch (e) { toast("Couldn't verify: " + e.message); }
