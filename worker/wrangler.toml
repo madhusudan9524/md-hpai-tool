@@ -7,7 +7,7 @@ compatibility_date = "2026-11-01"
 # Codes, rate limits. Create with:  npx wrangler kv namespace create KV   then paste the id here
 [[kv_namespaces]]
 binding = "KV"
-id = "PASTE_KV_NAMESPACE_ID"
+id = "0c882d5176844c6a9b5900becd559235"
 
 [vars]
 APP_URL = "https://madhusudan9524.github.io/md-hpai-tool/"
