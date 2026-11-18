@@ -432,8 +432,9 @@ main { top: 0 !important; }
 .lk:not(.shut) { width: 290px; }
 .lk header { gap: 8px; cursor: pointer; user-select: none; }
 .lk header .lki { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.lk header > svg:last-child { transform: rotate(180deg); }
-.lk.shut header > svg:last-child { transform: rotate(0deg); }
+.lk header > svg:last-child { transform: rotate(0deg); }            /* open: arrow points down (close) */
+.lk.shut header > svg:last-child { transform: rotate(180deg); }    /* closed: arrow points up (opens upward) */
+.lk header .lki, .lk.shut header .lki { transform: none; }
 .lk header:hover { background: rgba(127,127,127,.08); }
 .lk.shut { border-radius: 99px; }
 .lk.shut header { padding: 10px 16px; }
