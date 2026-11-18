@@ -184,16 +184,17 @@ window.HPAI.modules.push(function (ctx) {
       if (cd) routeLyr.add(new Graphic({ geometry: new Point({ longitude: cd.s.lon, latitude: cd.s.lat }), symbol: { type: "simple-marker", style: "square", size: 13, color: [19, 128, 143, 1], outline: { color: [255, 255, 255, 1], width: 2 } } }));
       view.goTo(routeLyr.graphics.toArray(), { padding: 60 }).catch(() => {});
       const free = Math.max(0, km - caKm - szKm);
-      last = { org, dst, commodity, depart, km, min, caKm, szKm, permit, line, zones: [oz.zone, dz.zone], cd: cd && cd.s.name, hoursOk };
+      last = { org, dst, commodity, depart, km, min, caKm, szKm, permit, line, zones: [oz.zone, dz.zone], cd: cd && cd.s.name, cdPt: cd && { lat: cd.s.lat, lon: cd.s.lon }, hoursOk };
       box.innerHTML = `<div class="rres">
         <div class="ch" style="margin:0"><h3>${permit ? "Permit needed" : "No permit needed"}</h3><span class="pill ${permit ? "red" : "green"}">${permit ? "Control area" : "Clear"}</span></div>
         <div class="rbar"><i class="c" style="width:${(caKm / km) * 100}%"></i><i class="s" style="width:${(szKm / km) * 100}%"></i><i class="f" style="width:${(free / km) * 100}%"></i></div>
         <div class="rkv"><div><b>${Math.round(min)}</b><span>min</span></div><div><b>${H.mi(km, 0)}</b><span>miles</span></div><div><b>${H.mi(caKm)}</b><span>mi in zone</span></div></div>
         <div style="margin-top:8px">${rules.map(([i, t]) => `<div class="rule">${H.icon(i)}<span>${esc(t)}</span></div>`).join("")}</div>
-        <div class="btns">${permit ? `<button class="primary" id="permitBtn">Request permit</button>` : ""}<button class="ghost" id="saveTrip">Save</button><button class="ghost" id="sheetBtn">Trip sheet</button></div></div>`;
+        <div class="btns">${permit ? `<button class="primary" id="permitBtn">Request permit</button>` : ""}<button class="ghost" id="saveTrip">Save</button><button class="ghost" id="sheetBtn">Trip sheet</button><button class="ghost" id="navBtn">Open in maps</button></div></div>`;
       if (permit) $("permitBtn").onclick = () => permitForm(last);
       $("saveTrip").onclick = () => saveTrip(last);
       $("sheetBtn").onclick = () => tripSheet(last);
+      $("navBtn").onclick = () => sendToNav(last);
       ctx.sheetHalf();
     } catch (e) {
       box.innerHTML = `<div class="rres"><p class="hint">Couldn't plan the route: ${esc(e.message)}</p></div>`;
@@ -279,6 +280,59 @@ window.HPAI.modules.push(function (ctx) {
   }
 
   // ---- printable trip sheet ----
+  // ---------------- send the planned route to a navigation app ----------------
+  // Google Maps and phone apps don't know about control areas, so the route is handed over as a series of stops
+  // taken along OUR route: following them keeps the driver on the zone-avoiding path.
+  function routePoints(t) {
+    const pts = []; t.line.paths.forEach((p) => p.forEach(([x, y]) => { const [lon, lat] = wmu.xyToLngLat(x, y); pts.push({ lat, lon }); }));
+    const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + window.HPAIRisk.km(pts[i - 1], pts[i]));
+    return { pts, cum, total: cum[cum.length - 1] || 1 };
+  }
+  function along(r, n) {   // n points evenly spaced along the route (not the ends)
+    const out = []; let j = 0;
+    for (let k = 1; k <= n; k++) { const target = (r.total * k) / (n + 1); while (j < r.cum.length - 1 && r.cum[j] < target) j++; out.push(r.pts[j]); }
+    return out;
+  }
+  const ll = (p) => `${p.lat.toFixed(5)},${p.lon.toFixed(5)}`;
+  function googleUrl(t, r, n) {
+    const o = { lat: t.org.pt.latitude, lon: t.org.pt.longitude }, d = { lat: t.dst.pt.latitude, lon: t.dst.pt.longitude };
+    let way = along(r, n);
+    if (t.cdPt) {   // keep the cleaning-and-disinfection stop, in route order
+      const near = r.pts.reduce((b, p, i) => (window.HPAIRisk.km(p, t.cdPt) < window.HPAIRisk.km(r.pts[b], t.cdPt) ? i : b), 0), at = r.cum[near];
+      way = way.slice(0, n - 1); const idx = way.findIndex((p) => r.cum[r.pts.indexOf(p)] > at);
+      way.splice(idx < 0 ? way.length : idx, 0, t.cdPt);
+    }
+    return "https://www.google.com/maps/dir/?" + new URLSearchParams({ api: "1", origin: ll(o), destination: ll(d), waypoints: way.map(ll).join("|"), travelmode: "driving" }).toString();
+  }
+  function gpx(t, r) {
+    const x = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    const step = Math.max(1, Math.ceil(r.pts.length / 2000)), trk = r.pts.filter((_, i) => i % step === 0 || i === r.pts.length - 1);
+    const rte = [r.pts[0], ...along(r, 48), r.pts[r.pts.length - 1]];
+    const name = `${(t.org.label || "Start").split(",")[0]} to ${(t.dst.label || "Destination").split(",")[0]}`;
+    const wpt = (p, n) => `<wpt lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}"><name>${x(n)}</name></wpt>`;
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Maryland avian influenza map" xmlns="http://www.topografix.com/GPX/1/1">\n<metadata><name>${x(name)}</name><desc>Route planned to avoid HPAI control areas. Follow this route, not your device's own suggestion.</desc></metadata>\n`
+      + wpt({ lat: t.org.pt.latitude, lon: t.org.pt.longitude }, "Start") + "\n" + (t.cdPt ? wpt(t.cdPt, "Cleaning and disinfection: " + (t.cd || "")) + "\n" : "") + wpt({ lat: t.dst.pt.latitude, lon: t.dst.pt.longitude }, "Destination") + "\n"
+      + `<rte><name>${x(name)}</name>${rte.map((p, i) => `<rtept lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}"><name>${i === 0 ? "Start" : i === rte.length - 1 ? "Destination" : "Via " + i}</name></rtept>`).join("")}</rte>\n`
+      + `<trk><name>${x(name)}</name><trkseg>${trk.map((p) => `<trkpt lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}"/>`).join("")}</trkseg></trk>\n</gpx>\n`;
+  }
+  function sendToNav(t) {
+    const r = routePoints(t), phone = window.matchMedia("(max-width: 760px)").matches || /iPhone|Android/i.test(navigator.userAgent);
+    const url = googleUrl(t, r, phone ? 3 : 8);   // Google allows fewer stops in its phone app than on a computer
+    sheet("Open the route in another app", `<div class="form">
+      <p class="tip"><b>Stay on this route.</b> Other apps don't know where the control areas are. The route is sent as a series of stops along the safe path; if the app offers a different way, keep to the stops.</p>
+      <a class="primary btnlink" href="${esc(url)}" target="_blank" rel="noopener">Open in Google Maps</a>
+      <p class="hint">${phone ? "On a phone, Google Maps takes 3 stops along the way, so check the route matches the map here." : "Sends 8 stops along the way" + (t.cdPt ? ", including the cleaning-and-disinfection station" : "") + "."}</p>
+      <button class="ghost" id="navGpx">Download GPX file</button>
+      <p class="hint">For truck GPS units (Garmin, Rand McNally) and apps that import GPX. It holds the full route line.</p>
+      <div class="btns"><button class="ghost" id="navCopy">Copy Google Maps link</button>${navigator.share ? `<button class="ghost" id="navShare">Send to my phone</button>` : ""}</div></div>`);
+    $("navGpx").onclick = () => {
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([gpx(t, r)], { type: "application/gpx+xml" }));
+      a.download = `route-${new Date(t.depart).toISOString().slice(0, 10)}.gpx`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    };
+    $("navCopy").onclick = () => navigator.clipboard.writeText(url).then(() => toast("Link copied")).catch(() => prompt("Copy this link:", url));
+    if ($("navShare")) $("navShare").onclick = () => navigator.share({ title: "Planned route", text: "Route that avoids HPAI control areas. Keep to the stops.", url }).catch(() => {});
+  }
+
   function tripSheet(t) {
     const cm = C.commodities[t.commodity];
     view.takeScreenshot({ width: 900, height: 520 }).then((shot) => printDoc("Trip sheet", `<p><b>${esc(t.org.name)}</b> → <b>${esc(t.dst.name)}</b></p>

@@ -510,3 +510,4 @@ body.pshut #panelToggle svg { transform: rotate(180deg); }
 .mega.vertical .mi { padding: 8px 10px; }
 @media (max-width: 760px) { .mega.vertical, .mega.vertical:not(.small) { left: 8px !important; right: 8px !important; width: auto; } }
 .mega.vertical .macct + .mg { border-top: 0; }
+a.btnlink { display: block; text-align: center; text-decoration: none; }
