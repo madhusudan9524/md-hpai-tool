@@ -10,20 +10,23 @@ window.HPAI_CONFIG = {
 
   // ---- MDA-only service (base). Exact premises, perimeters, zones, audit log, biosecurity audits ----
   core: {
-    premises: "", perimeters: "", zones: "", audit: "", biosecurity: "",
-    pubAreas: "", pubMarkers: "", declarations: "", history: ""     // the editable layers behind the public view
+    premises: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/0", perimeters: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/1", zones: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/2",
+    audit: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/7", biosecurity: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/8",
+    // the editable layers behind the public view
+    pubAreas: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/3", pubMarkers: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/4", declarations: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/5", history: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Core/FeatureServer/6"
   },
   // ---- public read-only view of the core service: merged areas, generalized markers, declarations, history ----
   pub: {
-    areas: "", markers: "", declarations: "", history: ""
+    areas: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Public/FeatureServer/0", markers: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Public/FeatureServer/1",
+    declarations: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Public/FeatureServer/2", history: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Public/FeatureServer/3"
   },
   // ---- movement service: trips, visits, permits (haulers see their own; MDA sees all) ----
-  movement: { trips: "", visits: "", permits: "" },
-  movementMda: { trips: "", visits: "", permits: "" },   // MDA view of the same layers (all records)
-  industryVisits: "",                                     // read view used for grower risk (date + from-zone flag only)
+  movement: { trips: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Movement_Haulers/FeatureServer/0", visits: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Movement_Haulers/FeatureServer/1", permits: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Movement_Haulers/FeatureServer/2" },
+  movementMda: { trips: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Movement/FeatureServer/0", visits: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Movement/FeatureServer/1", permits: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Movement/FeatureServer/2" },   // MDA view of the same layers (all records)
+  industryVisits: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Visits_Industry/FeatureServer/0",                                     // read view used for grower risk (date + from-zone flag only)
   // ---- submissions: anyone can add, only MDA can read ----
-  submit: { reports: "", accounts: "", alerts: "" },      // public create-only view
-  submitMda: { reports: "", accounts: "", alerts: "" },   // MDA view
+  submit: { reports: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Submit/FeatureServer/0", alerts: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Submit/FeatureServer/1", accounts: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Submit/FeatureServer/2" },      // public create-only view
+  submitMda: { reports: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Submissions/FeatureServer/0", alerts: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Submissions/FeatureServer/1", accounts: "https://services1.arcgis.com/qTQ6qYkHpxlu0G82/arcgis/rest/services/MD_HPAI_Submissions/FeatureServer/2" },   // MDA view
 
   // ---- existing layers (prototype) ----
   legacy: {

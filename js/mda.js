@@ -290,7 +290,7 @@ window.HPAI.modules.push(function (ctx) {
       if (markers.length) await edit(C.core.pubMarkers, { adds: JSON.stringify(markers) });
       if (released && has(C.core.history)) {
         const z = await Q(url.zones(), { where: `premises_id = '${released.premises_id.replace(/'/g, "''")}' AND zone_type = 'Control Area'`, returnGeometry: true, outSR: 102100 }).catch(() => ({ features: [] }));
-        if (z.features[0]) await edit(C.core.history, { adds: JSON.stringify([{ geometry: z.features[0].geometry, attributes: { start: released.confirmed_date, end: Date.now(), county: released.county, sample: 0 } }]) }).catch(() => {});
+        if (z.features[0]) await edit(C.core.history, { adds: JSON.stringify([{ geometry: z.features[0].geometry, attributes: { start_date: released.confirmed_date, end_date: Date.now(), county: released.county, sample: 0 } }]) }).catch(() => {});
       }
       ctx.audit("public:publish", `${adds.length} areas, ${markers.length} markers`, JSON.stringify(report));
       ctx.buildOutbreakLayers();

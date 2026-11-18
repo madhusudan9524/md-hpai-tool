@@ -335,12 +335,13 @@ require([
   on("wild", () => { if (riskBuilt) buildRisk(); });
 
   // ---------------- history (time slider): real county history + SAMPLE zone shapes ----------------
-  const histReady = Promise.all([live, fetch(C.sampleHistoryUrl).then((r) => (r.ok ? r.json() : [])).catch(() => []), ready]).then(([Ld, sample]) => {
-    const items = [];
+  const pubHist = () => has(C.pub.history) ? new FeatureLayer({ url: C.pub.history }).queryFeatures({ where: "1=1", outFields: ["*"], returnGeometry: true, outSpatialReference: { wkid: 102100 } }).then((r) => r.features).catch(() => []) : Promise.resolve([]);
+  const histReady = Promise.all([live, fetch(C.sampleHistoryUrl).then((r) => (r.ok ? r.json() : [])).catch(() => []), ready, pubHist()]).then(([Ld, sample, _s, ph]) => {
+    const items = ph.map((f) => ({ geom: f.geometry, start: f.attributes.start_date, end: f.attributes.end_date, kind: f.attributes.sample ? "sample" : "zone", label: `${f.attributes.county || ""} County · past control area` }));
     ((Ld && (Ld.history || Ld.commercial)) || []).forEach((d) => { const c = S.counties.find((x) => x.state === d.state && x.name === d.county); if (c) items.push({ geom: c.geom, start: Date.parse(d.date + "T12:00:00Z"), end: Date.parse(d.date + "T12:00:00Z") + 90 * DAY, kind: "county", label: `${d.county} County · ${d.flock || "commercial flock"}`, src: d.source }); });
     (sample || []).forEach((s) => { const p = new Polygon({ rings: s.rings, spatialReference: { wkid: 4326 } }); items.push({ geom: wmu.geographicToWebMercator(p), start: Date.parse(s.start), end: Date.parse(s.end), kind: "sample", label: s.label }); });
     items.forEach((i) => histLyr.add(new Graphic({ geometry: i.geom, attributes: { start: i.start, end: i.end, kind: i.kind, label: i.label },
-      symbol: i.kind === "county" ? fill(RED, 0.1, RED.concat(0.6), 1, "dash") : fill([120, 120, 140], 0.25, [110, 110, 135, 0.9], 1.2) })));
+      symbol: i.kind === "county" ? fill(RED, 0.1, RED.concat(0.6), 1, "dash") : i.kind === "zone" ? fill(RED, 0.18, RED.concat(0.7), 1.2) : fill([120, 120, 140], 0.25, [110, 110, 135, 0.9], 1.2) })));
     return items;
   });
   let slider = null;
