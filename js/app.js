@@ -347,7 +347,8 @@ require([
       if (!ctx.inArea(wmu.geographicToWebMercator(g))) return toast("That place is outside Maryland and Delmarva");
       const label = coordsLabel(g); inp.value = label; clr.hidden = false; close();
       const pt = new Point({ longitude: g.longitude, latitude: g.latitude });
-      if (onPick) onPick(pt, label, { fromMap: true }); else locationCard(wmu.geographicToWebMercator(pt), label);
+      // filling a box is all the user asked for: no info card, just a dot where the box now points
+      if (onPick) onPick(pt, label, { fromMap: true }); else { marks.removeAll(); marks.add(new Graphic({ geometry: pt, symbol: { type: "simple-marker", size: 14, color: [10, 108, 255, 1], outline: { color: [255, 255, 255, 1], width: 3 } } })); }
       const r = await geo("reverseGeocode", { location: `${g.longitude},${g.latitude}` }).catch(() => null), near = r && r.address && (r.address.Match_addr || r.address.LongLabel);
       let hint = host.querySelector(".addrnear"); if (!hint) { hint = document.createElement("small"); hint.className = "addrnear"; host.appendChild(hint); }
       hint.textContent = near ? "Near " + addrShort(near) : ""; hint.hidden = !near || inp.value !== label;
