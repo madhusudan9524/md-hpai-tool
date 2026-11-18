@@ -334,3 +334,18 @@ a, .link { color: var(--accent); }
 .permit::after, .prow[data-o]::after, .prow[data-i]::after, .nw .nm::after { content: "›"; color: #9fb0c2; font-size: 20px; line-height: 1; margin-left: auto; }
 .nw .nm::after { content: "↗"; font-size: 13px; }
 .place .mini, .trip .mini { flex: none; }
+
+/* ===== round 3: hover lift, stronger titles, scrollable notices ===== */
+.act:hover, .tile:hover, .callbtn:hover, .primary:hover:not(:disabled), .danger:hover, .ghost:hover, .mini:hover, .pb:hover, .chip:hover, .iconbtn:hover, .tplay:hover, .role:hover, #acct button.signin:hover, .who:hover { transform: scale(1.03); }
+.act:active, .tile:active, .callbtn:active, .primary:active:not(:disabled), .ghost:active, .mini:active, .pb:active, .chip:active, .iconbtn:active { transform: scale(.98); }
+.sec { font-size: 13px; color: #3b4756; margin-top: 22px; }
+.sec.sub2 { margin-top: 14px; }
+.ch h3 { font-size: 18px; font-weight: 700; color: #0e1823; }
+.act span { font-size: 15.5px; font-weight: 700; color: #0e1823; }
+.nw .nt { color: #0e1823; }
+h1 { color: #0e1823; }
+@media (prefers-color-scheme: dark) { .sec { color: #b8c4d0; } .ch h3, .act span, .nw .nt, h1 { color: #f2f5f8; } }
+.callbtn { margin-bottom: 14px; }
+/* notices: fixed-height list you can scroll for older ones */
+.newsscroll { max-height: 330px; overflow-y: auto; overscroll-behavior: contain; margin: 0 -8px; padding: 0 8px; scrollbar-width: thin; }
+.newsscroll .nw { margin: 0; }

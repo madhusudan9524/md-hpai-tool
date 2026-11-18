@@ -239,7 +239,7 @@ require([
   const KIND = { commercial: ["Commercial flock", "red"], backyard: ["Backyard flock", "amber"], wild: ["Wild birds", "teal"], general: ["Notice", ""] };
   const short = (s) => (s || "").replace("Maryland Department of Agriculture", "MDA").replace("Delaware Department of Agriculture", "DDA").replace("Virginia Department of Agriculture and Consumer Services", "VDACS");
   function renderNews(Ld) {
-    const seen = new Set(), items = (Ld.notices || []).filter((n) => { const k = n.title.toLowerCase().replace(/[^a-z]/g, "").slice(0, 40); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 4);
+    const seen = new Set(), items = (Ld.notices || []).filter((n) => { const k = n.title.toLowerCase().replace(/[^a-z]/g, "").slice(0, 40); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 12);
     $("newsList").innerHTML = items.length ? items.map((n) => {
       const k = KIND[n.kind] || KIND.general, st = n.status === "confirmed" ? " · Confirmed" : n.status === "preliminary" ? " · Preliminary" : "";
       return `<a class="nw" href="${esc(n.url)}" target="_blank" rel="noopener"><div class="nt">${esc(n.title)}</div><div class="nm"><span class="pill ${k[1]}">${k[0]}${st}</span><span>${esc(short(n.source))} · ${fmtShort(Date.parse(n.date + "T12:00:00Z"))}</span></div></a>`;

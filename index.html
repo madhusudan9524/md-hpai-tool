@@ -26,47 +26,12 @@
     <div class="grip" id="grip" aria-hidden="true"><i></i></div>
     <div class="pscroll">
 
-    <!-- everyone: find a place -->
+    <!-- 1. FIND A PLACE (+ trip planning for haulers) -->
     <h2 class="sec">Find a place</h2>
     <section class="search"><div id="search"></div>
       <button class="iconbtn" id="locBtn" title="Use my location" aria-label="Use my location"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
     </section>
-
-    <!-- PUBLIC + INDUSTRY + HAULER: status at a glance -->
-    <h2 class="sec" data-for="public industry hauler">Today in Maryland &amp; Delmarva</h2>
-    <section data-for="public industry hauler">
-      <div class="hero" id="hero">
-        <div class="hstat red"><b id="kCA">–</b><span>control areas</span></div>
-        <div class="hstat"><b id="kCty">–</b><span>counties</span></div>
-        <div class="hstat teal"><b id="kWild">–</b><span>wildlife · 4 wk</span></div>
-      </div>
-    </section>
-
-    <!-- PUBLIC: my places + two actions -->
-    <h2 class="sec" data-for="public industry hauler">Your places</h2>
-    <section class="card" data-for="public industry hauler">
-      <div class="ch"><h3>My places</h3><button class="link" id="addPlace">+ Add</button></div>
-      <div id="places"><p class="hint">Save your farm or home to get alerts.</p></div>
-    </section>
-    <h2 class="sec" data-for="public">Report &amp; stay informed</h2>
-    <section data-for="public"><div class="acts">
-      <button class="act" data-t="wildReport"><svg viewBox="0 0 24 24"><path d="M3 15c3-1 4-4 6-6 2.5-2.5 6-2 7.5 0L21 8l-1.5 3.5c0 5-4 8.5-9 8.5-3 0-5-1.5-7.5-5z"/><circle cx="15.5" cy="8.5" r=".6"/></svg><span>Dead wild bird</span></button>
-      <button class="act" data-t="alerts"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/></svg><span>Email alerts</span></button>
-    </div></section>
-
-    <!-- INDUSTRY (growers, poultry personnel): my premises risk + report -->
-    <section class="card" data-for="industry" id="riskCard">
-      <div class="ch"><h3>Farm risk</h3><span class="sub">screening score</span></div>
-      <div id="riskList"><p class="hint">Add your premises under My places.</p></div>
-    </section>
-    <h2 class="sec" data-for="industry">Report</h2>
-    <section data-for="industry"><div class="acts">
-      <button class="act warn" data-t="flockReport"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z"/><path d="M12 10v5M12 17.6v.4"/></svg><span>Report sick flock</span></button>
-      <button class="act" data-t="wildReport"><svg viewBox="0 0 24 24"><path d="M3 15c3-1 4-4 6-6 2.5-2.5 6-2 7.5 0L21 8l-1.5 3.5c0 5-4 8.5-9 8.5-3 0-5-1.5-7.5-5z"/></svg><span>Dead wild bird</span></button>
-    </div></section>
-
-    <!-- HAULER: trip planner -->
-    <h2 class="sec" data-for="hauler">Plan a trip</h2>
+    <h2 class="sec sub2" data-for="hauler">Plan a trip</h2>
     <section class="card planner" data-for="hauler">
       <div class="legs">
         <div class="rail"><i class="a"></i><u></u><i class="b"></i></div>
@@ -82,20 +47,27 @@
       <div class="btns"><button class="primary" id="routeBtn">Plan route</button><button class="ghost" id="clearRoute">Clear</button></div>
       <div id="routeResult"></div>
     </section>
-    <h2 class="sec" data-for="hauler">Trips &amp; permits</h2>
+
+    <!-- 2. TAKE ACTION -->
+    <h2 class="sec">Take action</h2>
+    <section data-for="public"><div class="acts">
+      <button class="act" data-t="wildReport"><svg viewBox="0 0 24 24"><path d="M3 15c3-1 4-4 6-6 2.5-2.5 6-2 7.5 0L21 8l-1.5 3.5c0 5-4 8.5-9 8.5-3 0-5-1.5-7.5-5z"/><circle cx="15.5" cy="8.5" r=".6"/></svg><span>Report dead wild birds</span></button>
+      <button class="act" data-t="alerts"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/></svg><span>Get email alerts</span></button>
+    </div></section>
+    <section data-for="industry"><div class="acts">
+      <button class="act warn" data-t="flockReport"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19z"/><path d="M12 10v5M12 17.6v.4"/></svg><span>Report a sick flock</span></button>
+      <button class="act" data-t="wildReport"><svg viewBox="0 0 24 24"><path d="M3 15c3-1 4-4 6-6 2.5-2.5 6-2 7.5 0L21 8l-1.5 3.5c0 5-4 8.5-9 8.5-3 0-5-1.5-7.5-5z"/></svg><span>Report dead wild birds</span></button>
+    </div></section>
+    <a class="callbtn" data-for="industry" id="callBtn" href="tel:4108415810"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg><span>Sick birds? <b>Call MDA</b></span></a>
+    <section data-for="hauler"><div class="acts">
+      <button class="act" data-t="checkin"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><path d="m9 9.5 2 2 4-4"/></svg><span>Farm check-in</span></button>
+      <button class="act" data-t="wildReport"><svg viewBox="0 0 24 24"><path d="M3 15c3-1 4-4 6-6 2.5-2.5 6-2 7.5 0L21 8l-1.5 3.5c0 5-4 8.5-9 8.5-3 0-5-1.5-7.5-5z"/></svg><span>Report dead wild birds</span></button>
+    </div></section>
     <section class="card" data-for="hauler">
       <div class="seg" id="hTabs"><button class="on" data-p="trips">Saved trips</button><button data-p="permits">My permits</button></div>
       <div id="pane-trips"><div id="tripList"><p class="hint">Plan a route and tap Save.</p></div></div>
       <div id="pane-permits" hidden><div id="permitList"><p class="hint">No permits yet.</p></div></div>
     </section>
-    <h2 class="sec" data-for="hauler">On the road</h2>
-    <section data-for="hauler"><div class="acts">
-      <button class="act" data-t="checkin"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><path d="m9 9.5 2 2 4-4"/></svg><span>Farm check-in</span></button>
-      <button class="act" data-t="wildReport"><svg viewBox="0 0 24 24"><path d="M3 15c3-1 4-4 6-6 2.5-2.5 6-2 7.5 0L21 8l-1.5 3.5c0 5-4 8.5-9 8.5-3 0-5-1.5-7.5-5z"/></svg><span>Dead wild bird</span></button>
-    </div></section>
-
-    <!-- MDA STAFF: work dashboard -->
-    <h2 class="sec" data-for="regulator">MDA workspace</h2>
     <section data-for="regulator">
       <div class="tiles" id="mdaTabs">
         <button class="tile on" data-p="ov"><b id="tOv">–</b><span>Overview</span></button>
@@ -115,14 +87,29 @@
       </div>
     </section>
 
-    <!-- everyone: official notices -->
-    <h2 class="sec">Official notices</h2>
-    <section class="card" id="sec-news">
-      <div class="ch"><h3>Latest</h3><span class="sub" id="updated"></span></div>
-      <div id="newsList"><p class="hint">Loading…</p></div>
+    <section class="card" data-for="public industry hauler">
+      <div class="ch"><h3>My places</h3><button class="link" id="addPlace">+ Add</button></div>
+      <div id="places"><p class="hint">Save your farm or home to get alerts.</p></div>
     </section>
 
-    <a class="callbtn" data-for="public industry" id="callBtn" href="tel:4108415810"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg><span>Sick birds? <b>Call MDA</b></span></a>
+    <!-- 3. STAY INFORMED -->
+    <h2 class="sec">Stay informed</h2>
+    <section data-for="public industry hauler">
+      <div class="hero" id="hero">
+        <div class="hstat red"><b id="kCA">–</b><span>control areas</span></div>
+        <div class="hstat"><b id="kCty">–</b><span>counties</span></div>
+        <div class="hstat teal"><b id="kWild">–</b><span>wildlife · 4 wk</span></div>
+      </div>
+    </section>
+    <section class="card" data-for="industry" id="riskCard">
+      <div class="ch"><h3>Farm risk</h3><span class="sub">screening score</span></div>
+      <div id="riskList"><p class="hint">Add your premises under My places.</p></div>
+    </section>
+    <section class="card" id="sec-news">
+      <div class="ch"><h3>Official notices</h3><span class="sub" id="updated"></span></div>
+      <div id="newsList" class="newsscroll" tabindex="0" aria-label="Official notices"><p class="hint">Loading…</p></div>
+    </section>
+
     <p class="foot">For general information. Official decisions and permits come from the Maryland Department of Agriculture.</p>
     </div>
   </aside>
