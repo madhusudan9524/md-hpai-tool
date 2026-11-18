@@ -98,8 +98,8 @@ window.HPAI.modules.push(function (ctx) {
     const roleName = S.role === "pending" ? "Not on MDA's staff list" : S.session ? [S.user.company, S.user.expires ? "access until " + H.fmtDate(S.user.expires) : ""].filter(Boolean).join(" · ") || ctx.WS[S.role] : ctx.WS[S.role];
     const acct = `<div class="mg macct"><div class="mwho"><span class="av ${S.ws}">${esc(ini())}</span><span><b>${esc(S.user.fullName || S.user.username)}</b><small>${esc(roleName)}</small></span></div>
       ${S.session && S.user.companyAdmin ? item("group", "My company's people", "Add or remove drivers and staff", () => ctx.actions.companyPeople()) : ""}
-      ${C.auth && C.auth.demo ? (S.session ? item("user", "Demo: back to MDA staff", "Leave the industry partner view", () => { try { localStorage.removeItem("hpai.session"); } catch (e) {} location.reload(); })
-        : S.role === "regulator" ? item("truck", "Demo: sign in as an industry partner", "Code is always 123456", () => ctx.actions.industrySignIn()) + item("plus", "Demo: register an industry partner", "Then review it under Reviews", () => ctx.actions.signup()) : "") : ""}
+      ${C.auth && C.auth.demo && S.role === "regulator" && !S.session ? item("truck", "Demo: sign in as an industry partner", "Code is always 123456", () => ctx.actions.industrySignIn()) + item("plus", "Demo: register an industry partner", "Then review it under Reviews", () => ctx.actions.signup()) : ""}
+      ${C.preview && (S.role === "regulator" || S.previewStaff) ? `<div class="pvseg"><small>Preview as</small><div class="seg">${[["public", "Public"], ["industry", "Industry"], ["regulator", "MDA staff"]].map(([w, l]) => `<button data-pv="${w}" class="${S.ws === w ? "on" : ""}">${l}</button>`).join("")}</div></div>` : ""}
       <div class="msep"></div>${item("log", "Sign out", "", () => ctx.signOut())}</div>`;
     const groups = S.ws === "regulator" ? GROUPS : ROLE[S.ws] || [];
     // one column: who you are first, then each section; MDA's longer menu folds into sections (remembers which are open)
@@ -108,6 +108,7 @@ window.HPAI.modules.push(function (ctx) {
     menu.innerHTML = acct + groups.map(([g, items]) => fold
       ? `<details class="mg" data-g="${esc(g)}"${openSet.includes(g) ? " open" : ""}><summary><h4>${esc(g)}</h4><svg class="li chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></summary>${items.map(([i, t, d, fn]) => item(i, t, d, fn)).join("")}</details>`
       : `<div class="mg"><h4>${esc(g)}</h4>${items.map(([i, t, d, fn]) => item(i, t, d, fn)).join("")}</div>`).join("");
+    menu.querySelectorAll("[data-pv]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); if (b.dataset.pv === S.ws) return; close(); ctx.previewAs(b.dataset.pv); }));
     menu.querySelectorAll("details.mg").forEach((el) => el.addEventListener("toggle", () => H.store.set("menuOpen", [...menu.querySelectorAll("details.mg[open]")].map((x) => x.dataset.g))));
   }
   const firstName = () => { const n = (S.user.fullName || "").trim().split(/\s+/)[0]; return n || S.user.username.split(/[_@.]/)[0]; };

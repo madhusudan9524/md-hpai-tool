@@ -4,7 +4,7 @@
  * Talks to the sign-in service in worker/ (address in HPAI_CONFIG.auth.url).
  */
 window.HPAI.modules.push(function (ctx) {
-  const { H, C, S } = ctx, { $, esc, fmtDate, toast, sheet, closeSheet } = H;
+  const { H, C, S } = ctx, { $, esc, fmtDate, toast, sheet, closeSheet, DAY } = H;
   const ready = () => !!(C.auth && (C.auth.url || C.auth.demo));
   const demoTip = () => C.auth && C.auth.demo ? `<p class="tip"><b>Demo mode</b> (only on your computer): the code is always 123456 and nothing is emailed. Records are saved with your MDA sign-in.</p>` : "";
   const notReady = () => toast(`Industry sign-in is being set up. For now, call MDA at ${C.mdaPhone}.`, 6000);
@@ -151,6 +151,38 @@ window.HPAI.modules.push(function (ctx) {
     };
   }
   if (location.hash.startsWith("#more=")) setTimeout(() => moreForm(decodeURIComponent(location.hash.slice(6))), 600);
+
+  // ---------------- preview: MDA staff look at the tool as each audience ----------------
+  // (C.preview only: your computer and the private preview link). The industry view signs in as a built-in
+  // test grower, saved with the MDA sign-in, so it shows exactly what a partner sees.
+  const PV_EMAIL = "preview.grower@example.org", PV_FLAG = "hpai.previewStaff";
+  S.previewStaff = (() => { try { return !!localStorage.getItem(PV_FLAG); } catch (e) { return false; } })();
+  ctx.previewAs = async (w) => {
+    if (!C.preview) return;
+    const leaveIndustry = () => { try { localStorage.removeItem("hpai.session"); localStorage.removeItem(PV_FLAG); } catch (e) {} S.session = null; S.previewStaff = false; };
+    if (w === "industry") {
+      try {
+        if (!ctx.token()) await ctx.esriId.checkSignInStatus(ctx.sharing);
+        const U = C.submitMda.accounts;
+        const f = (await ctx.restRaw(U + "/query", { where: `LOWER(email) = '${PV_EMAIL}' AND status = 'Approved'`, outFields: "*", returnGeometry: false })).features || [];
+        let a = f.length && f[0].attributes;
+        if (!a) {
+          a = { acct_id: crypto.randomUUID(), btype: "grower", role: "Preview account", name: "Preview Grower", org: "Preview Farms (test)", email: PV_EMAIL, phone: "", county: "Wicomico",
+            status: "Approved", created: Date.now(), decided: Date.now(), decided_by: S.user.username, expires: Date.now() + 365 * DAY, scope: "movement,checkins", company_admin: 1, email_ok: 1,
+            checks: JSON.stringify([{ k: "demo", label: "Built-in preview account for testing", state: "info", detail: "Used by MDA staff to see the industry partner view." }]) };
+          await ctx.restRaw(U + "/applyEdits", { adds: JSON.stringify([{ attributes: a }]) });
+        }
+        try { localStorage.setItem(PV_FLAG, "1"); } catch (e) {}
+        S.previewStaff = true;
+        ctx.ind.start("demo." + a.acct_id, { id: a.acct_id, name: a.name, company: a.org, btype: a.btype, email: a.email, county: a.county, expires: a.expires, scope: a.scope, companyAdmin: true });
+        toast("Previewing as an industry partner (test grower)", 4000);
+      } catch (e) { toast("Couldn't open the industry view: " + e.message, 6000); }
+      return;
+    }
+    if (S.session) { leaveIndustry(); location.hash = ""; return location.reload(); }   // back to the MDA sign-in
+    S.role = "regulator"; ctx.setWorkspace(w);
+    toast(w === "public" ? "Previewing the public view" : "Back to the MDA staff view", 3000);
+  };
 
   // ---------------- company administrator: my people ----------------
   ctx.actions.companyPeople = async () => {

@@ -511,3 +511,5 @@ body.pshut #panelToggle svg { transform: rotate(180deg); }
 @media (max-width: 760px) { .mega.vertical, .mega.vertical:not(.small) { left: 8px !important; right: 8px !important; width: auto; } }
 .mega.vertical .macct + .mg { border-top: 0; }
 a.btnlink { display: block; text-align: center; text-decoration: none; }
+.pvseg { padding: 6px 8px 4px; display: grid; gap: 4px; } .pvseg small { color: var(--mute); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.pvseg .seg { display: grid; grid-template-columns: repeat(3, 1fr); }
