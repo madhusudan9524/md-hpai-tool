@@ -32,6 +32,9 @@
       </div>
     </section>
 
+    <!-- trends: wild-bird detections per week + by county (all roles) -->
+    <section class="card trend" data-for="public industry hauler regulator"><div class="th"><b>Wild-bird detections</b><span>last 4 weeks</span></div><div id="trendChart"></div><div id="trendCty"></div></section>
+
     <!-- POULTRY INDUSTRY: two big actions -->
     <section data-for="industry"><div class="acts">
       <button class="act" data-t="permit"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 14l2 2 4-4"/></svg><span>Permit</span></button>
@@ -76,9 +79,9 @@
         <button class="stat blue" data-p="per"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 14l2 2 4-4"/></svg><b id="kPer">–</b><span>permits</span></button>
       </div>
       <div class="card" id="staffBody">
-        <div id="pane-prem"><div id="premList"></div><p class="hint" id="permitAdmin"></p></div>
-        <div id="pane-rep" hidden><div id="repQueue"></div></div>
-        <div id="pane-per" hidden><div id="perQueue"></div></div>
+        <div id="pane-prem"><div id="premChart"></div><div id="premList"></div><p class="hint" id="permitAdmin"></p></div>
+        <div id="pane-rep" hidden><div class="qtools" id="qt-rep"></div><div id="repQueue"></div></div>
+        <div id="pane-per" hidden><div class="qtools" id="qt-per"></div><div id="perQueue"></div></div>
       </div>
     </section>
 

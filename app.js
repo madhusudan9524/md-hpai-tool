@@ -279,12 +279,13 @@ require([
     document.querySelectorAll("[data-for]").forEach((el) => (el.hidden = !el.dataset.for.split(" ").includes(w)));   // each audience gets its own panel
     showAct(null);
     if (w === "public") loadPublicKpis();
+    loadTrend();
     routeLyr.visible = w === "hauler";
     if (isStaff() && !regAdded) {   // private layers are added only for MDA staff, so the public never hits a sign-in prompt
       regAdded = true;
       map.addMany(STAFF_LAYERS);
       map.reorder(routeLyr, map.layers.length - 1); map.reorder(marks, map.layers.length - 1);
-      loadPremisesList();
+      loadPremisesList(); loadPremChart();
     }
     STAFF_LAYERS.forEach((l) => { if (!isStaff()) l.visible = false; else if (l !== farmsLyr) l.visible = true; });
     renderKey(); fadeCounties();
@@ -588,6 +589,57 @@ require([
   };
 
   // ---------------- REGULATOR ----------------
+
+  // ---- Charts (plain SVG, no extra library) ----
+  async function loadTrend() {
+    const box = $("trendChart"), cty = $("trendCty"); if (!box) return;
+    try {
+      const r = await wild.queryFeatures({ where: "1=1", outFields: ["last_detected", "county"], returnGeometry: false });
+      const now = Date.now(), wk = [0, 0, 0, 0], by = {};
+      r.features.forEach((f) => {
+        const t = f.attributes.last_detected; if (t == null) return;
+        const w = Math.min(3, Math.floor((now - t) / 6048e5)); wk[3 - w]++;
+        const c = f.attributes.county || "Unknown"; by[c] = (by[c] || 0) + 1;
+      });
+      const max = Math.max(1, ...wk), W = 300, H = 92;
+      const labels = ["3 wks ago", "2 wks", "last wk", "this wk"];
+      box.innerHTML = `<svg viewBox="0 0 ${W} ${H + 22}" class="bars">${wk.map((n, i) => {
+        const bh = Math.max(n ? 4 : 1, Math.round((n / max) * (H - 18))), x = 14 + i * 72;
+        return `<rect x="${x}" y="${H - bh}" width="48" height="${bh}" rx="6" class="${i === 3 ? "cur" : ""}"/><text x="${x + 24}" y="${H - bh - 5}" class="v">${n}</text><text x="${x + 24}" y="${H + 15}" class="l">${labels[i]}</text>`;
+      }).join("")}</svg>`;
+      const top = Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 5), tm = top.length ? top[0][1] : 1;
+      cty.innerHTML = top.length ? top.map(([c, n]) => `<div class="hb"><span>${esc(c)}</span><i style="width:${Math.round((n / tm) * 100)}%"></i><b>${n}</b></div>`).join("") : `<p class="hint">No wild-bird detections in the last 4 weeks</p>`;
+    } catch (e) { box.innerHTML = `<p class="hint">Chart unavailable</p>`; }
+  }
+  async function loadPremChart() {
+    const box = $("premChart"); if (!box) return;
+    try {
+      const r = await premises.queryFeatures({ where: "1=1", outFields: ["status", "birds", "county", "flock_type"], returnGeometry: false });
+      const act = r.features.filter((f) => f.attributes.status === "Active"), rel = r.features.length - act.length;
+      const birds = act.reduce((s, f) => s + (f.attributes.birds || 0), 0);
+      const by = {}; act.forEach((f) => { const k = f.attributes.flock_type || "Other"; by[k] = (by[k] || 0) + 1; });
+      const tot = Math.max(1, act.length), cols = ["#c0392b", "#d99a0b", "#1d6fb8", "#2e8b57", "#7a5aa6"];
+      const parts = Object.entries(by);
+      box.innerHTML = `<div class="kv"><div><b>${birds.toLocaleString()}</b><span>birds affected</span></div><div><b>${act.length}</b><span>active</span></div><div><b>${rel}</b><span>released</span></div></div>
+        <div class="stack">${parts.map(([k, n], i) => `<i style="flex:${n};background:${cols[i % 5]}" title="${esc(k)}: ${n}"></i>`).join("")}</div>
+        <div class="lg">${parts.map(([k, n], i) => `<span><u style="background:${cols[i % 5]}"></u>${esc(k)} ${n}</span>`).join("")}</div>`;
+    } catch (e) { box.innerHTML = ""; }
+  }
+  // search / filter / export for the review queues
+  const qState = { rep: { q: "", f: "open" }, per: { q: "", f: "open" } }, qRows = { rep: [], per: [] };
+  function renderQTools(kind) {
+    const el = $("qt-" + kind), s = qState[kind];
+    el.innerHTML = `<input type="search" placeholder="Search" value="${esc(s.q)}"><div class="seg">${["open", "done", "all"].map((k) => `<button class="${s.f === k ? "on" : ""}" data-f="${k}">${{ open: "To do", done: "Done", all: "All" }[k]}</button>`).join("")}</div><button class="ghost" data-x="1" title="Download CSV"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>`;
+    el.querySelector("input").oninput = (e) => { s.q = e.target.value; const p = e.target.selectionStart; loadQueue(kind, true); };
+    el.querySelectorAll("[data-f]").forEach((b) => (b.onclick = () => { s.f = b.dataset.f; renderQTools(kind); loadQueue(kind, true); }));
+    el.querySelector("[data-x]").onclick = () => {
+      const rows = qRows[kind]; if (!rows.length) return toast("Nothing to export");
+      const keys = Object.keys(rows[0].f.attributes).filter((k) => k !== "OBJECTID" && k !== "GlobalID");
+      const csv = [keys.concat("status").join(",")].concat(rows.map(({ f, st }) => keys.map((k) => JSON.stringify(f.attributes[k] ?? "")).concat(JSON.stringify(st)).join(","))).join("\n");
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = `hpai_${kind === "rep" ? "reports" : "permits"}.csv`; a.click();
+    };
+  }
+
   // ---- Officials: review queues ----
   const pendingWhere = (kind) => kind === "rep" ? "review_status IS NULL OR review_status = 'New'" : "review_status IS NULL OR review_status = 'Pending'";
   async function refreshBadges() {
@@ -602,15 +654,19 @@ require([
     set("kWild", await wild.queryFeatureCount().catch(() => null));
     set("kCty", outbreakAreas.length || null);
   }
-  async function loadQueue(kind) {
+  async function loadQueue(kind, keep) {
     const lyr = kind === "rep" ? repLyr : perLyr, box = $(kind === "rep" ? "repQueue" : "perQueue");
-    box.innerHTML = `<p class="hint">Loading…</p>`;
+    if (!keep) box.innerHTML = `<p class="hint">Loading…</p>`;
     const done = kind === "rep" ? ["Confirmed", "Dismissed"] : ["Approved", "Denied"];
     const yes = kind === "rep" ? ["Confirm", "Confirmed"] : ["Approve", "Approved"], no = kind === "rep" ? ["Dismiss", "Dismissed"] : ["Deny", "Denied"];
     try {
       const r = await lyr.queryFeatures({ where: "1=1", outFields: ["*"], returnGeometry: true, outSpatialReference: view.spatialReference });
-      const rows = r.features.map((f) => ({ f, st: f.attributes.review_status || (kind === "rep" ? "New" : "Pending") })).sort((a, b) => (done.includes(a.st) - done.includes(b.st)) || (b.f.attributes.OBJECTID - a.f.attributes.OBJECTID));
-      if (!rows.length) { box.innerHTML = `<p class="hint">Nothing submitted yet.</p>`; return; }
+      const s = qState[kind];
+      const all = r.features.map((f) => ({ f, st: f.attributes.review_status || (kind === "rep" ? "New" : "Pending") }));
+      if (!$("qt-" + kind).firstChild) renderQTools(kind);
+      const rows = all.filter(({ f, st }) => (s.f === "all" || (s.f === "done") === done.includes(st)) && (!s.q || JSON.stringify(Object.values(f.attributes)).toLowerCase().includes(s.q.toLowerCase()))).sort((a, b) => (done.includes(a.st) - done.includes(b.st)) || (b.f.attributes.OBJECTID - a.f.attributes.OBJECTID));
+      qRows[kind] = rows;
+      if (!rows.length) { box.innerHTML = `<p class="hint">Nothing here.</p>`; return; }
       box.innerHTML = rows.map(({ f, st }, i) => {
         const a = f.attributes, pend = !done.includes(st);
         const day = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";

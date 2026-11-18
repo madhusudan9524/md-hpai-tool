@@ -338,3 +338,12 @@ button.stat { cursor: pointer; }
 .pop .rad { display: flex; align-items: center; gap: 6px; padding: 0 16px 14px; font-size: 12.5px; color: var(--mute); }
 .pop .rad button { border: 1.5px solid var(--line); background: #fff; border-radius: 99px; padding: 3px 10px; font-weight: 650; font-size: 12.5px; color: #3a4a5c; }
 .pop .rad button.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+/* v10 charts & queue tools */
+.trend .th { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; } .trend .th b { font-size:14.5px; } .trend .th span { font-size:12px; color:var(--mute); }
+.bars { width:100%; display:block; } .bars rect { fill:#9fd0d9; } .bars rect.cur { fill:#176b7c; } .bars .v { text-anchor:middle; font-size:12px; font-weight:700; fill:var(--ink); } .bars .l { text-anchor:middle; font-size:10.5px; fill:var(--mute); }
+.hb { position:relative; display:flex; align-items:center; gap:8px; margin-top:6px; font-size:13px; height:24px; } .hb span { width:96px; flex:0 0 96px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .hb i { height:10px; border-radius:6px; background:#176b7c; min-width:4px; } .hb b { font-size:12.5px; margin-left:auto; }
+.kv { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; text-align:center; margin-bottom:10px; } .kv b { display:block; font-size:21px; font-weight:750; } .kv span { font-size:11.5px; color:var(--mute); }
+.stack { display:flex; height:12px; border-radius:7px; overflow:hidden; gap:2px; } .stack i { display:block; }
+.lg { display:flex; flex-wrap:wrap; gap:4px 12px; margin:8px 0 12px; font-size:12px; color:var(--mute); } .lg u { display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:5px; }
+.qtools { display:flex; gap:6px; align-items:center; margin-bottom:10px; } .qtools input { flex:1; min-width:0; padding:7px 10px; border:1px solid var(--line); border-radius:99px; font:inherit; font-size:13px; } .qtools .ghost { padding:6px 9px; } .qtools svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
