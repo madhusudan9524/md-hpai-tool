@@ -524,6 +524,7 @@ window.HPAI.modules.push(function (ctx) {
         if (z.features[0]) await edit(C.core.history, { adds: JSON.stringify([{ geometry: z.features[0].geometry, attributes: { start_date: released.confirmed_date, end_date: Date.now(), county: released.county, sample: released.sample === 1 ? 1 : 0 } }]) }).catch(() => {});
       }
       ctx.audit("public:publish", `${adds.length} areas, ${markers.length} markers`, JSON.stringify(report));
+      if (released && ctx.reloadHistory) ctx.reloadHistory();   // the released area turns grey and its county tint ends now, not at the next reload
       ctx.buildOutbreakLayers();
       sheet("Public map updated", `<div class="form"><p class="hint">${adds.length} merged area(s) and ${markers.length} approximate marker(s) are live.</p>
         <h4 style="margin:6px 0">Privacy check</h4>${report.map((r) => `<div class="prow"><span class="tx"><b>${esc(r.id)}</b><small>${r.farms} farms inside the marker area${r.solo ? " · single premises in its control area: its center can be estimated" : ""}</small></span><span class="pill ${r.ok && !r.solo ? "green" : "amber"}">${r.ok && !r.solo ? "OK" : "Review"}</span></div>`).join("") || `<p class="hint">No active premises.</p>`}

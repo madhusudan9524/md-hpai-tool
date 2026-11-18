@@ -255,10 +255,13 @@ require([
   // neighboring county that has no detection of its own, which was shading counties (e.g. Anne Arundel) that
   // merely sit near an infected premises in another county
   S.affected = [];
+  S.released = [];   // real control areas MDA has released: [{ county, end }] (filled from the public history layer)
   async function paintCounties() {
     await ready; tintLyr.removeAll();
     const cutoff = Date.now() - (C.tintDays || 30) * DAY, aff = new globalThis.Map();
-    const mark = (st, name, info) => { const c = S.counties.find((x) => x.state === st && x.name === name); if (!c) return; const k = st + name; const o = aff.get(k) || { c, items: [] }; o.items.push(info); aff.set(k, o); };
+    // a county's tint ends when MDA releases its control area: a detection or declaration from before that release no longer counts
+    const releasedAfter = (name, t) => S.released.some((r) => r.county === name && r.end >= (t || 0));
+    const mark = (st, name, info) => { const c = S.counties.find((x) => x.state === st && x.name === name); if (!c || releasedAfter(name, info.t)) return; const k = st + name; const o = aff.get(k) || { c, items: [] }; o.items.push(info); aff.set(k, o); };
     ((S.live && S.live.commercial) || []).forEach((d) => { const t = Date.parse(d.date + "T12:00:00Z"); if (t >= cutoff) mark(d.state, d.county, { kind: "detection", t, status: d.status, text: d.status_text || "", flock: d.flock, source: d.source, url: d.url }); });
     if (L.decl) {
       try { (await L.decl.queryFeatures({ where: L.decl.definitionExpression, outFields: ["*"], returnGeometry: false })).features.forEach((f) => { const a = f.attributes; mark(a.state || "Maryland", a.county, { kind: "declaration", t: a.declared, status: a.status, text: a.status_text, url: a.source_url }); }); } catch (e) {}
@@ -509,12 +512,17 @@ require([
   // "Past outbreaks" = control zones that were actually released (C.pub.history is only ever written to from the
   // release+publish flow in mda.js). A past commercial detection or a zone that's still active isn't a past outbreak
   // yet, so those aren't shown here even though they appear elsewhere (county shading, the current control area, etc.)
-  const histReady = pubHist().then((ph) => {
+  const loadHistory = () => pubHist().then((ph) => {
+    histLyr.removeAll();
     const items = ph.map((f) => ({ geom: f.geometry, start: f.attributes.start_date, end: f.attributes.end_date, kind: f.attributes.sample ? "sample" : "zone", label: `${f.attributes.county || ""} County · past control area (released)` }));
+    S.released = ph.filter((f) => f.attributes.sample !== 1 && f.attributes.end_date).map((f) => ({ county: f.attributes.county, end: f.attributes.end_date }));
+    paintCounties();
     items.forEach((i) => histLyr.add(new Graphic({ geometry: i.geom, attributes: { start: i.start, end: i.end, kind: i.kind, label: i.label },
       symbol: fill(SLATE, i.kind === "zone" ? 0.3 : 0.22, SLATE.concat(0.95), 1.2, i.kind === "sample" ? "dash" : "solid") })));
     return items;
   });
+  const histReady = loadHistory();
+  ctx.reloadHistory = () => loadHistory().then(() => { if (typeof applyTime === "function") applyTime(); });
   // look back in time: a "Past outbreaks" row in the layers panel with a month slider
   S.timeAt = null; let timeT0 = null, playing = null;
   function applyTime() {
@@ -536,7 +544,7 @@ require([
     { id: "pm", roles: ["hauler", "industry"], t: "Infected premises", n: C.privacy.markerShiftKm[1] ? "approximate location" : "", sw: "barn", ls: () => [L.markers] },
     { id: "ex", staff: 1, t: "Infected premises (exact)", n: "premises boundary · MDA only", sw: "perim", ls: () => [L.prem, L.perim] },
     { id: "cty", t: "Affected county", n: "detection or MDA notice", sw: "cty", ls: () => [tintLyr] },
-    { id: "past", t: "Past outbreaks", n: "slide to look back in time", sw: "past", ls: () => [histLyr], off: true, time: true },
+    { id: "past", t: "Past outbreaks", n: "released areas in grey · slide to look back", sw: "past", ls: () => [histLyr], time: true },
     { sec: "Wildlife" },
     { id: "wb", t: "Wildlife with HPAI", n: "birds and mammals · USDA APHIS", sw: "wb", ls: () => [wild], seg: true },
     { id: "risk", t: "Seasonal risk", n: "migration + detections + habitat", sw: "risk", ls: () => [riskLyr], off: true },
