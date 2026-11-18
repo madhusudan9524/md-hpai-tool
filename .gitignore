@@ -1,1 +1,6 @@
 tools/__pycache__/
+
+# sign-in service: local secrets
+worker/.dev.vars
+worker/.wrangler/
+node_modules/

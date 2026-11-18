@@ -1,0 +1,12 @@
+# Copy this file to ".dev.vars" (same folder) and fill it in. ".dev.vars" stays on your computer; it's never uploaded.
+SESSION_SECRET=type-any-long-random-text-here-at-least-40-characters
+# ArcGIS: either your username and password (only if you sign in to ArcGIS with a username and password)...
+ARCGIS_USERNAME=
+ARCGIS_PASSWORD=
+# ...or an API key (if you sign in with your university login). Leave the two lines above empty then.
+ARCGIS_TOKEN=
+# Email codes (resend.com). Without your own domain, Resend only delivers to the email you signed up with: fine for testing.
+RESEND_API_KEY=
+MAIL_FROM=onboarding@resend.dev
+APP_URL=http://localhost:8080/
+APP_ORIGINS=http://localhost:8080

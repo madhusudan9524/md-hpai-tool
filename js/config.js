@@ -4,7 +4,8 @@ window.HPAI_CONFIG = {
   appId: "Gju4PCNvp8ugZdZQ",                       // OAuth client ID of the registered app
 
   // ---- industry partner sign-in service (worker/; email or text codes). Empty until it's set up ----
-  auth: { url: "" },                                   // e.g. "https://md-hpai-signin.<your-account>.workers.dev"
+  // on your own computer (http://localhost:8080) it uses the service running locally ("npx wrangler dev" in worker/)
+  auth: { url: /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? "http://localhost:8787" : "" },   // later: "https://md-hpai-signin.<your-account>.workers.dev"
   // ---- who sees what (ArcGIS groups; MDA staff) ----
   regulatorGroup: "MD HPAI Regulators",           // MDA staff and authorities
   haulerGroup: "MD HPAI Haulers",                 // truckers, haulers, transporters
