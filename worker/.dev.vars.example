@@ -3,7 +3,10 @@ SESSION_SECRET=type-any-long-random-text-here-at-least-40-characters
 # ArcGIS: either your username and password (only if you sign in to ArcGIS with a username and password)...
 ARCGIS_USERNAME=
 ARCGIS_PASSWORD=
-# ...or an API key (if you sign in with your university login). Leave the two lines above empty then.
+# ...or, with a university (UMD) login: the map app's Client ID and secret (ArcGIS Online → Content → the map's app item → Settings)
+ARCGIS_CLIENT_ID=Gju4PCNvp8ugZdZQ
+ARCGIS_CLIENT_SECRET=
+# ...or an API key, if your administrator lets you create one
 ARCGIS_TOKEN=
 # Email codes (resend.com). Without your own domain, Resend only delivers to the email you signed up with: fine for testing.
 RESEND_API_KEY=

@@ -45,7 +45,8 @@ export default {
       else if (p.startsWith("/company/")) out = await company(p.slice(9), await session(req, env), await req.json(), env);
       else if (p === "/mda/recheck") out = await mdaRecheck(await mdaUser(req, env), await req.json(), env);
       else if (p === "/mda/notify") out = await mdaNotify(await mdaUser(req, env), await req.json(), env);
-      else if (p === "" || p === "/health") out = { ok: true, email: !!env.RESEND_API_KEY, sms: !!env.TWILIO_SID, usdot: !!env.FMCSA_WEBKEY, arcgis: !!(env.ARCGIS_TOKEN || env.ARCGIS_USERNAME) };
+      else if (p === "/health/arcgis") out = await healthArcgis(env);
+      else if (p === "" || p === "/health") out = { ok: true, email: !!env.RESEND_API_KEY, sms: !!env.TWILIO_SID, usdot: !!env.FMCSA_WEBKEY, arcgis: !!(env.ARCGIS_TOKEN || env.ARCGIS_USERNAME || env.ARCGIS_CLIENT_ID) };
       else throw err(404, "Not found");
       return json(out, 200, cors);
     } catch (e) {
@@ -53,6 +54,15 @@ export default {
     }
   }
 };
+
+// can the service read and write the layers it needs? (open http://localhost:8787/health/arcgis)
+async function healthArcgis(env) {
+  const out = {};
+  for (const [k, u] of [["accounts", env.ACCOUNTS_URL], ["registry", env.REGISTRY_URL], ["movement", env.MOVEMENT_URL + "/2"], ["farms", env.FARMS_URL]]) {
+    try { const r = await ago(env, u + "/query", { where: "1=1", returnCountOnly: true }); out[k] = "ok (" + r.count + " records)"; } catch (e) { out[k] = "NO ACCESS: " + (e.public || e.message); }
+  }
+  return out;
+}
 
 // ---------------------------------------------------------------- helpers
 function err(status, message) { const e = new Error(message); e.status = status; e.public = message; return e; }
@@ -104,6 +114,11 @@ let tok = null;
 async function agoToken(env) {
   if (env.ARCGIS_TOKEN) return env.ARCGIS_TOKEN;
   if (tok && tok.exp > Date.now() + 120000) return tok.t;
+  if (env.ARCGIS_CLIENT_ID) {   // the map's app registration (Client ID + secret) — works with university (SSO) logins
+    const r = await fetch((env.PORTAL_URL || "https://www.arcgis.com") + "/sharing/rest/oauth2/token", { method: "POST", body: new URLSearchParams({ client_id: env.ARCGIS_CLIENT_ID, client_secret: env.ARCGIS_CLIENT_SECRET, grant_type: "client_credentials", expiration: "120", f: "json" }) }).then((x) => x.json());
+    if (!r.access_token) throw err(500, "The sign-in service couldn't reach the map data (check the client ID and secret).");
+    tok = { t: r.access_token, exp: Date.now() + (r.expires_in || 7200) * 1000 }; return r.access_token;
+  }
   if (!env.ARCGIS_USERNAME) throw err(500, "The sign-in service isn't connected to the map data yet.");
   const r = await fetch((env.PORTAL_URL || "https://www.arcgis.com") + "/sharing/rest/generateToken", { method: "POST", body: new URLSearchParams({ username: env.ARCGIS_USERNAME, password: env.ARCGIS_PASSWORD, client: "referer", referer: env.APP_URL || "https://localhost", expiration: "120", f: "json" }) }).then((x) => x.json());
   if (!r.token) throw err(500, "The sign-in service couldn't reach the map data.");
