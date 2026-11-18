@@ -122,8 +122,8 @@ window.HPAI.modules.push(function (ctx) {
         rows[i].textContent = "Copying…";
         try {
           const info = await ctx.rest(svcs[i], {});
-          const title = `HPAI backup ${info.serviceItemId ? "" : ""}${svcs[i].split("/services/")[1].split("/")[0]} ${new Date().toISOString().slice(0, 16).replace("T", " ")}`;
-          await ctx.rest(`${ctx.sharing}/rest/content/users/${encodeURIComponent(S.user.username)}/export`, { itemId: info.serviceItemId, exportFormat: "File Geodatabase", title, exportParameters: JSON.stringify({ layers: [] }) });
+          const title = `HPAI backup ${svcs[i].split("/services/")[1].split("/")[0]} ${new Date().toISOString().slice(0, 16).replace("T", " ")}`;
+          await ctx.rest(`${ctx.sharing}/rest/content/users/${encodeURIComponent(S.user.username)}/export`, { itemId: info.serviceItemId, exportFormat: "File Geodatabase", title });
           rows[i].textContent = "Started · will appear in your ArcGIS content"; ok++;
         } catch (e) { rows[i].textContent = "Couldn't copy: " + e.message; }
       }
