@@ -599,6 +599,17 @@ require([
   // panel action buttons
   document.addEventListener("click", (e) => { const b = e.target.closest(".act[data-t]"); if (b && ctx.actions[b.dataset.t]) ctx.actions[b.dataset.t](); });
 
+  // ---------------- collapsible side panel (full-screen map) ----------------
+  (function panelToggle() {
+    const b = $("panelToggle"), setState = (shut) => {
+      document.body.classList.toggle("pshut", shut);
+      b.setAttribute("aria-expanded", String(!shut)); b.title = shut ? "Show panel" : "Hide panel (full-screen map)";
+      store.set("panelShut", shut);
+    };
+    b.onclick = () => setState(!document.body.classList.contains("pshut"));
+    if (window.innerWidth > 760 && store.get("panelShut", false)) setState(true);
+  })();
+
   // ---------------- phones: bottom sheet ----------------
   (function sheetGrip() {
     const p = $("panel"), g = $("grip"), states = ["", "half", "full"]; let i = 0, y0 = null;

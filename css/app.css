@@ -453,3 +453,15 @@ main { top: 0 !important; }
 .pininfo .li { width: 18px; height: 18px; color: var(--ws); margin-top: 1px; }
 .pininfo small { color: var(--mute); }
 .pop .more .pacts { margin-top: 8px; }
+
+/* ===== collapsible side panel ===== */
+#panel { transition: margin-left .28s cubic-bezier(.2, .8, .2, 1); }
+body.pshut #panel { margin-left: -390px; }
+#panelToggle { position: absolute; z-index: 6; top: 50%; left: 390px; transform: translateY(-50%); width: 22px; height: 56px; padding: 0; display: grid; place-items: center;
+  border: 1px solid rgba(60, 50, 30, .14); border-left: 0; border-radius: 0 12px 12px 0; background: var(--groupbg); color: #4b5866; box-shadow: 2px 0 8px rgba(15, 25, 40, .1);
+  transition: left .28s cubic-bezier(.2, .8, .2, 1), background-color .15s, width .15s; }
+#panelToggle svg { width: 18px; height: 18px; transition: transform .28s; }
+#panelToggle:hover { background: var(--panel); width: 26px; color: var(--ink); }
+body.pshut #panelToggle { left: 0; }
+body.pshut #panelToggle svg { transform: rotate(180deg); }
+@media (max-width: 760px) { #panelToggle { display: none; } body.pshut #panel { margin-left: 0; } }
