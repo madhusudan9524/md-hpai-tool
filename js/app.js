@@ -195,7 +195,9 @@ require([
   // ---------------- outbreak layers ----------------
   function zoneLayer(url, type, extra) {
     return new FeatureLayer(Object.assign({ url, outFields: ["*"], popupEnabled: false,
-      definitionExpression: `zone_type = '${type}' AND status = 'Active'`,
+      // "established" is set explicitly when staff create a premises (confirmed vs. preliminary/pending USDA).
+      // Older records predate the field and have no value for it, so they're treated as already established.
+      definitionExpression: `zone_type = '${type}' AND status = 'Active' AND (established = 1 OR established IS NULL)`,
       renderer: { type: "simple", symbol: type === "Control Area" ? fill(RED, 0.24, RED.concat(1), 2) : fill(APRICOT, 0.18, AMBER.concat(1), 1.6, "dash") } }, extra || {}));
   }
   function buildOutbreakLayers() {

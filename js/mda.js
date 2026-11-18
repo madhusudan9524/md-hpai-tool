@@ -282,8 +282,9 @@ window.HPAI.modules.push(function (ctx) {
     $("newZone").onclick = newPremises;
     try {
       const r = await Q(url.prem(), { where: "status = 'Active'", orderByFields: "confirmed_date DESC", returnGeometry: true, outSR: 4326 });
-      $("zList").innerHTML = r.features.length ? r.features.map((f, i) => { const a = f.attributes; return `<div class="prow" data-i="${i}"><span class="tx"><b>${esc(a.premises_id)} · ${esc(a.county)}</b><small>${esc(a.flock_type || "")} · confirmed ${fmtShort(a.confirmed_date)} · day ${Math.floor((Date.now() - a.confirmed_date) / DAY) + 1}</small></span><button class="mini no" data-rel="${i}">Release</button></div>`; }).join("") : `<p class="hint">No active premises.</p>`;
-      $("zList").querySelectorAll(".prow").forEach((el) => (el.onclick = (e) => { const f = r.features[+el.dataset.i]; if (e.target.dataset.rel != null) return release(f.attributes); view.goTo({ target: new Point({ longitude: f.geometry.x, latitude: f.geometry.y }), zoom: 11 }); }));
+      $("zList").innerHTML = r.features.length ? r.features.map((f, i) => { const a = f.attributes, est = a.established !== 0;
+        return `<div class="prow" data-i="${i}"><span class="tx"><b>${esc(a.premises_id)} · ${esc(a.county)}</b><small>${esc(a.flock_type || "")} · confirmed ${fmtShort(a.confirmed_date)} · day ${Math.floor((Date.now() - a.confirmed_date) / DAY) + 1}${est ? "" : " · <b>preliminary, no public zone yet</b>"}</small></span>${est ? "" : `<button class="mini" data-est="${i}">Confirm</button>`}<button class="mini no" data-rel="${i}">Release</button></div>`; }).join("") : `<p class="hint">No active premises.</p>`;
+      $("zList").querySelectorAll(".prow").forEach((el) => (el.onclick = (e) => { const f = r.features[+el.dataset.i]; if (e.target.dataset.rel != null) return release(f.attributes); if (e.target.dataset.est != null) return setEstablished(f.attributes); view.goTo({ target: new Point({ longitude: f.geometry.x, latitude: f.geometry.y }), zoom: 11 }); }));
     } catch (e) { $("zList").innerHTML = `<p class="hint">Couldn't load: ${esc(e.message)}</p>`; }
     const dl = $("dList");
     if (!has(C.core.declarations)) { dl.innerHTML = `<p class="hint">County declarations come from data/curated_detections.json until the declarations layer is connected.</p>`; return; }
@@ -306,6 +307,8 @@ window.HPAI.modules.push(function (ctx) {
       <div class="two"><label>Premises ID<input id="npId" value="MD-${year}-${String(Math.floor(Math.random() * 900) + 100)}"></label><label>Confirmed<input id="npDate" type="date" value="${new Date().toISOString().slice(0, 10)}"></label></div>
       <div class="two"><label>Flock type<select id="npFlock"><option>Commercial broiler</option><option>Commercial layer</option><option>Commercial turkey</option><option>Broiler breeder</option><option>Commercial duck</option><option>Backyard</option></select></label><label>Birds<input id="npBirds" type="number" min="0"></label></div>
       <div class="two"><label>Control area (miles)<input id="npCA" type="number" step="0.1" value="${H.mi(C.zones.controlKm)}"></label><label>Surveillance zone (miles)<input id="npSZ" type="number" step="0.1" value="${H.mi(C.zones.surveillanceKm)}"></label></div>
+      <label class="lrow" style="padding:0"><input type="checkbox" id="npEst" class="tg" checked><span>Confirmed by USDA (shows the control area/surveillance circles now)</span></label>
+      <p class="hint" id="npEstHint" style="margin:-4px 0 0">Leave this unchecked for a preliminary (state-lab) positive pending USDA confirmation — the premises is tracked here, but no circle is drawn until you mark it confirmed.</p>
       <label class="lrow" style="padding:0"><input type="checkbox" id="npPub" class="tg" checked><span>Publish to the public map now</span></label>
       <button class="danger" id="npGo" disabled>Create premises and zones</button></div>`);
     let pt = null, boundary = null, farmId = null;
@@ -341,15 +344,15 @@ window.HPAI.modules.push(function (ctx) {
       $("npGo").disabled = true; $("npGo").textContent = "Creating…";
       const id = $("npId").value.trim(), when = Date.parse($("npDate").value + "T12:00:00"), c = ctx.countyAt(pt);
       const ca = ge.geodesicBuffer(boundary, +$("npCA").value, "miles"), sz = ge.difference(ge.geodesicBuffer(boundary, +$("npSZ").value, "miles"), ca);
-      const g = (x) => x.toJSON();
+      const g = (x) => x.toJSON(), est = $("npEst").checked ? 1 : 0;
       try {
-        await edit(url.prem(), { adds: JSON.stringify([{ geometry: g(pt.type === "point" ? pt : boundary.centroid), attributes: { premises_id: id, county: c ? c.name : "", flock_type: $("npFlock").value, birds: +$("npBirds").value || null, status: "Active", confirmed_date: when, farm_id: farmId } }]) });
+        await edit(url.prem(), { adds: JSON.stringify([{ geometry: g(pt.type === "point" ? pt : boundary.centroid), attributes: { premises_id: id, county: c ? c.name : "", flock_type: $("npFlock").value, birds: +$("npBirds").value || null, status: "Active", confirmed_date: when, farm_id: farmId, established: est } }]) });
         await edit(url.perim(), { adds: JSON.stringify([{ geometry: g(boundary), attributes: { premises_id: id } }]) }).catch(() => {});
         await edit(url.zones(), { adds: JSON.stringify([
-          { geometry: g(ca), attributes: { premises_id: id, zone_type: "Control Area", status: "Active", confirmed_date: when, created_date: Date.now() } },
-          { geometry: g(sz), attributes: { premises_id: id, zone_type: "Surveillance Zone", status: "Active", confirmed_date: when, created_date: Date.now() } }]) });
-        ctx.audit("premises:create", id, `${c ? c.name : ""} · control area ${$("npCA").value} mi · surveillance ${$("npSZ").value} mi`);
-        const pub = $("npPub").checked; closeSheet(); marks.removeAll(); toast("Premises and zones created");
+          { geometry: g(ca), attributes: { premises_id: id, zone_type: "Control Area", status: "Active", confirmed_date: when, created_date: Date.now(), established: est } },
+          { geometry: g(sz), attributes: { premises_id: id, zone_type: "Surveillance Zone", status: "Active", confirmed_date: when, created_date: Date.now(), established: est } }]) });
+        ctx.audit("premises:create", id, `${c ? c.name : ""} · control area ${$("npCA").value} mi · surveillance ${$("npSZ").value} mi · ${est ? "confirmed" : "preliminary, zone not shown yet"}`);
+        const pub = $("npPub").checked; closeSheet(); marks.removeAll(); toast("Premises" + (est ? " and zones created" : " created · zone hidden until confirmed"));
         ctx.buildOutbreakLayers(); loaders.z(); if (pub) publish();
       } catch (e) { $("npGo").disabled = false; $("npGo").textContent = "Create premises and zones"; toast("Couldn't create: " + e.message); }
     };
@@ -364,6 +367,18 @@ window.HPAI.modules.push(function (ctx) {
       ctx.audit("premises:release", a.premises_id); toast(a.premises_id + " released");
       ctx.buildOutbreakLayers(); loaders.z(); publish(a);
     } catch (e) { toast("Couldn't release: " + e.message); }
+  }
+
+  // mark a preliminary premises as confirmed by USDA: this is what makes its control area/surveillance circles appear
+  async function setEstablished(a) {
+    if (!confirm(`Mark ${a.premises_id} confirmed? Its control area and surveillance zone will start showing as circles.`)) return;
+    try {
+      const z = await Q(url.zones(), { where: `premises_id = '${a.premises_id.replace(/'/g, "''")}' AND status = 'Active'`, outFields: "OBJECTID" });
+      await edit(url.zones(), { updates: JSON.stringify(z.features.map((f) => ({ attributes: { OBJECTID: f.attributes.OBJECTID, established: 1 } }))) });
+      await edit(url.prem(), { updates: JSON.stringify([{ attributes: { OBJECTID: a.OBJECTID, established: 1 } }]) });
+      ctx.audit("premises:establish", a.premises_id); toast(a.premises_id + " confirmed — zone now shown");
+      ctx.buildOutbreakLayers(); loaders.z(); publish();
+    } catch (e) { toast("Couldn't update: " + e.message); }
   }
 
   // county declared by MDA (before zones exist): mild county tint for everyone
@@ -391,7 +406,7 @@ window.HPAI.modules.push(function (ctx) {
     toast("Publishing public map…");
     try {
       const [zr, pr] = await Promise.all([
-        Q(url.zones(), { where: "status = 'Active'", returnGeometry: true, outSR: 102100 }),
+        Q(url.zones(), { where: "status = 'Active' AND (established = 1 OR established IS NULL)", returnGeometry: true, outSR: 102100 }),
         Q(url.prem(), { where: "status = 'Active'", returnGeometry: true, outSR: 102100 })]);
       const geom = (f) => Polygon.fromJSON(Object.assign({ spatialReference: { wkid: 102100 } }, f.geometry));
       const caF = zr.features.filter((f) => f.attributes.zone_type === "Control Area"), szF = zr.features.filter((f) => f.attributes.zone_type === "Surveillance Zone");
