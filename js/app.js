@@ -26,6 +26,7 @@ require([
 
   // ---------------- layers ----------------
   const COUNTY_URL = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Counties_Generalized_Boundaries/FeatureServer/0";
+  const TIGER_URL = "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/State_County/MapServer/1";   // US Census Bureau, legal county boundaries
   const DELMARVA = "STATE_NAME IN ('Maryland','Delaware') OR (STATE_NAME = 'Virginia' AND NAME IN ('Accomack County','Northampton County'))";
   const RED = [215, 38, 61], AMBER = [201, 115, 26], APRICOT = [244, 162, 89], TEAL = [14, 154, 167], DRED = [74, 13, 13], ROSE = [232, 120, 130], SLATE = [138, 148, 166];
   const fill = (c, a, oc, ow, st) => ({ type: "simple-fill", color: c.concat(a), outline: { color: (oc || c).concat(oc ? [] : [0.95]).slice(0, 4), width: ow || 1.2, style: st || "solid" } });
@@ -161,9 +162,21 @@ require([
     S.clearGeom = geometryEngine.union(S.counties.map((c) => c.geom));
     const ext = S.mdGeom.extent.clone();
     view.constraints.geometry = S.clearGeom.extent.clone().expand(1.25);
-    const w = 20037508, world = new Polygon({ rings: [[[-w, -w], [-w, w], [w, w], [w, -w], [-w, -w]]], spatialReference: { wkid: 102100 } });
-    maskLyr.add(new Graphic({ geometry: geometryEngine.difference(world, S.clearGeom), symbol: { type: "simple-fill", color: dark ? [13, 17, 23, 0.72] : [244, 246, 249, 0.8], outline: { color: [0, 0, 0, 0] } } }));
     if (!location.hash) view.goTo(ext.expand(1.05), { animate: false }).catch(() => {});
+    // the faded area outside the region is cut from the Census Bureau's detailed (legal) county lines,
+    // which run through the Chesapeake Bay and out to sea, so the Bay and the shoreline stay clear and crisp;
+    // the simplified county shapes above are the fallback
+    const paintMask = (clear) => {
+      const w = 20037508, world = new Polygon({ rings: [[[-w, -w], [-w, w], [w, w], [w, -w], [-w, -w]]], spatialReference: { wkid: 102100 } });
+      maskLyr.removeAll();
+      maskLyr.add(new Graphic({ geometry: geometryEngine.difference(world, clear), symbol: { type: "simple-fill", color: dark ? [13, 17, 23, 0.72] : [244, 246, 249, 0.8], outline: { color: [0, 0, 0, 0] } } }));
+    };
+    fetch(TIGER_URL + "/query?" + new URLSearchParams({ f: "json", where: "STATE IN ('24','10') OR (STATE = '51' AND COUNTY IN ('001','131'))", outFields: "GEOID", returnGeometry: "true", outSR: "102100", maxAllowableOffset: "40", geometryPrecision: "0" }))
+      .then((r) => r.json()).then((j) => {
+        if (!j.features || !j.features.length) throw new Error("no counties");
+        const legal = geometryEngine.union(j.features.map((f) => new Polygon({ rings: f.geometry.rings, spatialReference: { wkid: 102100 } })));
+        S.clearGeom = legal; paintMask(legal);
+      }).catch(() => paintMask(S.clearGeom));
     return S;
   });
   ctx.ready = ready;
