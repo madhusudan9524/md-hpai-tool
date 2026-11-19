@@ -557,7 +557,7 @@ require([
   // ---------------- seasonal risk (hexagons, ~6 km) ----------------
   // Model in js/risk.js: eBird Status & Trends waterfowl abundance with the Gonnerman et al. 2025 coefficient (experimental).
   const HEX_R = 3500;
-  const RISK_NOTE = "Gonnerman coefficients; work in progress.";
+  const RISK_NOTE = "Experimental, Gonnerman coefficients.";
   ctx.RISK_NOTE = RISK_NOTE;
   function hexCentres() {
     const ext = S.clearGeom.extent, w = Math.sqrt(3) * HEX_R, out = [];
@@ -605,7 +605,7 @@ require([
     });
   }
   let riskBuilt = false;
-  reactiveUtils.watch(() => riskLyr.visible, (v) => { if (v && !riskBuilt) { riskBuilt = true; toast("Building seasonal risk…"); buildRisk().then(async () => { const m = await riskModel(); toast(m.st ? "Seasonal risk (Gonnerman coefficients; work in progress): week of " + new Date().toLocaleDateString("en-US", { month: "long", day: "numeric" }) : "Seasonal risk data not available yet"); }); } });
+  reactiveUtils.watch(() => riskLyr.visible, (v) => { if (v && !riskBuilt) { riskBuilt = true; toast("Building seasonal risk…"); buildRisk().then(async () => { const m = await riskModel(); toast(m.st ? "Seasonal risk (Experimental, Gonnerman coefficients): week of " + new Date().toLocaleDateString("en-US", { month: "long", day: "numeric" }) : "Seasonal risk data not available yet"); }); } });
   on("wild", () => { if (riskBuilt) buildRisk(); });
 
   // ---------------- past outbreaks + time slider ----------------
@@ -664,7 +664,7 @@ require([
     { id: "past", t: "Past outbreaks", n: "Released in the last 28 days", sw: "past", ls: () => [histLyr], time: true },
     { sec: "Wildlife" },
     { id: "wb", t: "Wildlife with HPAI", n: "Birds and mammals", sw: "wb", ls: () => [wild], seg: true },
-    { id: "risk", t: "Seasonal risk", n: "Gonnerman coefficients; work in progress", sw: "risk", ls: () => [riskLyr], off: true },
+    { id: "risk", t: "Seasonal risk", n: "Experimental, Gonnerman coefficients", sw: "risk", ls: () => [riskLyr], off: true },
     { id: "ebd", t: "Waterfowl sightings", n: (S.birdsNote || "eBird · healthy birds") + " · reports this year, not the risk model's input", sw: "ebd", ls: () => [birdsLyr], off: true },
     { id: "wf", t: "Waterfowl areas", sw: "wf", ls: () => [env.waterfowl], off: true },
     { id: "nwr", t: "Wildlife refuges", sw: "nwr", ls: () => [env.refuges], off: true },

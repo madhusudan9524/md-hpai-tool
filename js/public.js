@@ -263,7 +263,7 @@ window.HPAI.modules.push(function (ctx) {
   const r4 = (v) => v == null ? "" : Math.round(v * 10000) / 10000;
   async function exportRows(k) {
     if (k === "risk") return (await ctx.riskHexes()).map(({ lat, lon, ring, r }) => ({ props: { lat: r4(lat), lon: r4(lon), level: R.TIERS[r.tier], relative_risk: r4(r.value),
-      waterfowl_abundance: r4(r.abundance), waterfowl_z: r4(r.zA), st_week: r.week, model: "Gonnerman coefficients; work in progress" },
+      waterfowl_abundance: r4(r.abundance), waterfowl_z: r4(r.zA), st_week: r.week, model: "Experimental, Gonnerman coefficients" },
       geom: { type: "Polygon", coordinates: [ring] } }));
     if (k === "wild") {
       const Ld = await ctx.live; if (!Ld) return [];
@@ -301,7 +301,7 @@ window.HPAI.modules.push(function (ctx) {
       ${EXPORTS.map(([k, t, d]) => `<label class="check"><input type="checkbox" data-ex="${k}"${k === "places" && !places.length ? " disabled" : " checked"}><b>${esc(t)}</b><small class="hint"> ${esc(k === "places" && !places.length ? "No saved places yet" : d)}</small></label>`).join("")}
       <label>Format<select id="exFmt"><option value="csv">CSV (Excel)</option><option value="geojson">GeoJSON (ArcGIS, QGIS)</option></select></label>
       <button class="primary" id="exGo">Download</button>
-      <p class="hint">Seasonal risk: Gonnerman coefficients; work in progress. Sources: USDA APHIS; eBird and eBird Status &amp; Trends, Cornell Lab of Ornithology (eBird terms of use apply). Wild-bird locations are approximate.</p></div>`);
+      <p class="hint">Seasonal risk: Experimental, Gonnerman coefficients. Sources: USDA APHIS; eBird and eBird Status &amp; Trends, Cornell Lab of Ornithology (eBird terms of use apply). Wild-bird locations are approximate.</p></div>`);
     $("exGo").onclick = async () => {
       const ks = [...document.querySelectorAll("[data-ex]:checked")].map((c) => c.dataset.ex), fmt = $("exFmt").value, b = $("exGo");
       if (!ks.length) return toast("Pick something to export");
