@@ -83,8 +83,16 @@ MDA staff → Premises → Registry:
 
 ## Risk models (screening aids, not predictions)
 
-**Seasonal risk layer** = season × (0.55 wild-bird pressure + 0.45 waterfowl habitat), on ~6 km hexagons.
-Season comes from APHIS monthly wild-bird detections in Atlantic Flyway states. Wild-bird pressure fades with distance (10 km) and age (28-day half-life). Habitat is the distance to MD DNR waterfowl areas, wildlife management areas and USFWS refuges.
+**Seasonal risk layer** (~6 km hexagons, and the "Seasonal risk" line on the address card), following the University of Maryland / USGS / USDA models (Gonnerman et al. 2025, *One Health* 21:101172; Prosser et al. 2024, *Scientific Reports* 14:14199):
+
+relative risk = exp(0.422 × zA) × exp(0.642 × zP − 1.242 × zT) × (1 + wild-bird pressure)
+
+- **zA, waterfowl abundance:** eBird waterfowl counts within 10 km (3 km fade), log-transformed and averaged over the last two weeks, as a z-score against every archived week in `data/birds_weeks.json`. Abundance carries the season (migration) and habitat, as in Gonnerman et al., who dropped land cover once abundance was in. 0.422 is their coefficient.
+- **zT, zP, winter weather:** one statewide factor from `data/weather.json` (`tools/update_weather.py`, Open-Meteo): this winter's mean temperature and precipitation so far against the same days of 1991–2020. 1.242 and 0.642 are Gonnerman et al.'s coefficients. It applies December to April, and each z is capped at ±2 because Maryland's year-to-year swings are smaller than the continent-wide differences the coefficients came from.
+- **Wild-bird pressure (0–1):** recent nearby HPAI detections (10 km fade, 28-day half-life), standing in for the infection-prevalence factor in Prosser et al. **Its weight (at most ×2) is our assumption, not a published value.**
+- **Tiers:** the value is "× the risk of a typical Maryland place": Moderate ≥ 1.5×, High ≥ 2.5×, Very high ≥ 4×.
+
+Limits: congruent with the published models, not fitted or validated on Maryland outbreaks. eBird reports are sightings where people go birding, not modelled abundance (Gonnerman et al. used eBird Status and Trends), and the reference improves as the archive fills (26 weeks). Without eBird data the abundance term is neutral (×1). The habitat layers stay on the map but no longer enter this score; the farm risk score below still uses habitat within 1 km.
 
 **Farm risk score** (growers), in points:
 inside a control area +4 / surveillance zone +2 / control area within 10 km +1; visits by vehicles that came from a control area in 14 days +3 (or 5+ visits +1); wild-bird detection within 10 km in 4 weeks +2 (same county +1); waterfowl habitat within 1 km +1; peak season +1; biosecurity audit passed in the last year −1 (not passed or none +1).

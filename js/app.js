@@ -307,7 +307,7 @@ require([
   S.birdsNote = "eBird, last 7 days";
   const birdsNote = (B) => !B ? "eBird · not loaded yet" : B.status === "nokey" ? "eBird · not connected yet" : B.status === "error" && !(B.places || []).length ? "eBird · unavailable right now"
     : !(B.places || []).length ? "eBird · none this week" : "eBird, last 7 days";
-  fetch((C.birdsUrl || "data/birds.json") + "?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).catch(() => null).then(async (B) => {
+  const birdsP = fetch((C.birdsUrl || "data/birds.json") + "?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).catch(() => null).then(async (B) => {
     S.birdsNote = birdsNote(B); renderKey();
     if (!B || !B.places || !B.places.length) return;
     S.birdsOk = true; S.birds = B; S.birdWeek = null;
@@ -489,7 +489,8 @@ require([
     const aff = cty && S.affected.find((a) => a.county === cty.name && a.state === cty.state);
     const wildN = ctx.wildNear(pt, 10, 28).length, wildY = ctx.wildNear(pt, 10, 365).length;
     const g = pt.spatialReference.isWGS84 ? pt : wmu.webMercatorToGeographic(pt);
-    const sr = R.seasonalRisk({ pt: { lat: g.latitude, lon: g.longitude }, month: new Date().getMonth(), seasonCounts: S.season, detections: S.wildPts, habitat: await habitatAt(g, false), now: Date.now() });   // never waits for habitat
+    const rm = await Promise.race([riskModel(), new Promise((r) => setTimeout(() => r(null), 3000))]);   // the card never waits long for the risk model
+    const sr = riskAt(g.latitude, g.longitude, rm);
     const hist = await pastAt(pt);
     const smp = z.f && z.f.attributes.sample === 1;
     const band = z.zone === "control" ? ["ca", "Control area"] : z.zone === "surveillance" ? ["sz", "Surveillance zone"] : ["free", "No restrictions"];
@@ -512,7 +513,7 @@ require([
       ${since ? `<div class="r"><span>Zone since</span><b>${fmtDate(since)}</b></div>` : ""}
       ${aff ? `<div class="r"><span>County status</span><b>${aff.items.every((i) => i.sample) ? "Sample zone" : aff.items.some((i) => i.status === "preliminary") ? "Preliminary detection" : "HPAI reported"} · ${fmtShort(aff.since)}</b></div>` : ""}
       <div class="r"><span>Wildlife within 6 mi</span><b>${wildN} in 4 wk · ${wildY} in 12 mo</b></div>
-      <div class="r"><span>Seasonal risk</span><b>${R.TIERS[sr.tier]}</b></div>
+      <div class="r"><span>Seasonal risk</span><b>${R.TIERS[sr.tier]}${sr.hasBirds ? ` · ${sr.value.toFixed(1)}× typical` : ""}</b></div>
       <div class="r"><span>Past outbreaks</span><b>${hist.n ? hist.n + " · last " + fmtShort(hist.last) : "None on record"}</b></div>
       <div class="do"><b>What to do</b><ul>${DO[z.zone || "none"].map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>${extraMore}</div>`;
     el.innerHTML = `<div class="band ${band[0]}"><b>${band[1]}</b><small>${esc(where)}${sub ? " · " + esc(sub) : ""}</small></div><div class="bd"><div class="chips2">${chips.join("")}</div><p class="tip">${esc(tip)}</p>${more}<div class="pacts">${extra}<button class="pb ghostb" data-more>Details ▾</button></div></div>`;
@@ -552,22 +553,49 @@ require([
   ctx.habitatAt = habitatAt;
   ctx.habitatKm = async (g) => { const hg = habitatGeom || await Promise.race([loadHabitat(), new Promise((r) => setTimeout(() => r(null), 8000))]); return hg ? trueKm(hg, wmu.geographicToWebMercator(new Point({ longitude: g.longitude, latitude: g.latitude }))) : null; };
 
-  // ---------------- seasonal risk layer (hexagons, ~6 km) ----------------
-  async function buildRisk() {
-    await ready; riskLyr.removeAll();
-    const hg = await loadHabitat(), ext = S.clearGeom.extent, r = 3500, w = Math.sqrt(3) * r, month = new Date().getMonth(), now = Date.now();
-    const cols = { 0: [0, 0, 0, 0], 1: [209, 196, 233, 0.5], 2: [149, 117, 205, 0.55], 3: [94, 53, 177, 0.6] };   // purples: advisory, not a regulatory zone
-    for (let y = ext.ymin, row = 0; y < ext.ymax; y += 1.5 * r, row++) {
+  // ---------------- seasonal risk (hexagons, ~6 km) ----------------
+  // Model in js/risk.js: waterfowl abundance (eBird) x winter weather (data/weather.json) x wild-bird detections.
+  S.weather = null;
+  const weatherP = fetch("data/weather.json?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((w) => (S.weather = w));
+  const HEX_R = 3500;
+  function hexCentres() {
+    const ext = S.clearGeom.extent, w = Math.sqrt(3) * HEX_R, out = [];
+    for (let y = ext.ymin, row = 0; y < ext.ymax; y += 1.5 * HEX_R, row++) {
       for (let x = ext.xmin + (row % 2 ? w / 2 : 0); x < ext.xmax; x += w) {
         const c = new Point({ x, y, spatialReference: { wkid: 102100 } });
         if (!geometryEngine.contains(S.clearGeom, c)) continue;
-        const g = wmu.webMercatorToGeographic(c), hab = hg ? Math.max(0, 1 - trueKm(hg, c) / 5) : 0;
-        const v = R.seasonalRisk({ pt: { lat: g.latitude, lon: g.longitude }, month, seasonCounts: S.season, detections: S.wildPts, habitat: hab, now });
-        if (!v.tier) continue;
-        const ring = []; for (let i = 0; i < 6; i++) { const a = Math.PI / 180 * (60 * i - 30); ring.push([x + r * Math.cos(a), y + r * Math.sin(a)]); } ring.push(ring[0]);
-        riskLyr.add(new Graphic({ geometry: new Polygon({ rings: [ring], spatialReference: { wkid: 102100 } }), attributes: { tier: v.tier, value: v.value }, symbol: { type: "simple-fill", color: cols[v.tier], outline: { color: [255, 255, 255, 0.25], width: 0.4 } } }));
+        const g = wmu.webMercatorToGeographic(c);
+        out.push({ x, y, lat: g.latitude, lon: g.longitude });
       }
     }
+    return out;
+  }
+  // The last two weeks of waterfowl (last 7 days + the latest full archived week) and the reference built from the archive.
+  let riskModelP = null;
+  const asPlaces = (list) => (list || []).map((p) => Array.isArray(p) ? { lat: p[0], lon: p[1], birds: p[2] } : { lat: p.lat, lon: p.lon, birds: p.birds });
+  function riskModel() {
+    if (riskModelP) return riskModelP;
+    riskModelP = (async () => {
+      await ready; await weatherP; await birdsP;
+      const arch = await loadBirdWeeks(), idx = arch.map((w) => R.indexPlaces(asPlaces(w.places)));
+      const last7 = S.birds && S.birds.places && S.birds.places.length ? R.indexPlaces(asPlaces(S.birds.places)) : null;
+      const current = last7 ? [idx[idx.length - 1], last7].filter(Boolean) : idx.slice(-2);
+      const centres = hexCentres(), ref = R.abundanceRef(centres, idx);
+      return { centres, current: current.length ? current : null, ref };
+    })();
+    return riskModelP;
+  }
+  const riskAt = (lat, lon, m) => R.seasonalRisk({ pt: { lat, lon }, birdWeeks: m && m.current, ref: m && m.ref, weather: S.weather, month: new Date().getMonth(), detections: S.wildPts, now: Date.now() });
+  ctx.riskModel = riskModel;
+  async function buildRisk() {
+    const m = await riskModel(); riskLyr.removeAll();
+    const cols = { 0: [0, 0, 0, 0], 1: [209, 196, 233, 0.5], 2: [149, 117, 205, 0.55], 3: [94, 53, 177, 0.6] };   // purples: advisory, not a regulatory zone
+    m.centres.forEach(({ x, y, lat, lon }) => {
+      const v = riskAt(lat, lon, m);
+      if (!v.tier) return;
+      const ring = []; for (let i = 0; i < 6; i++) { const a = Math.PI / 180 * (60 * i - 30); ring.push([x + HEX_R * Math.cos(a), y + HEX_R * Math.sin(a)]); } ring.push(ring[0]);
+      riskLyr.add(new Graphic({ geometry: new Polygon({ rings: [ring], spatialReference: { wkid: 102100 } }), attributes: { tier: v.tier, value: v.value }, symbol: { type: "simple-fill", color: cols[v.tier], outline: { color: [255, 255, 255, 0.25], width: 0.4 } } }));
+    });
   }
   let riskBuilt = false;
   reactiveUtils.watch(() => riskLyr.visible, (v) => { if (v && !riskBuilt) { riskBuilt = true; toast("Building seasonal risk…"); buildRisk().then(() => toast("Seasonal risk: " + new Date().toLocaleString("en-US", { month: "long" }))); } });

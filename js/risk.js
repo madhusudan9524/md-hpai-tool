@@ -10,8 +10,19 @@
     usgs2025: { t: "Gonnerman et al. (2025), University of Maryland, USDA and USGS. Avian influenza spillover into poultry: environmental influences and biosecurity protections. One Health 21:101172.", u: "https://doi.org/10.1016/j.onehlt.2025.101172" },
     aphisWild: { t: "USDA APHIS. Detections of HPAI in wild birds (monthly counts, Atlantic Flyway states).", u: "https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/wild-birds" },
     aphisMammals: { t: "USDA APHIS. Detections of HPAI in mammals.", u: "https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/mammals" },
-    aphisPoultry: { t: "USDA APHIS. Confirmations of HPAI in commercial and backyard flocks.", u: "https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/commercial-backyard-flocks" }
+    aphisPoultry: { t: "USDA APHIS. Confirmations of HPAI in commercial and backyard flocks.", u: "https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/commercial-backyard-flocks" },
+    prosser2024: { t: "Prosser et al. (2024), USGS, USDA and University of Maryland. Using an adaptive modeling framework to identify avian influenza spillover risk at the wild-domestic interface. Scientific Reports 14:14199.", u: "https://doi.org/10.1038/s41598-024-64912-w" },
+    ebird: { t: "eBird, Cornell Lab of Ornithology. Waterfowl reports (eBird API).", u: "https://ebird.org" },
+    openMeteo: { t: "Open-Meteo historical weather API (ERA5 reanalysis), CC BY 4.0.", u: "https://open-meteo.com" }
   };
+
+  /* Coefficients from Gonnerman et al. 2025 (usgs2025), final spatiotemporal model, per 1 SD of each covariate (log-odds):
+   * bi-weekly waterfowl relative abundance +0.422, winter precipitation +0.642, winter mean temperature -1.242. */
+  const COEF = { waterfowl: 0.422, precip: 0.642, temp: -1.242 };
+  // Assumption (not from a paper): wild-bird HPAI detections stand in for the infection-prevalence factor of Prosser et al. 2024,
+  // and at most double the risk. Change here if MDA prefers another weight.
+  const WILD_MAX = 1;
+  const RR_TIERS = [1.5, 2.5, 4];   // relative risk cut-offs: Moderate, High, Very high (x a typical Maryland place)
 
   // Monthly share of APHIS wild-bird HPAI detections in Atlantic Flyway states, Jan..Dec (2022 to Nov 2026, normalized to the peak month).
   // Replaced at run time by data/detections.json "season" when the twice-daily job recomputes it.
@@ -40,16 +51,74 @@
     return 1 - Math.exp(-x);
   }
 
-  /* Seasonal risk (map layer).
-   * risk = season x (0.55 wild-bird pressure + 0.45 waterfowl habitat)
-   * - season: APHIS monthly detection pattern for the Atlantic Flyway (aphisWild)
-   * - wild-bird pressure: recent nearby detections (usgs2025: spillover tracks proximity to infected wild birds)
-   * - habitat: waterfowl concentration areas, refuges and WMAs nearby (schreuder2022)
+  /* ---- waterfowl abundance from eBird places ----
+   * A week's places: [{lat, lon, birds}]. Abundance at a point = birds at each place, fading with distance
+   * (3 km scale, matching the 3 km eBird abundance grid in usgs2025), counted up to 10 km away.
+   * Places are bucketed on a ~0.12 degree grid so a whole map of hexagons stays fast. */
+  const CELL = 0.12;
+  function indexPlaces(places) {
+    const cells = new Map();
+    (places || []).forEach((p) => {
+      if (!(p && p.birds > 0)) return;
+      const k = Math.floor(p.lat / CELL) + ":" + Math.floor(p.lon / CELL);
+      (cells.get(k) || cells.set(k, []).get(k)).push(p);
+    });
+    return cells;
+  }
+  function waterfowlAt(pt, idx) {
+    const r = Math.floor(pt.lat / CELL), c = Math.floor(pt.lon / CELL);
+    let a = 0;
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+      (idx.get((r + i) + ":" + (c + j)) || []).forEach((p) => { const d = km(pt, p); if (d <= 10) a += p.birds * Math.exp(-d / 3); });
+    }
+    return a;
+  }
+  // usgs2025: weekly abundance, log-transformed, averaged over two weeks. weeks: the two latest indexed weeks.
+  function abundanceIndex(pt, weeks) {
+    const w = (weeks || []).filter(Boolean);
+    return w.length ? w.reduce((s, idx) => s + Math.log1p(waterfowlAt(pt, idx)), 0) / w.length : null;
+  }
+  // Reference for standardizing (z-scores): every point x every consecutive pair of archived weeks.
+  // As the eBird archive grows through the year, summer lows and winter highs both enter the reference.
+  function abundanceRef(points, weeks) {
+    let n = 0, s = 0, s2 = 0;
+    for (let k = 1; k < (weeks || []).length; k++) {
+      const pair = [weeks[k - 1], weeks[k]];
+      (points || []).forEach((pt) => { const x = abundanceIndex(pt, pair); n++; s += x; s2 += x * x; });
+    }
+    if (n < 2) return null;
+    const mu = s / n, sd = Math.sqrt(Math.max(1e-9, s2 / n - mu * mu));
+    return { mu, sd, weeks: (weeks || []).length };
+  }
+
+  /* Statewide winter weather (tools/update_weather.py writes data/weather.json: zT, zP = this winter so far vs 1991-2020).
+   * usgs2025 used Dec-Jan weather as a property of the season; here it applies Dec-Apr (the winter and the spring
+   * migration that follows it) and is neutral May-Nov. z is capped at +/-2 because Maryland's year-to-year swings
+   * are smaller than the continent-wide differences the coefficients were estimated on. */
+  function weatherFactor(weather, month) {
+    const applies = [11, 0, 1, 2, 3].includes(month) && weather && weather.status === "ok";
+    if (!applies) return { factor: 1, applies: false };
+    const cap = (z) => Math.max(-2, Math.min(2, Number(z) || 0));
+    const zT = cap(weather.zT), zP = cap(weather.zP);
+    return { factor: Math.exp(COEF.temp * zT + COEF.precip * zP), applies: true, zT, zP };
+  }
+
+  /* Seasonal risk (map layer and address card), following the Mullinax group's models:
+   *   relative risk = exp(0.422 x zA) x winter weather factor x (1 + wild-bird pressure)
+   * - zA: waterfowl abundance from eBird over the last two weeks, standardized against the archive (usgs2025, prosser2024).
+   *   Abundance carries both the season (migration) and habitat; usgs2025 dropped land cover once abundance was in.
+   * - winter weather factor: exp(0.642 zP - 1.242 zT), statewide, Dec-Apr (usgs2025).
+   * - wild-bird pressure: recent nearby HPAI detections, 0..1, as the infection-prevalence term (prosser2024); weight assumed.
+   * The value reads as "x times the risk of a typical Maryland place". With no eBird data the abundance term is neutral (1).
    */
-  function seasonalRisk({ pt, month, seasonCounts, detections, habitat, now }) {
-    const s = seasonIndex(month, seasonCounts), w = wildPressure(pt, detections, now), h = Math.max(0, Math.min(1, habitat || 0));
-    const v = s * (0.55 * w + 0.45 * h);
-    return { value: v, tier: v >= 0.45 ? 3 : v >= 0.25 ? 2 : v >= 0.1 ? 1 : 0, season: s, wild: w, habitat: h };
+  function seasonalRisk({ pt, birdWeeks, ref, weather, month, detections, now }) {
+    const x = birdWeeks && birdWeeks.length ? abundanceIndex(pt, birdWeeks) : null;
+    const zA = x != null && ref ? Math.max(-3, Math.min(4, (x - ref.mu) / ref.sd)) : 0;
+    const fA = Math.exp(COEF.waterfowl * zA);
+    const wf = weatherFactor(weather, month), w = wildPressure(pt, detections, now), fW = 1 + WILD_MAX * w;
+    const v = fA * wf.factor * fW;
+    const tier = v >= RR_TIERS[2] ? 3 : v >= RR_TIERS[1] ? 2 : v >= RR_TIERS[0] ? 1 : 0;
+    return { value: v, tier, zA, abundance: x, waterfowl: fA, weather: wf.factor, weatherApplies: wf.applies, wild: w, hasBirds: x != null && !!ref };
   }
   const TIERS = ["Low", "Moderate", "High", "Very high"];
 
@@ -96,6 +165,6 @@
     return { points: total, tier, label: TIERS[tier], reasons: pts };
   }
 
-  const api = { SOURCES, SEASON_DEFAULT, TIERS, km, seasonIndex, wildPressure, seasonalRisk, regionalTrend, farmRisk };
+  const api = { SOURCES, SEASON_DEFAULT, TIERS, COEF, RR_TIERS, km, seasonIndex, wildPressure, indexPlaces, waterfowlAt, abundanceIndex, abundanceRef, weatherFactor, seasonalRisk, regionalTrend, farmRisk };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.HPAIRisk = api;
 })(this);

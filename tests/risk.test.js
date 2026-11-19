@@ -13,10 +13,33 @@ const far = R.wildPressure(pt, [{ lat: 38.6, lon: -75.5, t: now - 2 * DAY }], no
 const old = R.wildPressure(pt, [{ lat: 38.41, lon: -75.5, t: now - 90 * DAY }], now);
 assert.ok(near > far && near > old && near < 1);
 
-const jan = R.seasonalRisk({ pt, month: 0, detections: [], habitat: 1, now });
-const aug = R.seasonalRisk({ pt, month: 7, detections: [], habitat: 1, now });
-assert.ok(jan.value > aug.value && jan.tier >= 1 && aug.tier === 0);
-
+// seasonal risk (Gonnerman et al. 2025 coefficients): waterfowl abundance x winter weather x wild-bird detections
+const hexes = [];
+for (let la = 38.2; la < 38.7; la += 0.05) for (let lo = -75.9; lo < -75.3; lo += 0.05) hexes.push({ lat: la, lon: lo });
+const flock = (n) => R.indexPlaces([{ lat: 38.4, lon: -75.5, birds: n }, { lat: 38.6, lon: -75.8, birds: 20 }]);
+const ref = R.abundanceRef(hexes, [flock(200), flock(300), flock(100)]);
+assert.ok(ref && ref.sd > 0 && ref.weeks === 3);
+const busyWeeks = [flock(5000), flock(6000)], quietWeeks = [flock(10), flock(5)];
+const base = { pt, ref, weather: null, month: 10, detections: [], now };
+const hot = R.seasonalRisk({ ...base, birdWeeks: busyWeeks });
+const cool = R.seasonalRisk({ ...base, birdWeeks: quietWeeks });
+const away = R.seasonalRisk({ ...base, pt: { lat: 38.25, lon: -75.35 }, birdWeeks: busyWeeks });
+assert.ok(hot.value > away.value && hot.value > cool.value && hot.tier >= 2, JSON.stringify(hot));
+assert.ok(away.tier === 0 && cool.tier < hot.tier);
+assert.ok(Math.abs(Math.log(hot.waterfowl) / hot.zA - 0.422) < 1e-9);   // abundance enters with the paper's coefficient
+// no eBird data: the abundance term is neutral and only wild-bird detections can raise it
+const none = R.seasonalRisk({ ...base, birdWeeks: null, ref: null });
+assert.strictEqual(none.value, 1);
+const infected = R.seasonalRisk({ ...base, birdWeeks: null, ref: null, detections: [{ lat: 38.401, lon: -75.5, t: now - DAY }] });
+assert.ok(infected.value > 1 && infected.value <= 2);
+// winter weather: colder and wetter raises risk, only Dec-Apr, capped at z = +/-2
+const cold = { status: "ok", zT: -1, zP: 1 };
+assert.ok(Math.abs(R.weatherFactor(cold, 0).factor - Math.exp(1.242 + 0.642)) < 1e-9);
+assert.strictEqual(R.weatherFactor(cold, 6).factor, 1);
+assert.strictEqual(R.weatherFactor({ status: "offseason" }, 0).factor, 1);
+assert.strictEqual(R.weatherFactor({ status: "ok", zT: -9, zP: 0 }, 0).factor, Math.exp(1.242 * 2));
+const jan = R.seasonalRisk({ ...base, month: 0, weather: cold, birdWeeks: quietWeeks });
+assert.ok(jan.value > cool.value);
 const low = R.farmRisk({ zone: null, kmToArea: 50, wildNear: 0, wildCounty: false, habitatKm: 5, season: 0.2, zoneVisits: 0, visits: 1, audit: { date: now - 30 * DAY, passed: true } }, now);
 assert.strictEqual(low.label, "Low");
 const high = R.farmRisk({ zone: "control", wildNear: 2, habitatKm: 0.5, season: 1, zoneVisits: 1, visits: 3, audit: null }, now);
@@ -36,7 +59,7 @@ assert.strictEqual(busy.points, 4);
 assert.ok(busy.reasons.every((r) => R.SOURCES[r.src]));
 const cty = R.farmRisk({ zone: null, kmToArea: 30, countyOutbreak: true, audit: undefined }, now);
 assert.ok(cty.reasons.some((r) => /county/.test(r.why)));
-console.log("risk tests passed", { low: low.points, high: high.points, jan: jan.value.toFixed(2) });
+console.log("risk tests passed", { low: low.points, high: high.points, hot: hot.value.toFixed(2) });
 
 // poultry-house shape test (registry auto-outline)
 const G = require("../js/registry.js");
