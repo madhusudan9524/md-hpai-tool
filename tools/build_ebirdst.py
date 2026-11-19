@@ -22,23 +22,31 @@ BBOX = (-79.6, 37.0, -75.0, 39.8)   # lon min, lat min, lon max, lat max: Maryla
 STEP_LON, STEP_LAT = 0.04, 0.03     # about 3.4 km x 3.3 km at this latitude
 BASE = "https://st-download.ebird.org/v1"
 
-# Best-guess eBird codes for waterfowl (Anatidae) that winter or migrate through Maryland. Each code is checked
-# against the eBird service at run time; the ones it does not know are skipped and reported.
-SPECIES = {
-    "cangoo": "Canada Goose", "cacgoo1": "Cackling Goose", "snogoo": "Snow Goose", "brant": "Brant",
-    "mutswa": "Mute Swan", "tunswa": "Tundra Swan", "wooduc": "Wood Duck", "gadwal": "Gadwall",
-    "amewig": "American Wigeon", "mallar3": "Mallard", "ambduc": "American Black Duck",
-    "buwtea": "Blue-winged Teal", "norsho": "Northern Shoveler", "norpin": "Northern Pintail",
-    "gnwtea": "Green-winged Teal", "canvas": "Canvasback", "redhea": "Redhead", "rinduc": "Ring-necked Duck",
-    "gresca": "Greater Scaup", "lessca": "Lesser Scaup", "sursco": "Surf Scoter", "whwsco2": "White-winged Scoter",
-    "blksco2": "Black Scoter", "lotduc": "Long-tailed Duck", "buffle": "Bufflehead", "comgol": "Common Goldeneye",
-    "hoomer": "Hooded Merganser", "commer": "Common Merganser", "rebmer": "Red-breasted Merganser",
-    "rudduc": "Ruddy Duck",
+# Gonnerman et al. 2025 (One Health 21:101172, section 2.2) used eBird Status & Trends for 13 genera: Alopochen, Anas, Anser,
+# Aythya, Branta, Chloephaga, Coscoroba, Cyanochen, Cygnus, Dendrocygna, Lophonetta, Neochen, Tadorna. Goose = Anser, Branta,
+# Coscoroba, Cygnus; duck = the rest (that is how the paper's grouping reads; it does not list the duck genera); all waterfowl = both.
+# Below are the species in those genera that occur in Maryland, with their eBird codes (each is checked at run time and skipped
+# if eBird does not know it). Sea ducks, mergansers, Bufflehead, Wood Duck and Ruddy Duck belong to other genera and are NOT used.
+# Open choice: current eBird taxonomy puts Gadwall and American Wigeon in Mareca, and Northern Shoveler and Blue-winged Teal in
+# Spatula, which are not on the paper's list. They are kept here as dabbling ducks, which the paper calls Anas, because the
+# paper does not say which taxonomy year it used. Remove them from this list to be stricter.
+SPECIES = {   # code: (name, genus)
+    "cangoo": ("Canada Goose", "Branta"), "cacgoo1": ("Cackling Goose", "Branta"), "brant": ("Brant", "Branta"),
+    "snogoo": ("Snow Goose", "Anser"), "rosgoo": ("Ross's Goose", "Anser"), "gwfgoo": ("Greater White-fronted Goose", "Anser"),
+    "mutswa": ("Mute Swan", "Cygnus"), "tunswa": ("Tundra Swan", "Cygnus"), "truswa": ("Trumpeter Swan", "Cygnus"),
+    "mallar3": ("Mallard", "Anas"), "ambduc": ("American Black Duck", "Anas"), "norpin": ("Northern Pintail", "Anas"),
+    "gnwtea": ("Green-winged Teal", "Anas"), "gadwal": ("Gadwall", "Anas"), "amewig": ("American Wigeon", "Anas"),
+    "buwtea": ("Blue-winged Teal", "Anas"), "norsho": ("Northern Shoveler", "Anas"),
+    "canvas": ("Canvasback", "Aythya"), "redhea": ("Redhead", "Aythya"), "rinduc": ("Ring-necked Duck", "Aythya"),
+    "gresca": ("Greater Scaup", "Aythya"), "lessca": ("Lesser Scaup", "Aythya"), "tufduc": ("Tufted Duck", "Aythya"),
+    "bbwduc": ("Black-bellied Whistling-Duck", "Dendrocygna"), "fuwduc": ("Fulvous Whistling-Duck", "Dendrocygna"),
+    "egygoo": ("Egyptian Goose", "Alopochen"),
 }
-# Gonnerman et al. 2025 used eBird Status & Trends for these genera: Anser, Branta, Cygnus (geese, swans), Anas and
-# Aythya (dabbling and diving ducks). Only those species feed the risk score ("core"). Sea ducks, mergansers, Bufflehead,
-# Wood Duck and Ruddy Duck are not in those genera, so they are kept as a separate "other" total for display.
-OTHER = {"wooduc", "sursco", "whwsco2", "blksco2", "lotduc", "buffle", "comgol", "hoomer", "commer", "rebmer", "rudduc"}
+GOOSE_GENERA = {"Anser", "Branta", "Coscoroba", "Cygnus"}
+
+
+def group_of(code):
+    return "goose" if SPECIES[code][1] in GOOSE_GENERA else "duck"
 
 
 def grid():
@@ -101,7 +109,7 @@ def main():
     import numpy as np, requests
     lons, lats = grid()
     codes = a.species or list(SPECIES)
-    total, other, used, skipped = None, None, [], []
+    parts, used, skipped = {"goose": None, "duck": None}, [], []
     for code in codes:
         lst = requests.get(f"{BASE}/list-obj/{a.year}/{code}", params={"key": key}, timeout=60)
         if lst.status_code in (401, 403):
@@ -111,33 +119,35 @@ def main():
             skipped.append(code); print(f"  skipped {code}: not available"); continue
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, f"{code}.tif")
-            print(f"  {code} ({SPECIES.get(code, '?')}) downloading ...", flush=True)
+            print(f"  {code} ({SPECIES.get(code, ('?',))[0]}) downloading ...", flush=True)
             download(requests, key, a.year, code, a.res, path)
             arr = sample_weekly(path, lons, lats)
-        if code in OTHER:
-            other = arr if other is None else other + arr
-        else:
-            total = arr if total is None else total + arr
+        g = group_of(code) if code in SPECIES else "duck"
+        parts[g] = arr if parts[g] is None else parts[g] + arr
         used.append(code)
-    if total is None:
+    have = [v for v in parts.values() if v is not None]
+    if not have:
         sys.exit("No species could be downloaded.")
-    if other is None:
-        other = np.zeros_like(total)
-    ints, ref = summarize(total)
-    ints_o, ref_o = summarize(other) if other.max() > 0 else (np.zeros_like(ints), None)
-    doc = {"source": "eBird Status and Trends relative abundance (weekly, median), Cornell Lab of Ornithology; "
-                     "core = geese, swans, dabbling and diving ducks (as in Gonnerman et al. 2025); other = sea ducks, mergansers, "
-                     "Bufflehead, Wood Duck, Ruddy Duck; sampled to a regular grid",
-           "core_species": [c for c in used if c not in OTHER], "other_species": [c for c in used if c in OTHER],
+    zero = np.zeros_like(have[0])
+    goose = parts["goose"] if parts["goose"] is not None else zero
+    duck = parts["duck"] if parts["duck"] is not None else zero
+    ints_g, ref_g = summarize(goose); ints_d, ref_d = summarize(duck); ints_a, ref_a = summarize(goose + duck)
+    doc = {"source": "eBird Status and Trends relative abundance (weekly, median), Cornell Lab of Ornithology; species in the "
+                     "genera used by Gonnerman et al. 2025; goose = Anser, Branta, Coscoroba, Cygnus; duck = the other genera; "
+                     "sampled to a regular grid",
            "year": a.year, "resolution": a.res, "species": used, "skipped": skipped,
+           "goose_species": [c for c in used if c in SPECIES and group_of(c) == "goose"],
+           "duck_species": [c for c in used if not (c in SPECIES and group_of(c) == "goose")],
            "bbox": list(BBOX), "step": [STEP_LON, STEP_LAT], "nx": len(lons), "ny": len(lats), "scale": 1000,
-           "ref": ref, "ref_other": ref_o, "order": "week 1..52, then rows north to south, then columns west to east",
-           "data": ints.reshape(ints.shape[0], -1).tolist(),
-           "data_other": ints_o.reshape(ints_o.shape[0], -1).tolist()}
+           "ref": ref_a, "ref_goose": ref_g, "ref_duck": ref_d,
+           "order": "week 1..52, then rows north to south, then columns west to east; all waterfowl = goose + duck",
+           "data_goose": ints_g.reshape(ints_g.shape[0], -1).tolist(),
+           "data_duck": ints_d.reshape(ints_d.shape[0], -1).tolist()}
     with open(a.out, "w") as f:
         json.dump(doc, f, separators=(",", ":"))
-    print(f"wrote {os.path.abspath(a.out)}: {len(used)} species, {ints.shape[0]} weeks, {len(lons)}x{len(lats)} cells, "
-          f"core reference mean {ref['mu']:.2f} sd {ref['sd']:.2f}")
+    print("used:", ", ".join(used))
+    print(f"wrote {os.path.abspath(a.out)}: {len(used)} species, {ints_a.shape[0]} weeks, {len(lons)}x{len(lats)} cells, "
+          f"all-waterfowl reference mean {ref_a['mu']:.2f} sd {ref_a['sd']:.2f}")
     if skipped:
         print("skipped (check the codes):", ", ".join(skipped))
 
