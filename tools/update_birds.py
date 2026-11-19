@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Waterfowl (ducks, geese, swans) sightings from eBird for Maryland, Delaware and Virginia's Eastern Shore.
+"""Waterfowl (geese, swans, dabbling and diving ducks: the same genera as the seasonal risk) sightings from eBird for Maryland, Delaware and Virginia's Eastern Shore.
 
 Writes data/birds.json (the last 7 days) and data/birds_weeks.json (one list per full Monday-Sunday week, up to 26 weeks,
 for the map's week slider). Runs with the twice-daily update; needs the repository secret EBIRD_API_KEY.
@@ -20,11 +20,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "birds.json")
 WEEKS_OUT = os.path.join(ROOT, "data", "birds_weeks.json")
-WEEKS, METHOD, BACK = 26, 3, 30
+WEEKS, METHOD, BACK = 26, 4, 30   # method 4: only the GENERA species (older archives are rebuilt)
 API = "https://api.ebird.org/v2"
 REGIONS = ["US-MD", "US-DE", "US-VA-001", "US-VA-131"]   # Maryland, Delaware, Accomack, Northampton
 DAYS = 7
 FAMILY = "Ducks, Geese, and Waterfowl"
+# Same waterfowl as the seasonal risk (tools/build_ebirdst.py): species in the 13 genera used by Gonnerman et al. 2025, plus
+# Mareca and Spatula (Gadwall, wigeon, shoveler, Blue-winged Teal), which older taxonomies placed in Anas.
+# Sea ducks, mergansers, Bufflehead, goldeneyes, Wood Duck and Ruddy Duck are left out.
+GENERA = {"Alopochen", "Anas", "Anser", "Aythya", "Branta", "Chloephaga", "Coscoroba", "Cyanochen", "Cygnus", "Dendrocygna",
+          "Lophonetta", "Neochen", "Tadorna", "Mareca", "Spatula"}
 
 
 def get(path, key):
@@ -93,15 +98,8 @@ def update_weeks(rows):
         have[monday.isoformat()] = {"start": monday.isoformat(), "places": [[round(p["lat"], 3), round(p["lon"], 3), p["birds"], max(p["sp"], key=p["sp"].get)] for p in ps]}
         monday += dt.timedelta(days=7)
     weeks = sorted(have.values(), key=lambda w: w["start"])[-WEEKS:]
-    ref = None
-    try:   # the seasonal risk model's "typical place": shared by the map and the email alerts (tools/risk_model.py)
-        import risk_model as RM
-        ref = RM.abundance_ref(RM.ref_points(), [RM.index_places(RM.as_places(w["places"])) for w in weeks])
-        ref = ref and {k: round(v, 4) if isinstance(v, float) else v for k, v in ref.items()}
-    except Exception as e:
-        print(f"birds: risk reference not computed: {e}")
     json.dump({"updated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "source": "eBird, Cornell Lab of Ornithology",
-               "note": "highest count of each species at each place in the week, summed over species", "method": METHOD, "weeks": weeks, "ref": ref}, open(WEEKS_OUT, "w"), separators=(",", ":"))
+               "note": "highest count of each species at each place in the week, summed over species", "method": METHOD, "species": "genera used by Gonnerman et al. 2025 (as the seasonal risk)", "weeks": weeks}, open(WEEKS_OUT, "w"), separators=(",", ":"))
     print(f"birds: weekly archive {len(weeks)} weeks ({weeks[0]['start'] if weeks else '-'} to {weeks[-1]['start'] if weeks else '-'})")
 
 
@@ -114,7 +112,8 @@ def main():
         tax = get("/ref/taxonomy/ebird?fmt=json&cat=species", key)
     except Exception as e:
         print(f"birds: couldn't reach eBird: {e}"); write([], [f"taxonomy: {e}"], "error"); return 0
-    water = {t["speciesCode"]: t["comName"] for t in tax if t.get("familyComName") == FAMILY}
+    water = {t["speciesCode"]: t["comName"] for t in tax
+             if t.get("familyComName") == FAMILY and (t.get("sciName") or "").split(" ")[0] in GENERA}
     rows, problems = reports(key, water)
     today = dt.date.today()
     found = places_in(rows, today - dt.timedelta(days=DAYS - 1), today)
