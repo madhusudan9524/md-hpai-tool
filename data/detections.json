@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-18T23:45:52+00:00",
+ "updated": "2026-11-19T00:44:05+00:00",
  "wild": [],
  "notices": [
   {
@@ -13,7 +13,7 @@
    "state": "Delaware",
    "flock_type": null,
    "birds": null,
-   "summary": "Delaware Department of Agriculture urges poultry safety and vigilance as avian influenza risk rises with the 2026-27 migratory season.",
+   "summary": "Delaware Department of Agriculture reminds residents to practice poultry safety as avian influenza season begins with colder temperatures and migratory birds.",
    "method": "ai"
   },
   {
@@ -27,7 +27,7 @@
    "state": "Maryland",
    "flock_type": "Commercial broiler",
    "birds": null,
-   "summary": "Preliminary state testing found H5N1 avian influenza in a commercial broiler flock in Worcester County; NVSL confirmation is pending.",
+   "summary": "State lab preliminarily detected H5N1 avian influenza at a Worcester County commercial broiler operation; NVSL confirmation pending, flock being depopulated.",
    "method": "ai"
   }
  ],
@@ -40,7 +40,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "Preliminary state testing found H5N1 avian influenza in a commercial broiler flock in Worcester County; NVSL confirmation is pending.",
+   "status_text": "State lab preliminarily detected H5N1 avian influenza at a Worcester County commercial broiler operation; NVSL confirmation pending, flock being depopulated.",
    "source": "Maryland Department of Agriculture",
    "url": "https://mda.maryland.gov/news/press-releases/preliminary-testing-confirms-highly-pathogenic-avian-influenza-worcester-county",
    "auto": true,
@@ -549,26 +549,6 @@
    "strain": "EA/AM H5N1",
    "lon": -75.56208,
    "lat": 39.08989,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Delaware",
-   "county": "Kent",
-   "species": "Green-winged teal",
-   "date": "2025-11-18",
-   "strain": "EA H5",
-   "lon": -75.50004,
-   "lat": 39.08719,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Delaware",
-   "county": "Kent",
-   "species": "Green-winged teal",
-   "date": "2025-11-18",
-   "strain": "EA/AM H5N1",
-   "lon": -75.55836,
-   "lat": 39.10357,
    "source": "USDA APHIS"
   }
  ],
@@ -2530,7 +2510,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "Preliminary state testing found H5N1 avian influenza in a commercial broiler flock in Worcester County; NVSL confirmation is pending.",
+   "status_text": "State lab preliminarily detected H5N1 avian influenza at a Worcester County commercial broiler operation; NVSL confirmation pending, flock being depopulated.",
    "source": "Maryland Department of Agriculture",
    "url": "https://mda.maryland.gov/news/press-releases/preliminary-testing-confirms-highly-pathogenic-avian-influenza-worcester-county",
    "auto": true,
@@ -2544,7 +2524,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "Preliminary testing found presumptive H5 avian influenza in a Kent County commercial broiler flock; birds are being depopulated.",
+   "status_text": "Preliminary testing found H5 avian influenza in a Kent County commercial broiler flock; the premises are quarantined and birds are being depopulated.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2026/01/10/delaware-announces-presumptive-positive-avian-influenza-case-in-kent-county-commercial-flock/",
    "auto": true,
@@ -2572,7 +2552,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "Preliminary testing found presumptive positive H5 avian influenza in a commercial broiler flock in Kent County, Delaware, with NVSL confirmation pending.",
+   "status_text": "Preliminary testing found presumptive positive H5 avian influenza in a commercial broiler flock in Kent County; samples sent to USDA NVSL for confirmation.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2025/01/03/delaware-announces-first-presumptive-positive-h5-avian-influenza-case-detected-on-kent-county-farm-in-2025/",
    "auto": true,
@@ -2600,7 +2580,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "confirmed",
-   "status_text": "Federal lab testing confirmed H5N1 avian influenza at a commercial broiler farm in Kent County, Delaware, the state's first case.",
+   "status_text": "USDA's National Veterinary Services Laboratory confirmed H5N1 avian influenza at a commercial broiler farm in Kent County, Delaware.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2022/03/17/first-case-of-avian-influenza-detected-on-kent-county-delaware-farm/",
    "auto": true,
