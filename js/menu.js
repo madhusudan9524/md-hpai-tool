@@ -57,6 +57,7 @@ window.HPAI.modules.push(function (ctx) {
       ["qr", "Verify a permit", "Enter or scan a permit number", () => verifyForm()]]],
     ["Data", [
       ["download", "Export data", "Any table as a spreadsheet", () => exportForm()],
+      ["download", "Export map data", "Seasonal risk, detections, sightings · CSV or GeoJSON", () => ctx.actions.exportMapData()],
       ["db", "Back up everything", "All layers and photos", () => backup()],
       ["pulse", "Data sources & updates", "Feeds, last update, issues", () => dataStatus()]]],
     ["Administration", [
@@ -82,6 +83,7 @@ window.HPAI.modules.push(function (ctx) {
       ["flag", "Report a sick flock", "MDA follows up", () => ctx.actions.flockReport()],
       ["inbox", "Report dead wild birds", "With a photo", () => ctx.actions.wildReport()],
       ["flag", "Email alerts", "For each of my premises", () => ctx.actions.alerts()],
+      ["download", "Export map data", "Risk, detections, sightings · CSV or GeoJSON", () => ctx.actions.exportMapData()],
       ["help", "Help", "Trips, permits, farm risk", () => helpSheet("industry")]]]]
   };
 

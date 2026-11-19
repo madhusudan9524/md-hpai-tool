@@ -318,7 +318,7 @@ require([
   reactiveUtils.watch(() => view.zoom >= BIRD_DOTS_ZOOM, (close) => { birdsLyr.renderer = close ? BIRD_DOTS : BIRD_HEAT; }, { initial: true });
   // ---- waterfowl week slider: one position per full week (eBird archive), the last position = the last 7 days ----
   S.birdWeeks = null; let birdPlay = null;
-  const loadBirdWeeks = () => S.birdWeeks ? Promise.resolve(S.birdWeeks) : fetch("data/birds_weeks.json?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).then((j) => (S.birdWeeks = (j && j.weeks) || [])).catch(() => (S.birdWeeks = []));
+  const loadBirdWeeks = () => S.birdWeeks ? Promise.resolve(S.birdWeeks) : fetch("data/birds_weeks.json?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).then((j) => { S.birdRef = (j && j.ref) || null; return (S.birdWeeks = (j && j.weeks) || []); }).catch(() => (S.birdWeeks = []));
   async function showBirdWeek(i) {   // i = index into S.birdWeeks, or null for the last 7 days
     S.birdWeek = i;
     const old = await birdsLyr.queryFeatures({ where: "1=1", returnGeometry: false, outFields: ["OID"] }).catch(() => ({ features: [] }));
@@ -580,13 +580,23 @@ require([
       const arch = await loadBirdWeeks(), idx = arch.map((w) => R.indexPlaces(asPlaces(w.places)));
       const last7 = S.birds && S.birds.places && S.birds.places.length ? R.indexPlaces(asPlaces(S.birds.places)) : null;
       const current = last7 ? [idx[idx.length - 1], last7].filter(Boolean) : idx.slice(-2);
-      const centres = hexCentres(), ref = R.abundanceRef(centres, idx);
+      const centres = hexCentres(), ref = S.birdRef || R.abundanceRef(centres, idx);   // shared reference from tools/update_birds.py, so emails and map agree
       return { centres, current: current.length ? current : null, ref };
     })();
     return riskModelP;
   }
   const riskAt = (lat, lon, m) => R.seasonalRisk({ pt: { lat, lon }, birdWeeks: m && m.current, ref: m && m.ref, weather: S.weather, month: new Date().getMonth(), detections: S.wildPts, now: Date.now() });
   ctx.riskModel = riskModel;
+  ctx.riskAt = async (lat, lon) => riskAt(lat, lon, await riskModel());
+  // every hexagon with its risk and parts, and its outline in lon/lat (for the data export)
+  ctx.riskHexes = async () => {
+    const m = await riskModel(), Rm = 6378137, deg = 180 / Math.PI;
+    const ll = (x, y) => [+(x / Rm * deg).toFixed(5), +((2 * Math.atan(Math.exp(y / Rm)) - Math.PI / 2) * deg).toFixed(5)];
+    return m.centres.map(({ x, y, lat, lon }) => {
+      const ring = []; for (let i = 0; i < 6; i++) { const a = Math.PI / 180 * (60 * i - 30); ring.push(ll(x + HEX_R * Math.cos(a), y + HEX_R * Math.sin(a))); } ring.push(ring[0]);
+      return { lat, lon, ring, r: riskAt(lat, lon, m) };
+    });
+  };
   async function buildRisk() {
     const m = await riskModel(); riskLyr.removeAll();
     const cols = { 0: [0, 0, 0, 0], 1: [209, 196, 233, 0.5], 2: [149, 117, 205, 0.55], 3: [94, 53, 177, 0.6] };   // purples: advisory, not a regulatory zone

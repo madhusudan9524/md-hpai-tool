@@ -5,8 +5,14 @@ Reads subscriptions from the MDA view of the submissions layer, and events from
   * public control areas (public view of the core service),
   * MDA county declarations,
   * data/detections.json (commercial-flock detections by county, wild-bird detections).
-Sends one email per subscriber per new event within their radius. Remembers what was sent in
-data/alerts_state.json as one-way hashes (no emails or addresses are stored in the repo).
+Sends one email per subscriber per new event within their radius.
+
+Two early-warning alerts per saved place (tools/risk_model.py, the same model as the map):
+  * rising seasonal risk: the place's seasonal risk rises to High or Very high (at most one email a week per place);
+  * rising wild-bird detections: HPAI detections in wild birds and mammals within 50 miles are rising fast
+    (14 days vs the 6 weeks before, as on the grower's risk card), which often comes before poultry outbreaks
+    (at most one email every two weeks per place).
+Remembers what was sent in data/alerts_state.json as one-way hashes (no emails or addresses are stored in the repo).
 
 Needs these settings (GitHub repository secrets); without them the script does nothing:
   ARCGIS_PORTAL, ARCGIS_USER, ARCGIS_PASSWORD     an MDA account that can read the subscriptions view
@@ -15,12 +21,16 @@ Needs these settings (GitHub repository secrets); without them the script does n
   APP_URL                                         public address of the map (for links and unsubscribe)
 Standard library only.
 """
-import base64, hashlib, json, math, os, smtplib, ssl, sys, urllib.parse, urllib.request, datetime as dt
+import base64, hashlib, json, math, os, smtplib, ssl, sys, time, urllib.parse, urllib.request, datetime as dt
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import risk_model as RM
 from email.message import EmailMessage
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATE = os.path.join(ROOT, "data", "alerts_state.json")
 DATA = os.path.join(ROOT, "data", "detections.json")
+TREND_KM = 80.5        # wild-bird detections within 50 miles count toward the trend
+RISK_EVERY, TREND_EVERY = 7, 14   # days between early-warning emails for the same place
 POINTS = json.load(open(os.path.join(ROOT, "tools", "county_points.json")))
 E = os.environ.get
 
@@ -72,11 +82,15 @@ ADVICE = {
         "control": "Your premises is in or near an HPAI control area. Moving poultry, eggs, feed, litter or equipment in or out needs an MDA permit. Keep birds indoors, allow essential visits only, and clean and disinfect every vehicle.",
         "county": "HPAI was reported in a commercial flock in this county. Tighten biosecurity: limit visitors, use dedicated boots and clothing, and check your birds closely.",
         "wild": "HPAI was found in wild birds near your premises. Keep poultry away from wild birds and standing water, and cover feed and water.",
+        "risk": "Now is the time to tighten biosecurity: keep birds indoors, keep wild birds away from feed, water and litter, clean and disinfect vehicles and boots at the farm entrance, and limit visitors.",
+        "trend": "Detections in wild birds often rise before outbreaks in poultry. Review your biosecurity plan, keep birds indoors and away from wild birds and standing water, and watch your flock closely.",
     },
     "home": {
         "control": "Your home is in or near an HPAI control area. If you keep backyard birds, keep them in, and check with MDA before moving any birds or eggs.",
         "county": "HPAI was reported in a poultry flock in this county. If you keep backyard birds, keep them away from wild birds and watch them closely.",
         "wild": "HPAI was found in wild birds near your home. Don't touch sick or dead wild birds; report them to MDA.",
+        "risk": "If you keep backyard birds, keep them in a covered run away from wild birds and standing water, and watch them closely.",
+        "trend": "HPAI is being found more often in wild birds in your area. Don't touch sick or dead wild birds; if you keep backyard birds, keep them away from wild birds.",
     },
 }
 
@@ -105,6 +119,60 @@ def events(token):
     return out
 
 
+def load(path, default=None):
+    try:
+        return json.load(open(os.path.join(ROOT, "data", path)))
+    except Exception:
+        return default
+
+
+def risk_inputs():
+    """What the seasonal risk needs, from the files the twice-daily job just wrote."""
+    birds, weeks, d = load("birds.json", {}), load("birds_weeks.json", {}), load("detections.json", {})
+    arch = [RM.index_places(RM.as_places(w["places"])) for w in weeks.get("weeks", [])]
+    last7 = RM.index_places(RM.as_places(birds.get("places"))) if birds.get("places") else None
+    current = ([arch[-1]] if arch else []) + ([last7] if last7 else []) if last7 else arch[-2:]
+    wild = [w for w in (d.get("wild_all") or d.get("wild_year") or d.get("wild") or []) + (d.get("mammals") or []) if w.get("lat") is not None]
+    det = [{"lat": w["lat"], "lon": w["lon"], "t": dt.datetime.fromisoformat(w["date"] + "T12:00:00+00:00").timestamp()} for w in wild]
+    return {"weeks": current or None, "ref": weeks.get("ref"), "weather": load("weather.json"), "det": det}
+
+
+def why(r):
+    parts = [(r["waterfowl"], "many waterfowl reported nearby in the last two weeks"), (r["wild"], "recent HPAI detections in wild birds nearby"),
+             (r["weather"], "a colder, wetter winter than normal")]
+    top = [t for f, t in sorted(parts, key=lambda x: -x[0]) if f > 1.15]
+    return " and ".join(top[:2]) or "several smaller factors together"
+
+
+def early_warnings(subs, state, now):
+    """Rising seasonal risk and rising wild-bird detections, per saved place. Returns [(sub, kind, subject_tail, text)]."""
+    inp, out, today = risk_inputs(), [], dt.date.fromtimestamp(now).isoformat()
+    month = dt.date.fromtimestamp(now).month - 1
+    rs, ts = state.setdefault("risk", {}), state.setdefault("trend", {})
+    for s in subs.values():
+        h = hashlib.sha256(s["token"].encode()).hexdigest()[:24]
+        pt = {"lat": s["pt"][1], "lon": s["pt"][0]}
+        r = RM.seasonal_risk(pt, inp["weeks"], inp["ref"], inp["weather"], month, inp["det"], now)
+        prev = rs.get(h, {})
+        recent = prev.get("sent") and (dt.date.fromisoformat(today) - dt.date.fromisoformat(prev["sent"])).days < RISK_EVERY
+        if r["tier"] >= 2 and r["tier"] > prev.get("tier", 0) and not recent:
+            out.append((s, "risk", f"seasonal risk now {RM.TIERS[r['tier']]}",
+                        f"Seasonal HPAI risk at {s['name']} has risen to {RM.TIERS[r['tier']]}: about {r['value']:.1f} times a typical location in Maryland and Delmarva, "
+                        f"mainly because of {why(r)}. This is an advisory early warning, not a control zone."))
+            prev = dict(prev, sent=today)
+        rs[h] = dict(prev, tier=r["tier"])
+        near = [d["t"] for d in inp["det"] if RM.km(pt, d) <= TREND_KM]
+        tr = RM.regional_trend(near, now)
+        last = ts.get(h)
+        if tr["rising"] and not (last and (dt.date.fromisoformat(today) - dt.date.fromisoformat(last)).days < TREND_EVERY):
+            rate = "none in the 6 weeks before" if tr["ratio"] == math.inf else f"about {round(tr['ratio'])} times the rate of the 6 weeks before"
+            out.append((s, "trend", "wild-bird detections rising nearby",
+                        f"HPAI detections in wild birds and mammals within 50 miles of {s['name']} are rising{' fast' if tr['sharp'] else ''}: "
+                        f"{tr['recent']} in the last 2 weeks, {rate}. Rising wild-bird detections often come before outbreaks in poultry."))
+            ts[h] = today
+    return out
+
+
 def main():
     need = ["ARCGIS_PORTAL", "ARCGIS_USER", "ARCGIS_PASSWORD", "ALERTS_LAYER", "AREAS_LAYER", "SMTP_HOST", "ALERT_FROM", "APP_URL"]
     if any(not E(k) for k in need):
@@ -126,25 +194,31 @@ def main():
             key = hashlib.sha256(f"{s['token']}|{e['id']}".encode()).hexdigest()[:24]
             if d <= s["km"] and key not in sent:
                 mails.append((s, e, max(0, d))); sent.add(key)
-    if mails:
+    letters = []
+    for s, e, d in mails:
+        what = "farm" if s["kind"] == "farm" else "home"
+        kind = e["kind"] if e["kind"] in ("control", "wild") else "county"
+        where = "inside it" if d < 0.05 else f"{d * 0.621371:.1f} miles from {s['name']}"
+        letters.append((s, f"HPAI alert for {s['name']} ({what})", f"{e['text']}\nWhere: {where}.\n\nWhat to do: {ADVICE[s['kind']][kind]}"))
+    warn = early_warnings(subs, state, time.time())
+    for s, kind, tail, text in warn:
+        letters.append((s, f"HPAI early warning for {s['name']}: {tail}", f"{text}\n\nWhat to do: {ADVICE[s['kind']][kind]}"))
+    if letters:
         ctx = ssl.create_default_context()
         with smtplib.SMTP(E("SMTP_HOST"), int(E("SMTP_PORT") or 587), timeout=60) as smtp:
             smtp.starttls(context=ctx)
             if E("SMTP_USER"):
                 smtp.login(E("SMTP_USER"), E("SMTP_PASS") or "")
-            for s, e, d in mails:
+            for s, subject, body in letters:
                 m = EmailMessage()
-                what = "farm" if s["kind"] == "farm" else "home"
-                kind = e["kind"] if e["kind"] in ("control", "wild") else "county"
-                where = "inside it" if d < 0.05 else f"{d * 0.621371:.1f} miles from {s['name']}"
-                m["From"], m["To"], m["Subject"] = E("ALERT_FROM"), s["email"], f"HPAI alert for {s['name']} ({what})"
-                m.set_content(f"{e['text']}\nWhere: {where}.\n\nWhat to do: {ADVICE[s['kind']][kind]}\n\n"
+                m["From"], m["To"], m["Subject"] = E("ALERT_FROM"), s["email"], subject
+                m.set_content(f"{body}\n\n"
                               f"See the map: {E('APP_URL')}\nSick or dead birds? Call MDA at 410-841-5810.\n\n"
                               f"Turn off alerts for {s['name']}: {E('APP_URL')}#unsub={urllib.parse.quote(s['token'])}\n")
                 smtp.send_message(m)
     state["sent"] = sorted(sent)[-20000:]
     json.dump(state, open(STATE, "w"))
-    print(f"alerts: {len(subs)} subscribers, {len(ev)} events, {len(mails)} emails sent")
+    print(f"alerts: {len(subs)} subscribers, {len(ev)} events, {len(mails)} event emails, {len(warn)} early warnings sent")
     return 0
 
 

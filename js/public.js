@@ -162,7 +162,7 @@ window.HPAI.modules.push(function (ctx) {
     const any = places.some((p) => p.alert);
     const want = new Map(places.map((p) => [p.id, { on: any ? !!p.alert : true, km: p.alert ? String(p.alert.km) : defKm(p) }]));
     sheet("Email alerts", `<div class="form">
-      <p class="hint">Pick the places to watch. Each gets its own alert when a control area, an HPAI detection in the county, or a wild-bird case comes within the distance you choose, with advice for a farm or a home.</p>
+      <p class="hint">Pick the places to watch. Each gets its own alert when a control area, an HPAI detection in the county, or a wild-bird case comes within the distance you choose, with advice for a farm or a home. You also get an early warning when the seasonal risk at a place rises to High, or when HPAI detections in wild birds within 50 miles are rising.</p>
       <label>Email<input id="alEmail" type="email" autocomplete="email" value="${esc(email0(places.find((p) => p.alert)))}" placeholder="you@example.com"></label>
       <div id="alList" class="allist"></div>
       <label>Add a place<div id="alSearch"></div></label>
@@ -253,6 +253,73 @@ window.HPAI.modules.push(function (ctx) {
       } catch (e) { $("rpGo").disabled = false; $("rpGo").textContent = "Send report"; toast("Couldn't send: " + e.message); }
     };
   }
+  // ================= export map data (industry partners and MDA staff) =================
+  // CSV for spreadsheets, GeoJSON for ArcGIS / QGIS. Only what the signed-in user already sees on the map.
+  const EXPORTS = [
+    ["risk", "Seasonal risk hexagons", "Level, multiple and its parts, ~6 km hexagons"],
+    ["wild", "Wild-bird and mammal detections", "USDA APHIS, as on the map"],
+    ["places", "My places' risk", "Zone, seasonal risk and farm risk for each saved place"],
+    ["birds", "Waterfowl sightings", "eBird, the week shown on the map"]];
+  const r4 = (v) => v == null ? "" : Math.round(v * 10000) / 10000;
+  async function exportRows(k) {
+    if (k === "risk") return (await ctx.riskHexes()).map(({ lat, lon, ring, r }) => ({ props: { lat: r4(lat), lon: r4(lon), level: R.TIERS[r.tier], relative_risk: r4(r.value),
+      waterfowl_factor: r4(r.waterfowl), waterfowl_z: r4(r.zA), weather_factor: r4(r.weather), wild_bird_factor: r4(1 + r.wild), month: new Date().toLocaleString("en-US", { month: "long" }) },
+      geom: { type: "Polygon", coordinates: [ring] } }));
+    if (k === "wild") {
+      const Ld = await ctx.live; if (!Ld) return [];
+      return (Ld.wild_all && Ld.wild_all.length ? Ld.wild_all : Ld.wild_year || Ld.wild || []).map((w) => Object.assign({ group: "bird" }, w)).concat(Ld.mammals || []).filter((w) => w.lat != null)
+        .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+        .map((w) => ({ props: { date: w.date, state: w.state, county: w.county, group: w.group, species: w.species, strain: w.strain || "", source: w.source || "USDA APHIS", location: "approximate (county level)", lat: w.lat, lon: w.lon },
+          geom: { type: "Point", coordinates: [w.lon, w.lat] } }));
+    }
+    if (k === "places") {
+      const ev = regionEvents(), out = [];
+      for (const p of places) {
+        const z = await ctx.zoneAt(ptOf(p)), sr = await ctx.riskAt(p.lat, p.lon), f = p.kind === "farm" ? await scoreFarm(p, ev) : null;
+        out.push({ props: { name: p.name, kind: p.kind, lat: r4(p.lat), lon: r4(p.lon), zone: z.zone === "control" ? "Control area" : z.zone === "surveillance" ? "Surveillance zone" : "No restrictions",
+          seasonal_risk: R.TIERS[sr.tier], seasonal_multiple: r4(sr.value), farm_risk: f ? f.r.label : "", farm_points: f ? f.r.points : "",
+          farm_reasons: f ? f.r.reasons.map((x) => `${x.n > 0 ? "+" : ""}${x.n} ${x.why}`).join("; ") : "" }, geom: { type: "Point", coordinates: [p.lon, p.lat] } });
+      }
+      return out;
+    }
+    if (k === "birds") {
+      const i = S.birdWeek, wk = i != null && S.birdWeeks && S.birdWeeks[i];
+      const label = wk ? "week of " + wk.start : "last 7 days";
+      const list = wk ? wk.places.map((p) => ({ lat: p[0], lon: p[1], birds: p[2], species: p[3] || "" }))
+        : ((S.birds && S.birds.places) || []).map((p) => ({ lat: p.lat, lon: p.lon, place: p.place, birds: p.birds, last_seen: p.last, species: (p.species || []).map((x) => x[0] + " " + x[1]).join("; ") }));
+      return list.map((p) => ({ props: Object.assign({ period: label }, p, { source: "eBird, Cornell Lab of Ornithology" }), geom: { type: "Point", coordinates: [p.lon, p.lat] } }));
+    }
+    return [];
+  }
+  const FILES = { risk: "seasonal_risk", wild: "wild_detections", places: "my_places_risk", birds: "waterfowl_sightings" };
+  const fileOf = (k) => FILES[k] + "_" + new Date().toISOString().slice(0, 10);
+  function download(text, name, type) { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+  ctx.actions.exportMapData = () => {
+    if (!S.user) return toast("Sign in as an industry partner or MDA staff to export data.");
+    sheet("Export map data", `<div class="form">
+      <p class="hint">Download the map's data for a spreadsheet (CSV) or a GIS (GeoJSON). One file per item.</p>
+      ${EXPORTS.map(([k, t, d]) => `<label class="check"><input type="checkbox" data-ex="${k}"${k === "places" && !places.length ? " disabled" : " checked"}><b>${esc(t)}</b><small class="hint"> ${esc(k === "places" && !places.length ? "No saved places yet" : d)}</small></label>`).join("")}
+      <label>Format<select id="exFmt"><option value="csv">CSV (Excel)</option><option value="geojson">GeoJSON (ArcGIS, QGIS)</option></select></label>
+      <button class="primary" id="exGo">Download</button>
+      <p class="hint">Seasonal risk is an advisory screening aid, not a control zone. Sources: USDA APHIS; eBird, Cornell Lab of Ornithology (eBird terms of use apply); Open-Meteo. Wild-bird locations are approximate.</p></div>`);
+    $("exGo").onclick = async () => {
+      const ks = [...document.querySelectorAll("[data-ex]:checked")].map((c) => c.dataset.ex), fmt = $("exFmt").value, b = $("exGo");
+      if (!ks.length) return toast("Pick something to export");
+      b.disabled = true; b.textContent = "Preparing…";
+      try {
+        for (const k of ks) {
+          const rows = await exportRows(k);
+          if (!rows.length) { toast(`Nothing to export for ${EXPORTS.find((e) => e[0] === k)[1].toLowerCase()}`); continue; }
+          if (fmt === "csv") H.csv(rows.map((x) => x.props), fileOf(k) + ".csv");
+          else download(JSON.stringify({ type: "FeatureCollection", features: rows.map((x) => ({ type: "Feature", geometry: x.geom, properties: x.props })) }), fileOf(k) + ".geojson", "application/geo+json");
+          if (ctx.isStaff() && ctx.audit) ctx.audit("data:export", EXPORTS.find((e) => e[0] === k)[1], rows.length + " rows, " + fmt);
+          await new Promise((r) => setTimeout(r, 400));   // browsers block several downloads fired at once
+        }
+        b.textContent = "Downloaded";
+      } catch (e) { toast("Export failed: " + (e.message || e)); b.textContent = "Download"; }
+      b.disabled = false;
+    };
+  };
   ctx.actions.wildReport = () => reportForm("wild_bird");
   ctx.actions.flockReport = () => reportForm("flock");
 

@@ -19,6 +19,8 @@ The prototype is kept as `v1.html`.
 - `js/risk.js`: risk models (tested with `node tests/risk.test.js`)
 - `tools/update_detections.py`: twice-daily update from official sources → `data/detections.json`
 - `tools/send_alerts.py`: email alerts (runs after the update when its secrets are set)
+- `tools/update_weather.py`: statewide winter weather for the seasonal risk (Open-Meteo, no key)
+- `tools/risk_model.py`: Python copy of the seasonal risk model for the email alerts (kept in step by `tests/test_risk_model.py`)
 - `tools/make_wallet_pass.py`: Apple Wallet permit pass (needs an Apple pass certificate)
 - `data/curated_detections.json`: detections entered by MDA staff (always override automatic ones)
 - `data/sample_history.json`, `data/cd_stations.json`: **SAMPLE** data for testing (past zone shapes, C&D stations)
@@ -41,6 +43,8 @@ The current zones are the prototype's **sample** data, migrated and labeled as s
 
 - **Members of the public (optional)**: "Save my places" with just an email code, no approval and nothing else asked. Their saved homes and farms and alert choices are kept in the sign-in service (KV, keyed by email) and can be deleted from the menu. Industry partners' saved places sync the same way. Without signing in, places stay on the device.
 - **Email alerts**: one subscription per saved place (Email alerts → tick places, pick a distance). The place's type and name ride in the alert token (`<id>~farm|home~<base64url name>`), so `tools/send_alerts.py` words each email for a farm or a home without a change to the alerts layer.
+- **Early-warning emails** (same subscription, no extra setting): **rising seasonal risk**, when a saved place's seasonal risk rises to High or Very high (at most one a week per place; it can alert again after the level has dropped and risen again); **rising wild-bird detections**, when HPAI detections in wild birds and mammals within 50 miles rise (at least 3 in 14 days and at least twice the rate of the 6 weeks before; "fast" at 5 and 3×), at most one every two weeks per place. Both use `tools/risk_model.py` with the same inputs and "typical place" reference as the map (the reference is written to `data/birds_weeks.json` by `tools/update_birds.py`). Only one-way hashes of tokens, the last level and the send date are kept in `data/alerts_state.json`.
+- **Export map data** (industry partners and MDA staff, account menu): seasonal risk hexagons with the parts of each multiple, wild-bird and mammal detections, the user's saved places with zone, seasonal risk and farm risk, and the waterfowl sightings for the week on the map, as CSV or GeoJSON. MDA staff exports are written to the audit log.
 
 - **View as** (MDA staff): your menu → View as Public / Industry / MDA staff shows each audience's version. A banner shows while you're viewing as someone else. The industry view uses a built-in test grower record and saves nothing (`js/preview.js`).
 

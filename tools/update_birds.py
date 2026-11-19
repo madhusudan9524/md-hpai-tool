@@ -15,6 +15,7 @@ These are sightings where people went birding, not a census: busy birding spots 
 Standard library only.
 """
 import json, os, sys, time, urllib.request, datetime as dt
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "data", "birds.json")
@@ -92,8 +93,15 @@ def update_weeks(rows):
         have[monday.isoformat()] = {"start": monday.isoformat(), "places": [[round(p["lat"], 3), round(p["lon"], 3), p["birds"], max(p["sp"], key=p["sp"].get)] for p in ps]}
         monday += dt.timedelta(days=7)
     weeks = sorted(have.values(), key=lambda w: w["start"])[-WEEKS:]
+    ref = None
+    try:   # the seasonal risk model's "typical place": shared by the map and the email alerts (tools/risk_model.py)
+        import risk_model as RM
+        ref = RM.abundance_ref(RM.ref_points(), [RM.index_places(RM.as_places(w["places"])) for w in weeks])
+        ref = ref and {k: round(v, 4) if isinstance(v, float) else v for k, v in ref.items()}
+    except Exception as e:
+        print(f"birds: risk reference not computed: {e}")
     json.dump({"updated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "source": "eBird, Cornell Lab of Ornithology",
-               "note": "highest count of each species at each place in the week, summed over species", "method": METHOD, "weeks": weeks}, open(WEEKS_OUT, "w"), separators=(",", ":"))
+               "note": "highest count of each species at each place in the week, summed over species", "method": METHOD, "weeks": weeks, "ref": ref}, open(WEEKS_OUT, "w"), separators=(",", ":"))
     print(f"birds: weekly archive {len(weeks)} weeks ({weeks[0]['start'] if weeks else '-'} to {weeks[-1]['start'] if weeks else '-'})")
 
 
