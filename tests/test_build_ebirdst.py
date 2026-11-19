@@ -41,7 +41,8 @@ class T(unittest.TestCase):
         ints, ref = B.summarize(arr + arr)           # two identical species added together
         self.assertEqual(int(ints[10, 0, 0]), 10000)
         self.assertEqual(ref["weeks"], 52)
-        self.assertEqual(ref["cells"], len(lats) * len(lons))
+        self.assertEqual(ref["cellweeks"], 2 * len(lats) * len(lons))   # weeks 0 and 10 only have waterfowl
+        self.assertAlmostEqual(ref["share_zero"], 50 / 52, places=6)
         self.assertTrue(ref["sd"] > 0)
 
     def test_outside_raster_is_zero(self):

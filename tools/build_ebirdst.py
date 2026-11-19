@@ -35,6 +35,10 @@ SPECIES = {
     "hoomer": "Hooded Merganser", "commer": "Common Merganser", "rebmer": "Red-breasted Merganser",
     "rudduc": "Ruddy Duck",
 }
+# Gonnerman et al. 2025 used eBird Status & Trends for these genera: Anser, Branta, Cygnus (geese, swans), Anas and
+# Aythya (dabbling and diving ducks). Only those species feed the risk score ("core"). Sea ducks, mergansers, Bufflehead,
+# Wood Duck and Ruddy Duck are not in those genera, so they are kept as a separate "other" total for display.
+OTHER = {"wooduc", "sursco", "whwsco2", "blksco2", "lotduc", "buffle", "comgol", "hoomer", "commer", "rebmer", "rudduc"}
 
 
 def grid():
@@ -74,12 +78,13 @@ def download(requests, key, year, code, res, dest):
 
 
 def summarize(total, scale=1000):
-    """Integers for the JSON file plus the yardstick for 'a typical place': mean and SD of ln(x + 0.01) over every
-    cell that has waterfowl at some time of year and every week (cells outside the species' range are left out)."""
+    """Integers for the JSON file plus the yardstick for 'a typical place': mean and SD of ln(abundance) over the
+    cell-weeks that have waterfowl (Gonnerman et al. used the natural log). Cell-weeks with none are left out of the
+    yardstick, because ln(0) would stretch the spread; the risk code gives those a capped low z-score."""
     import numpy as np
-    land = total.max(axis=0) > 0
-    vals = np.log(total[:, land] + 0.01)
-    ref = {"mu": float(vals.mean()), "sd": float(vals.std()), "cells": int(land.sum()), "weeks": int(total.shape[0])}
+    pos = total[total > 0]
+    ref = {"mu": float(np.log(pos).mean()), "sd": float(np.log(pos).std()), "cellweeks": int(pos.size),
+           "share_zero": float(1 - pos.size / total.size), "weeks": int(total.shape[0])}
     return np.rint(total * scale).astype("int32"), ref
 
 
@@ -96,7 +101,7 @@ def main():
     import numpy as np, requests
     lons, lats = grid()
     codes = a.species or list(SPECIES)
-    total, used, skipped = None, [], []
+    total, other, used, skipped = None, None, [], []
     for code in codes:
         lst = requests.get(f"{BASE}/list-obj/{a.year}/{code}", params={"key": key}, timeout=60)
         if lst.status_code in (401, 403):
@@ -109,21 +114,30 @@ def main():
             print(f"  {code} ({SPECIES.get(code, '?')}) downloading ...", flush=True)
             download(requests, key, a.year, code, a.res, path)
             arr = sample_weekly(path, lons, lats)
-        total = arr if total is None else total + arr
+        if code in OTHER:
+            other = arr if other is None else other + arr
+        else:
+            total = arr if total is None else total + arr
         used.append(code)
     if total is None:
         sys.exit("No species could be downloaded.")
+    if other is None:
+        other = np.zeros_like(total)
     ints, ref = summarize(total)
+    ints_o, ref_o = summarize(other) if other.max() > 0 else (np.zeros_like(ints), None)
     doc = {"source": "eBird Status and Trends relative abundance (weekly, median), Cornell Lab of Ornithology; "
-                     "sum over the species listed; sampled to a regular grid",
+                     "core = geese, swans, dabbling and diving ducks (as in Gonnerman et al. 2025); other = sea ducks, mergansers, "
+                     "Bufflehead, Wood Duck, Ruddy Duck; sampled to a regular grid",
+           "core_species": [c for c in used if c not in OTHER], "other_species": [c for c in used if c in OTHER],
            "year": a.year, "resolution": a.res, "species": used, "skipped": skipped,
            "bbox": list(BBOX), "step": [STEP_LON, STEP_LAT], "nx": len(lons), "ny": len(lats), "scale": 1000,
-           "ref": ref, "order": "week 1..52, then rows north to south, then columns west to east",
-           "data": ints.reshape(ints.shape[0], -1).tolist()}
+           "ref": ref, "ref_other": ref_o, "order": "week 1..52, then rows north to south, then columns west to east",
+           "data": ints.reshape(ints.shape[0], -1).tolist(),
+           "data_other": ints_o.reshape(ints_o.shape[0], -1).tolist()}
     with open(a.out, "w") as f:
         json.dump(doc, f, separators=(",", ":"))
     print(f"wrote {os.path.abspath(a.out)}: {len(used)} species, {ints.shape[0]} weeks, {len(lons)}x{len(lats)} cells, "
-          f"reference mean {ref['mu']:.2f} sd {ref['sd']:.2f}")
+          f"core reference mean {ref['mu']:.2f} sd {ref['sd']:.2f}")
     if skipped:
         print("skipped (check the codes):", ", ".join(skipped))
 
