@@ -12,6 +12,7 @@
     aphisMammals: { t: "USDA APHIS. Detections of HPAI in mammals.", u: "https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/mammals" },
     aphisPoultry: { t: "USDA APHIS. Confirmations of HPAI in commercial and backyard flocks.", u: "https://www.aphis.usda.gov/livestock-poultry-disease/avian/avian-influenza/hpai-detections/commercial-backyard-flocks" },
     prosser2024: { t: "Prosser et al. (2024), USGS, USDA and University of Maryland. Using an adaptive modeling framework to identify avian influenza spillover risk at the wild-domestic interface. Scientific Reports 14:14199.", u: "https://doi.org/10.1038/s41598-024-64912-w" },
+    ebirdst: { t: "Fink et al. eBird Status and Trends, data version 2023. Cornell Lab of Ornithology. Weekly modelled relative abundance.", u: "https://science.ebird.org/en/status-and-trends" },
     ebird: { t: "eBird, Cornell Lab of Ornithology. Waterfowl reports (eBird API).", u: "https://ebird.org" },
     openMeteo: { t: "Open-Meteo historical weather API (ERA5 reanalysis), CC BY 4.0.", u: "https://open-meteo.com" }
   };
@@ -22,8 +23,7 @@
   // Assumption (not from a paper): wild-bird HPAI detections stand in for the infection-prevalence factor of Prosser et al. 2024,
   // and at most double the risk. Change here if MDA prefers another weight.
   const WILD_MAX = 1;
-  const RR_TIERS = [1.5, 2.5, 4];   // relative risk cut-offs: Moderate, High, Very high (x a typical Maryland place)
-
+  
   // Monthly share of APHIS wild-bird HPAI detections in Atlantic Flyway states, Jan..Dec (2022 to Nov 2026, normalized to the peak month).
   // Replaced at run time by data/detections.json "season" when the twice-daily job recomputes it.
   const SEASON_DEFAULT = [1418, 1334, 557, 273, 140, 176, 142, 111, 384, 311, 663, 847];
@@ -103,22 +103,50 @@
     return { factor: Math.exp(COEF.temp * zT + COEF.precip * zP), applies: true, zT, zP };
   }
 
-  /* Seasonal risk (map layer and address card), following the Mullinax group's models:
-   *   relative risk = exp(0.422 x zA) x winter weather factor x (1 + wild-bird pressure)
-   * - zA: waterfowl abundance from eBird over the last two weeks, standardized against the archive (usgs2025, prosser2024).
-   *   Abundance carries both the season (migration) and habitat; usgs2025 dropped land cover once abundance was in.
-   * - winter weather factor: exp(0.642 zP - 1.242 zT), statewide, Dec-Apr (usgs2025).
-   * - wild-bird pressure: recent nearby HPAI detections, 0..1, as the infection-prevalence term (prosser2024); weight assumed.
-   * The value reads as "x times the risk of a typical Maryland place". With no eBird data the abundance term is neutral (1).
+  /* Seasonal risk (map layer, address card, alerts). EXPERIMENTAL: adapted from Gonnerman et al. 2025 (usgs2025), not validated.
+   *   relative risk = exp(0.422 x zA)
+   * - Waterfowl abundance as in usgs2025: eBird Status & Trends modelled weekly relative abundance (not sightings), summed over
+   *   species in the paper's 13 genera (geese, swans, dabbling and diving ducks), averaged over two weeks, natural log, z-score.
+   *   Data: data/waterfowl_st.json from tools/build_ebirdst.py (about 3 km grid; a hexagon averages the cells within 3.5 km).
+   * - zA is standardized against every grid cell and week of a typical year in Maryland / Delmarva (st.ref), capped at +/-3;
+   *   no waterfowl at all -> -3. usgs2025 standardized across its US study locations, which are not published.
+   * - Tiers: z at the 75th, 90th and 97.5th percentiles of that same typical year (st.ref.cut), i.e. Moderate = top 25%,
+   *   High = top 10%, Very high = top 2.5% of place-weeks. usgs2025 publishes no thresholds.
+   * Left out, because they are not in the paper's form or need data we do not have: winter weather (the paper compares places
+   * across the US, not this winter with past ones), wild-bird detections (not in the paper; shown as their own layer),
+   * the spatial / temporal random effects and the farm-type intercepts.
    */
-  function seasonalRisk({ pt, birdWeeks, ref, weather, month, detections, now }) {
-    const x = birdWeeks && birdWeeks.length ? abundanceIndex(pt, birdWeeks) : null;
-    const zA = x != null && ref ? Math.max(-3, Math.min(4, (x - ref.mu) / ref.sd)) : 0;
-    const fA = Math.exp(COEF.waterfowl * zA);
-    const wf = weatherFactor(weather, month), w = wildPressure(pt, detections, now), fW = 1 + WILD_MAX * w;
-    const v = fA * wf.factor * fW;
-    const tier = v >= RR_TIERS[2] ? 3 : v >= RR_TIERS[1] ? 2 : v >= RR_TIERS[0] ? 1 : 0;
-    return { value: v, tier, zA, abundance: x, waterfowl: fA, weather: wf.factor, weatherApplies: wf.applies, wild: w, hasBirds: x != null && !!ref };
+  // Status & Trends week (0..51) for a date: week 1 is 1-7 January.
+  const stWeek = (d) => { const t = new Date(d), y0 = Date.UTC(t.getUTCFullYear(), 0, 1); return Math.min(51, Math.floor((t - y0) / (7 * DAY))); };
+  // data/waterfowl_st.json -> { all: [52 x Float32Array of cells], ref, ... }; all = goose + duck, in the file's units
+  function prepareST(doc) {
+    if (!doc || !doc.data_goose || !doc.ref) return null;
+    const n = doc.nx * doc.ny, sc = doc.scale || 1;
+    const all = doc.data_goose.map((g, w) => { const d = doc.data_duck && doc.data_duck[w], a = new Float32Array(n); for (let i = 0; i < n; i++) a[i] = (g[i] + (d ? d[i] : 0)) / sc; return a; });
+    return { nx: doc.nx, ny: doc.ny, bbox: doc.bbox, step: doc.step, ref: doc.ref, year: doc.year, all };
+  }
+  // Mean abundance of the grid cells whose centres are within r km of pt, in one week
+  function stAbundance(st, pt, week, r = 3.5) {
+    const [x0, , , y1] = st.bbox, [dx, dy] = st.step, v = st.all[week];
+    const ci = Math.floor((pt.lon - x0) / dx), cj = Math.floor((y1 - pt.lat) / dy);
+    let s = 0, n = 0;
+    for (let j = cj - 2; j <= cj + 2; j++) for (let i = ci - 2; i <= ci + 2; i++) {
+      if (i < 0 || j < 0 || i >= st.nx || j >= st.ny) continue;
+      if (km(pt, { lon: x0 + (i + 0.5) * dx, lat: y1 - (j + 0.5) * dy }) > r) continue;
+      s += v[j * st.nx + i]; n++;
+    }
+    return n ? s / n : null;
+  }
+  function seasonalRisk({ pt, st, date }) {
+    if (!st) return { value: 1, tier: 0, zA: 0, abundance: null, waterfowl: 1, hasData: false };
+    const w = stWeek(date || Date.now());
+    const a1 = stAbundance(st, pt, w), a0 = stAbundance(st, pt, (w + 51) % 52);
+    if (a1 == null) return { value: 1, tier: 0, zA: 0, abundance: null, waterfowl: 1, hasData: false, week: w + 1 };
+    const a = (a1 + a0) / 2, ref = st.ref, cut = ref.cut;
+    const zA = a > 0 ? Math.max(-3, Math.min(3, (Math.log(a) - ref.mu) / ref.sd)) : -3;
+    const v = Math.exp(COEF.waterfowl * zA);
+    const tier = zA >= cut[2] ? 3 : zA >= cut[1] ? 2 : zA >= cut[0] ? 1 : 0;
+    return { value: v, tier, zA, abundance: a, waterfowl: v, hasData: true, week: w + 1 };
   }
   const TIERS = ["Low", "Moderate", "High", "Very high"];
 
@@ -165,6 +193,6 @@
     return { points: total, tier, label: TIERS[tier], reasons: pts };
   }
 
-  const api = { SOURCES, SEASON_DEFAULT, TIERS, COEF, RR_TIERS, km, seasonIndex, wildPressure, indexPlaces, waterfowlAt, abundanceIndex, abundanceRef, weatherFactor, seasonalRisk, regionalTrend, farmRisk };
+  const api = { SOURCES, SEASON_DEFAULT, TIERS, COEF, km, seasonIndex, wildPressure, indexPlaces, waterfowlAt, abundanceIndex, abundanceRef, weatherFactor, stWeek, prepareST, stAbundance, seasonalRisk, regionalTrend, farmRisk };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.HPAIRisk = api;
 })(this);

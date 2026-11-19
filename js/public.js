@@ -256,14 +256,14 @@ window.HPAI.modules.push(function (ctx) {
   // ================= export map data (industry partners and MDA staff) =================
   // CSV for spreadsheets, GeoJSON for ArcGIS / QGIS. Only what the signed-in user already sees on the map.
   const EXPORTS = [
-    ["risk", "Seasonal risk hexagons", "Level, multiple and its parts, ~6 km hexagons"],
+    ["risk", "Seasonal risk hexagons (experimental)", "Level, multiple, waterfowl abundance and z-score, ~6 km hexagons"],
     ["wild", "Wild-bird and mammal detections", "USDA APHIS, as on the map"],
     ["places", "My places' risk", "Zone, seasonal risk and farm risk for each saved place"],
     ["birds", "Waterfowl sightings", "eBird, the week shown on the map"]];
   const r4 = (v) => v == null ? "" : Math.round(v * 10000) / 10000;
   async function exportRows(k) {
     if (k === "risk") return (await ctx.riskHexes()).map(({ lat, lon, ring, r }) => ({ props: { lat: r4(lat), lon: r4(lon), level: R.TIERS[r.tier], relative_risk: r4(r.value),
-      waterfowl_factor: r4(r.waterfowl), waterfowl_z: r4(r.zA), weather_factor: r4(r.weather), wild_bird_factor: r4(1 + r.wild), month: new Date().toLocaleString("en-US", { month: "long" }) },
+      waterfowl_abundance: r4(r.abundance), waterfowl_z: r4(r.zA), st_week: r.week, model: "experimental; adapted from Gonnerman et al. 2025; eBird Status & Trends" },
       geom: { type: "Polygon", coordinates: [ring] } }));
     if (k === "wild") {
       const Ld = await ctx.live; if (!Ld) return [];
@@ -301,7 +301,7 @@ window.HPAI.modules.push(function (ctx) {
       ${EXPORTS.map(([k, t, d]) => `<label class="check"><input type="checkbox" data-ex="${k}"${k === "places" && !places.length ? " disabled" : " checked"}><b>${esc(t)}</b><small class="hint"> ${esc(k === "places" && !places.length ? "No saved places yet" : d)}</small></label>`).join("")}
       <label>Format<select id="exFmt"><option value="csv">CSV (Excel)</option><option value="geojson">GeoJSON (ArcGIS, QGIS)</option></select></label>
       <button class="primary" id="exGo">Download</button>
-      <p class="hint">Seasonal risk is an advisory screening aid, not a control zone. Sources: USDA APHIS; eBird, Cornell Lab of Ornithology (eBird terms of use apply); Open-Meteo. Wild-bird locations are approximate.</p></div>`);
+      <p class="hint">Seasonal risk is experimental, not yet validated and advisory only (adapted from Gonnerman et al. 2025). Sources: USDA APHIS; eBird and eBird Status &amp; Trends, Cornell Lab of Ornithology (eBird terms of use apply). Wild-bird locations are approximate.</p></div>`);
     $("exGo").onclick = async () => {
       const ks = [...document.querySelectorAll("[data-ex]:checked")].map((c) => c.dataset.ex), fmt = $("exFmt").value, b = $("exGo");
       if (!ks.length) return toast("Pick something to export");

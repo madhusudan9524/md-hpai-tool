@@ -127,38 +127,28 @@ def load(path, default=None):
 
 
 def risk_inputs():
-    """What the seasonal risk needs, from the files the twice-daily job just wrote."""
-    birds, weeks, d = load("birds.json", {}), load("birds_weeks.json", {}), load("detections.json", {})
-    arch = [RM.index_places(RM.as_places(w["places"])) for w in weeks.get("weeks", [])]
-    last7 = RM.index_places(RM.as_places(birds.get("places"))) if birds.get("places") else None
-    current = ([arch[-1]] if arch else []) + ([last7] if last7 else []) if last7 else arch[-2:]
+    """What the alerts need: eBird Status & Trends waterfowl for the seasonal risk, and the wild-bird detections for the trend."""
+    d = load("detections.json", {})
     wild = [w for w in (d.get("wild_all") or d.get("wild_year") or d.get("wild") or []) + (d.get("mammals") or []) if w.get("lat") is not None]
     det = [{"lat": w["lat"], "lon": w["lon"], "t": dt.datetime.fromisoformat(w["date"] + "T12:00:00+00:00").timestamp()} for w in wild]
-    return {"weeks": current or None, "ref": weeks.get("ref"), "weather": load("weather.json"), "det": det}
-
-
-def why(r):
-    parts = [(r["waterfowl"], "many waterfowl reported nearby in the last two weeks"), (r["wild"], "recent HPAI detections in wild birds nearby"),
-             (r["weather"], "a colder, wetter winter than normal")]
-    top = [t for f, t in sorted(parts, key=lambda x: -x[0]) if f > 1.15]
-    return " and ".join(top[:2]) or "several smaller factors together"
+    return {"st": RM.prepare_st(load("waterfowl_st.json")), "det": det}
 
 
 def early_warnings(subs, state, now):
     """Rising seasonal risk and rising wild-bird detections, per saved place. Returns [(sub, kind, subject_tail, text)]."""
     inp, out, today = risk_inputs(), [], dt.date.fromtimestamp(now).isoformat()
-    month = dt.date.fromtimestamp(now).month - 1
     rs, ts = state.setdefault("risk", {}), state.setdefault("trend", {})
     for s in subs.values():
         h = hashlib.sha256(s["token"].encode()).hexdigest()[:24]
         pt = {"lat": s["pt"][1], "lon": s["pt"][0]}
-        r = RM.seasonal_risk(pt, inp["weeks"], inp["ref"], inp["weather"], month, inp["det"], now)
+        r = RM.seasonal_risk(pt, inp["st"], now)
         prev = rs.get(h, {})
         recent = prev.get("sent") and (dt.date.fromisoformat(today) - dt.date.fromisoformat(prev["sent"])).days < RISK_EVERY
         if r["tier"] >= 2 and r["tier"] > prev.get("tier", 0) and not recent:
             out.append((s, "risk", f"seasonal risk now {RM.TIERS[r['tier']]}",
                         f"Seasonal HPAI risk at {s['name']} has risen to {RM.TIERS[r['tier']]}: about {r['value']:.1f} times a typical location in Maryland and Delmarva, "
-                        f"mainly because of {why(r)}. This is an advisory early warning, not a control zone."))
+                        f"because waterfowl numbers nearby usually peak at this time of year. This is an experimental, not yet validated, advisory "
+                        f"early warning (adapted from Gonnerman et al. 2025, eBird Status & Trends data), not a control zone."))
             prev = dict(prev, sent=today)
         rs[h] = dict(prev, tier=r["tier"])
         near = [d["t"] for d in inp["det"] if RM.km(pt, d) <= TREND_KM]

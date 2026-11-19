@@ -513,7 +513,8 @@ require([
       ${since ? `<div class="r"><span>Zone since</span><b>${fmtDate(since)}</b></div>` : ""}
       ${aff ? `<div class="r"><span>County status</span><b>${aff.items.every((i) => i.sample) ? "Sample zone" : aff.items.some((i) => i.status === "preliminary") ? "Preliminary detection" : "HPAI reported"} · ${fmtShort(aff.since)}</b></div>` : ""}
       <div class="r"><span>Wildlife within 6 mi</span><b>${wildN} in 4 wk · ${wildY} in 12 mo</b></div>
-      <div class="r"><span>Seasonal risk</span><b>${R.TIERS[sr.tier]}${sr.hasBirds ? ` · ${sr.value.toFixed(1)}× typical` : ""}</b></div>
+      <div class="r"><span>Seasonal risk <small>(experimental)</small></span><b>${sr.hasData ? `${R.TIERS[sr.tier]} · ${sr.value.toFixed(1)}× typical` : "Not available"}</b></div>
+      <p class="hint">${RISK_NOTE}</p>
       <div class="r"><span>Past outbreaks</span><b>${hist.n ? hist.n + " · last " + fmtShort(hist.last) : "None on record"}</b></div>
       <div class="do"><b>What to do</b><ul>${DO[z.zone || "none"].map((d) => `<li>${esc(d)}</li>`).join("")}</ul></div>${extraMore}</div>`;
     el.innerHTML = `<div class="band ${band[0]}"><b>${band[1]}</b><small>${esc(where)}${sub ? " · " + esc(sub) : ""}</small></div><div class="bd"><div class="chips2">${chips.join("")}</div><p class="tip">${esc(tip)}</p>${more}<div class="pacts">${extra}<button class="pb ghostb" data-more>Details ▾</button></div></div>`;
@@ -554,10 +555,10 @@ require([
   ctx.habitatKm = async (g) => { const hg = habitatGeom || await Promise.race([loadHabitat(), new Promise((r) => setTimeout(() => r(null), 8000))]); return hg ? trueKm(hg, wmu.geographicToWebMercator(new Point({ longitude: g.longitude, latitude: g.latitude }))) : null; };
 
   // ---------------- seasonal risk (hexagons, ~6 km) ----------------
-  // Model in js/risk.js: waterfowl abundance (eBird) x winter weather (data/weather.json) x wild-bird detections.
-  S.weather = null;
-  const weatherP = fetch("data/weather.json?t=" + Date.now()).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((w) => (S.weather = w));
+  // Model in js/risk.js: eBird Status & Trends waterfowl abundance with the Gonnerman et al. 2025 coefficient (experimental).
   const HEX_R = 3500;
+  const RISK_NOTE = "Experimental, not yet validated; advisory only. Waterfowl-based, adapted from Gonnerman et al. 2025 (One Health), with eBird Status &amp; Trends data.";
+  ctx.RISK_NOTE = RISK_NOTE;
   function hexCentres() {
     const ext = S.clearGeom.extent, w = Math.sqrt(3) * HEX_R, out = [];
     for (let y = ext.ymin, row = 0; y < ext.ymax; y += 1.5 * HEX_R, row++) {
@@ -570,22 +571,18 @@ require([
     }
     return out;
   }
-  // The last two weeks of waterfowl (last 7 days + the latest full archived week) and the reference built from the archive.
+  // Seasonal risk model inputs: eBird Status & Trends waterfowl (data/waterfowl_st.json, tools/build_ebirdst.py).
   let riskModelP = null;
-  const asPlaces = (list) => (list || []).map((p) => Array.isArray(p) ? { lat: p[0], lon: p[1], birds: p[2] } : { lat: p.lat, lon: p.lon, birds: p.birds });
   function riskModel() {
     if (riskModelP) return riskModelP;
     riskModelP = (async () => {
-      await ready; await weatherP; await birdsP;
-      const arch = await loadBirdWeeks(), idx = arch.map((w) => R.indexPlaces(asPlaces(w.places)));
-      const last7 = S.birds && S.birds.places && S.birds.places.length ? R.indexPlaces(asPlaces(S.birds.places)) : null;
-      const current = last7 ? [idx[idx.length - 1], last7].filter(Boolean) : idx.slice(-2);
-      const centres = hexCentres(), ref = S.birdRef || R.abundanceRef(centres, idx);   // shared reference from tools/update_birds.py, so emails and map agree
-      return { centres, current: current.length ? current : null, ref };
+      await ready;
+      const doc = await fetch("data/waterfowl_st.json").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      return { centres: hexCentres(), st: R.prepareST(doc) };
     })();
     return riskModelP;
   }
-  const riskAt = (lat, lon, m) => R.seasonalRisk({ pt: { lat, lon }, birdWeeks: m && m.current, ref: m && m.ref, weather: S.weather, month: new Date().getMonth(), detections: S.wildPts, now: Date.now() });
+  const riskAt = (lat, lon, m) => R.seasonalRisk({ pt: { lat, lon }, st: m && m.st, date: Date.now() });
   ctx.riskModel = riskModel;
   ctx.riskAt = async (lat, lon) => riskAt(lat, lon, await riskModel());
   // every hexagon with its risk and parts, and its outline in lon/lat (for the data export)
@@ -608,7 +605,7 @@ require([
     });
   }
   let riskBuilt = false;
-  reactiveUtils.watch(() => riskLyr.visible, (v) => { if (v && !riskBuilt) { riskBuilt = true; toast("Building seasonal risk…"); buildRisk().then(() => toast("Seasonal risk: " + new Date().toLocaleString("en-US", { month: "long" }))); } });
+  reactiveUtils.watch(() => riskLyr.visible, (v) => { if (v && !riskBuilt) { riskBuilt = true; toast("Building seasonal risk…"); buildRisk().then(async () => { const m = await riskModel(); toast(m.st ? "Seasonal risk (experimental, after Gonnerman et al. 2025): week of " + new Date().toLocaleDateString("en-US", { month: "long", day: "numeric" }) : "Seasonal risk data not available yet"); }); } });
   on("wild", () => { if (riskBuilt) buildRisk(); });
 
   // ---------------- past outbreaks + time slider ----------------
@@ -667,7 +664,7 @@ require([
     { id: "past", t: "Past outbreaks", n: "Released in the last 28 days", sw: "past", ls: () => [histLyr], time: true },
     { sec: "Wildlife" },
     { id: "wb", t: "Wildlife with HPAI", n: "Birds and mammals", sw: "wb", ls: () => [wild], seg: true },
-    { id: "risk", t: "Seasonal risk", n: "Advisory only, not a control zone", sw: "risk", ls: () => [riskLyr], off: true },
+    { id: "risk", t: "Seasonal risk", n: "Experimental · needs validation · advisory. After Gonnerman et al. 2025", sw: "risk", ls: () => [riskLyr], off: true },
     { id: "ebd", t: "Waterfowl sightings", n: S.birdsNote || "eBird · healthy birds", sw: "ebd", ls: () => [birdsLyr], off: true },
     { id: "wf", t: "Waterfowl areas", sw: "wf", ls: () => [env.waterfowl], off: true },
     { id: "nwr", t: "Wildlife refuges", sw: "nwr", ls: () => [env.refuges], off: true },

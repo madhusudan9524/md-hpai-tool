@@ -85,14 +85,28 @@ def download(requests, key, year, code, res, dest):
             f.write(chunk)
 
 
-def summarize(total, scale=1000):
-    """Integers for the JSON file plus the yardstick for 'a typical place': mean and SD of ln(abundance) over the
-    cell-weeks that have waterfowl (Gonnerman et al. used the natural log). Cell-weeks with none are left out of the
-    yardstick, because ln(0) would stretch the spread; the risk code gives those a capped low z-score."""
+def two_week(total):
+    """Mean of each week and the week before it (week 1 pairs with week 52), as the map and the alerts use it."""
     import numpy as np
-    pos = total[total > 0]
-    ref = {"mu": float(np.log(pos).mean()), "sd": float(np.log(pos).std()), "cellweeks": int(pos.size),
-           "share_zero": float(1 - pos.size / total.size), "weeks": int(total.shape[0])}
+    return (total + np.roll(total, 1, axis=0)) / 2
+
+
+TIER_PCT = (75, 90, 97.5)   # Moderate = top 25%, High = top 10%, Very high = top 2.5% of place-weeks in a typical year
+
+
+def summarize(total, scale=1000):
+    """Integers for the JSON file plus the yardstick for 'a typical place'. Following Gonnerman et al. 2025: natural log of
+    abundance averaged over two weeks, z-standardized. mu, sd: over every grid cell and week that has waterfowl (ln(0) is
+    undefined, so cell-weeks without any are left out and scored z = -3). cut: the z-scores at the 75th, 90th and 97.5th
+    percentiles of the same values, used as the tier cut-offs (no thresholds are published)."""
+    import numpy as np
+    tw = two_week(total)
+    pos = tw[tw > 0]
+    lv = np.log(pos)
+    mu, sd = float(lv.mean()), float(lv.std())
+    cut = [round(float((np.percentile(lv, q) - mu) / sd), 4) for q in TIER_PCT]
+    ref = {"mu": mu, "sd": sd, "cut": cut, "pct": list(TIER_PCT), "cellweeks": int(pos.size),
+           "share_zero": float(1 - pos.size / tw.size), "weeks": int(total.shape[0])}
     return np.rint(total * scale).astype("int32"), ref
 
 
