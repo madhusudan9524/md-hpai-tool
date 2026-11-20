@@ -1,7 +1,27 @@
 {
- "updated": "2026-11-20T03:02:00+00:00",
+ "updated": "2026-11-20T19:05:31+00:00",
  "wild": [],
  "notices": [
+  {
+   "title": "DNREC Announces First Fall 2026 Avian Influenza Cases Detected in Delaware Migratory Waterfowl",
+   "url": "https://news.delaware.gov/2026/11/20/dnrec-announces-first-fall-2026-avian-influenza-cases-detected-in-delaware-migratory-waterfowl/",
+   "date": "2026-11-20",
+   "source": "Delaware Department of Agriculture",
+   "kind": "wild",
+   "status": null,
+   "county": "Kent",
+   "state": "Delaware"
+  },
+  {
+   "title": "Delaware announces presumptive positive avian influenza case in Sussex County commercial flock",
+   "url": "https://news.delaware.gov/2026/11/20/delaware-announces-presumptive-positive-avian-influenza-case-in-sussex-county-commercial-flock/",
+   "date": "2026-11-20",
+   "source": "Delaware Department of Agriculture",
+   "kind": "commercial",
+   "status": "preliminary",
+   "county": "Sussex",
+   "state": "Delaware"
+  },
   {
    "date": "2026-11-16",
    "source": "Delaware Department of Agriculture",
@@ -36,6 +56,17 @@
   }
  ],
  "commercial": [
+  {
+   "id": "auto-085a8f12",
+   "state": "Delaware",
+   "county": "Sussex",
+   "date": "2026-11-20",
+   "flock": "Commercial flock",
+   "status": "preliminary",
+   "source": "Delaware Department of Agriculture",
+   "url": "https://news.delaware.gov/2026/11/20/delaware-announces-presumptive-positive-avian-influenza-case-in-sussex-county-commercial-flock/",
+   "auto": true
+  },
   {
    "id": "MD-2026-11-11-worcester",
    "state": "Maryland",
