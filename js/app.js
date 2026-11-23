@@ -190,6 +190,12 @@ require([
   });
   ctx.ready = ready;
   ctx.inArea = (pt) => !S.clearGeom || geometryEngine.contains(S.clearGeom, pt);
+  // Wild-bird HPAI reported in a county by an agency news release (MDA, DDA/DNREC, VDACS) in the last 60 days.
+  // Fills the gap until USDA APHIS lists the birds with coordinates. Newest first.
+  const normCounty = (c) => String(c || "").toLowerCase().replace(/\s+county$/, "").replace(/[^a-z]/g, "");
+  ctx.wildNews = (cty, days = 60) => !cty ? [] : ((S.live && S.live.notices) || []).filter((n) => n.kind === "wild"
+    && normCounty(n.county) === normCounty(cty.name) && String(n.state || "").toLowerCase() === String(cty.state || "").toLowerCase()
+    && (Date.now() - Date.parse(n.date + "T12:00:00")) / DAY <= days).sort((a, b) => (a.date < b.date ? 1 : -1));
   ctx.countyAt = (pt) => S.counties.find((c) => geometryEngine.contains(c.geom, pt)) || null;
 
   // county names fade out as you zoom in; surveillance zones fade in (public)
@@ -488,6 +494,7 @@ require([
     const z = await ctx.zoneAt(pt), cty = ctx.countyAt(wmu.geographicToWebMercator(pt.spatialReference.isWGS84 ? pt : wmu.webMercatorToGeographic(pt)));
     const aff = cty && S.affected.find((a) => a.county === cty.name && a.state === cty.state);
     const wildN = ctx.wildNear(pt, 10, 28).length, wildY = ctx.wildNear(pt, 10, 365).length;
+    const wnews = ctx.wildNews(cty), wn = wnews[0];
     const g = pt.spatialReference.isWGS84 ? pt : wmu.webMercatorToGeographic(pt);
     const rm = await Promise.race([riskModel(), new Promise((r) => setTimeout(() => r(null), 3000))]);   // the card never waits long for the risk model
     const sr = riskAt(g.latitude, g.longitude, rm);
@@ -501,6 +508,7 @@ require([
     if (smp) chips.push(`<i class="c amber">Sample</i>`);
     if (wildN) chips.push(`<i class="c teal">${wildN} wild bird${wildN === 1 ? "" : "s"} · 4 wk</i>`);
     else if (wildY) chips.push(`<i class="c teal">${wildY} wild bird${wildY === 1 ? "" : "s"} · 12 mo</i>`);
+    if (wn) chips.push(`<i class="c teal">Wild-bird HPAI in county · ${fmtShort(Date.parse(wn.date + "T12:00:00"))}</i>`);
     if (sr.tier) chips.push(`<i class="c violet">${R.TIERS[sr.tier]} seasonal risk</i>`);
     if (hist.n) chips.push(`<i class="c">${hist.sample ? "Sample past area" : "Past outbreak area"} · ${fmtShort(hist.last)}</i>`);
     if (place) chips.push(`<i class="c green">${esc(place)}</i>`);
@@ -513,6 +521,8 @@ require([
       ${since ? `<div class="r"><span>Zone since</span><b>${fmtDate(since)}</b></div>` : ""}
       ${aff ? `<div class="r"><span>County status</span><b>${aff.items.every((i) => i.sample) ? "Sample zone" : aff.items.some((i) => i.status === "preliminary") ? "Preliminary detection" : "HPAI reported"} · ${fmtShort(aff.since)}</b></div>` : ""}
       <div class="r"><span>Wildlife within 6 mi</span><b>${wildN} in 4 wk · ${wildY} in 12 mo</b></div>
+      ${wn ? `<div class="r"><span>Wild birds, agency news</span><b><a href="${esc(wn.url)}" target="_blank" rel="noopener">${esc(wn.county)} ${cty.state === "Maryland" ? "County" : "Co."} · ${fmtShort(Date.parse(wn.date + "T12:00:00"))}</a></b></div>
+      <p class="hint">Reported by ${esc(wn.source || "the state")}${wnews.length > 1 ? ` (${wnews.length} releases in 60 days)` : ""}; county only, not yet in the USDA list.</p>` : ""}
       <div class="r"><span>Seasonal risk <small>(experimental)</small></span><b>${sr.hasData ? `${R.TIERS[sr.tier]} · ${sr.value.toFixed(1)}× typical` : "Not available"}</b></div>
       <p class="hint">${RISK_NOTE}</p>
       <div class="r"><span>Past outbreaks</span><b>${hist.n ? hist.n + " · last " + fmtShort(hist.last) : "None on record"}</b></div>
