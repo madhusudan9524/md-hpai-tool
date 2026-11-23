@@ -14,10 +14,34 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - name: Fetch official sources and rebuild data/detections.json
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}   # optional: AI reading of releases; keyword rules without it
         run: python tools/update_detections.py
+      - name: Waterfowl sightings from eBird (only if EBIRD_API_KEY is set)
+        env:
+          EBIRD_API_KEY: ${{ secrets.EBIRD_API_KEY }}
+        run: python tools/update_birds.py || echo "birds update failed"
+      - name: Winter weather for the seasonal risk model (Open-Meteo, no key needed)
+        run: python tools/update_weather.py || echo "weather update failed"
+      - name: Send email alerts (only if the alert secrets are set)
+        env:
+          ARCGIS_PORTAL: ${{ secrets.ARCGIS_PORTAL }}
+          ARCGIS_USER: ${{ secrets.ARCGIS_USER }}
+          ARCGIS_PASSWORD: ${{ secrets.ARCGIS_PASSWORD }}
+          ALERTS_LAYER: ${{ secrets.ALERTS_LAYER }}
+          AREAS_LAYER: ${{ secrets.AREAS_LAYER }}
+          DECL_LAYER: ${{ secrets.DECL_LAYER }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          APP_URL: ${{ secrets.APP_URL }}
+        run: python tools/send_alerts.py
       - name: Commit if changed
         run: |
           git config user.name "hpai-data-bot"
           git config user.email "hpai-data-bot@users.noreply.github.com"
-          git add data/detections.json
+          # one file at a time: a file that doesn't exist yet (e.g. alerts_state.json before alerts are set up) must not stop the others
+          for f in data/detections.json data/birds.json data/birds_weeks.json data/weather.json data/weather_normals.json data/alerts_state.json; do [ -f "$f" ] && git add "$f"; done
           git diff --cached --quiet || (git commit -m "Update HPAI detections $(date -u +%F\ %H:%M) UTC" && git push)
