@@ -1,7 +1,7 @@
 {
  "status": "offseason",
  "note": "The winter weather factor applies December to April.",
- "updated": "2026-11-25T20:29:18+00:00",
+ "updated": "2026-11-26T04:07:34+00:00",
  "source": "Open-Meteo historical weather (ERA5), CC BY 4.0",
  "method": "Maryland average of 6 points; this winter so far vs the same days of the 1991-2020 winters"
 }
