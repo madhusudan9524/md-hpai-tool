@@ -1,6 +1,117 @@
 {
- "updated": "2026-11-27T04:08:11+00:00",
- "wild": [],
+ "updated": "2026-11-27T19:56:01+00:00",
+ "wild": [
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.56256,
+   "lat": 39.06991,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.53376,
+   "lat": 39.06163,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.51972,
+   "lat": 39.11239,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.5892,
+   "lat": 39.0781,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.561,
+   "lat": 39.05767,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.58776,
+   "lat": 39.06091,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.52764,
+   "lat": 39.09646,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.5478,
+   "lat": 39.07972,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.54012,
+   "lat": 39.07216,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.59556,
+   "lat": 39.08728,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.55524,
+   "lat": 39.06388,
+   "source": "USDA APHIS"
+  }
+ ],
  "notices": [
   {
    "title": "DNREC Announces First Fall 2026 Avian Influenza Cases Detected in Delaware Migratory Waterfowl",
@@ -13,7 +124,7 @@
    "state": "Delaware",
    "flock_type": null,
    "birds": null,
-   "summary": "DNREC announced Delaware's first fall 2026 HPAI detection in migratory waterfowl, found by USDA-APHIS surveillance at Little Creek Wildlife Area.",
+   "summary": "HPAI was detected in migratory waterfowl at Little Creek Wildlife Area in eastern Kent County during USDA-APHIS surveillance in early fall 2026.",
    "method": "ai"
   },
   {
@@ -27,7 +138,7 @@
    "state": "Delaware",
    "flock_type": "Commercial poultry",
    "birds": null,
-   "summary": "Delaware announced a presumptive positive H5 HPAI case in a Sussex County commercial poultry flock, which is being depopulated.",
+   "summary": "Delaware reported a presumptive positive H5 HPAI case in a Sussex County commercial poultry flock, which is being depopulated.",
    "method": "ai"
   },
   {
@@ -41,7 +152,7 @@
    "state": "Delaware",
    "flock_type": null,
    "birds": null,
-   "summary": "Delaware Department of Agriculture urges poultry safety and biosecurity as avian influenza risk rises with the 2026-27 migratory season.",
+   "summary": "Delaware Department of Agriculture urges residents to practice poultry safety as avian influenza risk rises with colder weather and migratory season.",
    "method": "ai"
   },
   {
@@ -55,7 +166,7 @@
    "state": "Maryland",
    "flock_type": "Commercial broiler",
    "birds": null,
-   "summary": "Preliminary state testing detected H5N1 avian influenza at a commercial broiler operation in Worcester County; NVSL confirmation pending.",
+   "summary": "Preliminary state testing found HPAI H5N1 at a commercial broiler operation in Worcester County; NVSL confirmation pending, flock being depopulated.",
    "method": "ai"
   },
   {
@@ -69,7 +180,7 @@
    "state": "Maryland",
    "flock_type": "Commercial broiler",
    "birds": null,
-   "summary": "State lab preliminarily detected H5N1 HPAI at a Worcester County commercial broiler operation; the property is quarantined and the flock is being depopulated.",
+   "summary": "State lab testing preliminarily detected H5N1 avian influenza at a commercial broiler operation in Worcester County; the flock is being depopulated.",
    "method": "ai"
   }
  ],
@@ -82,7 +193,7 @@
    "flock": "Commercial poultry",
    "birds": null,
    "status": "preliminary",
-   "status_text": "Delaware announced a presumptive positive H5 HPAI case in a Sussex County commercial poultry flock, which is being depopulated.",
+   "status_text": "Delaware reported a presumptive positive H5 HPAI case in a Sussex County commercial poultry flock, which is being depopulated.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2026/11/20/delaware-announces-presumptive-positive-avian-influenza-case-in-sussex-county-commercial-flock/",
    "auto": true,
@@ -96,7 +207,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "State lab preliminarily detected H5N1 HPAI at a Worcester County commercial broiler operation; the property is quarantined and the flock is being depopulated.",
+   "status_text": "State lab testing preliminarily detected H5N1 avian influenza at a commercial broiler operation in Worcester County; the flock is being depopulated.",
    "source": "Maryland Department of Agriculture",
    "url": "https://mda.maryland.gov/news/press-releases/preliminary-testing-confirms-highly-pathogenic-avian-influenza-worcester-county?fbclid=IwY2xjawVi9GpleHRuA2FlbQIxMABwZG9mA2JyaWQRMTRaSndTUDdRN2h4WEZjeTRzcnRjBmFwcF9pZA81MTQ3NzE1NjkyMjgwNjEAAR8OstxQdzph0aKLygKbz7Edv-8IQ-LOUaqj4h_8ceOKpBvkOpMNnwCnbZ6Y1w_aem_zWSIvOWaoBl-NvzR_oDUng",
    "auto": true,
@@ -108,13 +219,123 @@
  ],
  "wild_year": [
   {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.56256,
+   "lat": 39.06991,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.53376,
+   "lat": 39.06163,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.51972,
+   "lat": 39.11239,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.5892,
+   "lat": 39.0781,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.561,
+   "lat": 39.05767,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.58776,
+   "lat": 39.06091,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.52764,
+   "lat": 39.09646,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.5478,
+   "lat": 39.07972,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.54012,
+   "lat": 39.07216,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.59556,
+   "lat": 39.08728,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.55524,
+   "lat": 39.06388,
+   "source": "USDA APHIS"
+  },
+  {
    "state": "Maryland",
    "county": "Anne Arundel",
    "species": "Turkey vulture",
    "date": "2026-08-10",
    "strain": "EA H5",
-   "lon": -76.5994,
-   "lat": 38.94219,
+   "lon": -76.62916,
+   "lat": 38.98341,
    "source": "USDA APHIS"
   },
   {
@@ -123,8 +344,8 @@
    "species": "Black vulture",
    "date": "2026-04-30",
    "strain": "EA/AM H5N1",
-   "lon": -76.35346,
-   "lat": 39.49035,
+   "lon": -76.26358,
+   "lat": 39.4881,
    "source": "USDA APHIS"
   },
   {
@@ -133,8 +354,8 @@
    "species": "Black vulture",
    "date": "2026-04-30",
    "strain": "EA/AM H5N1",
-   "lon": -76.34254,
-   "lat": 39.50529,
+   "lon": -76.3447,
+   "lat": 39.49764,
    "source": "USDA APHIS"
   },
   {
@@ -143,8 +364,8 @@
    "species": "Bald eagle",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -77.1959,
-   "lat": 39.13741,
+   "lon": -77.14694,
+   "lat": 39.17845,
    "source": "USDA APHIS"
   },
   {
@@ -153,8 +374,8 @@
    "species": "Bald eagle",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.49244,
-   "lat": 38.50604,
+   "lon": -76.56228,
+   "lat": 38.50973,
    "source": "USDA APHIS"
   },
   {
@@ -163,8 +384,8 @@
    "species": "Great horned owl",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.1204,
-   "lat": 39.05329,
+   "lon": -76.06712,
+   "lat": 39.05446,
    "source": "USDA APHIS"
   },
   {
@@ -173,8 +394,8 @@
    "species": "Red-shouldered hawk",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -77.2427,
-   "lat": 39.15505,
+   "lon": -77.24558,
+   "lat": 39.13669,
    "source": "USDA APHIS"
   },
   {
@@ -183,8 +404,8 @@
    "species": "Red-tailed hawk",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.19304,
-   "lat": 38.75796,
+   "lon": -76.10472,
+   "lat": 38.78181,
    "source": "USDA APHIS"
   },
   {
@@ -193,8 +414,8 @@
    "species": "Red-shouldered hawk",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.81964,
-   "lat": 38.82925,
+   "lon": -76.922,
+   "lat": 38.82412,
    "source": "USDA APHIS"
   },
   {
@@ -203,8 +424,8 @@
    "species": "Red-shouldered hawk",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -77.07054,
-   "lat": 39.54244,
+   "lon": -77.09742,
+   "lat": 39.50707,
    "source": "USDA APHIS"
   },
   {
@@ -213,8 +434,8 @@
    "species": "Turkey vulture",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.92672,
-   "lat": 39.27274,
+   "lon": -77.00004,
+   "lat": 39.21604,
    "source": "USDA APHIS"
   },
   {
@@ -223,8 +444,8 @@
    "species": "Canada goose",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.64476,
-   "lat": 38.98107,
+   "lon": -76.62892,
+   "lat": 38.96973,
    "source": "USDA APHIS"
   },
   {
@@ -233,8 +454,8 @@
    "species": "Fish crow",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.88576,
-   "lat": 38.86246,
+   "lon": -76.83068,
+   "lat": 38.83429,
    "source": "USDA APHIS"
   },
   {
@@ -243,8 +464,8 @@
    "species": "Canada goose",
    "date": "2026-03-09",
    "strain": "EA/AM H5N1",
-   "lon": -76.19556,
-   "lat": 38.76975,
+   "lon": -76.12932,
+   "lat": 38.77569,
    "source": "USDA APHIS"
   },
   {
@@ -253,8 +474,8 @@
    "species": "Canada goose",
    "date": "2026-03-09",
    "strain": "EA/AM H5N1",
-   "lon": -77.03142,
-   "lat": 39.54739,
+   "lon": -76.99506,
+   "lat": 39.54991,
    "source": "USDA APHIS"
   },
   {
@@ -263,8 +484,8 @@
    "species": "Canada goose",
    "date": "2026-03-03",
    "strain": "EA/AM H5N1",
-   "lon": -76.10552,
-   "lat": 39.18443,
+   "lon": -76.0292,
+   "lat": 39.17381,
    "source": "USDA APHIS"
   },
   {
@@ -273,8 +494,8 @@
    "species": "Canada goose",
    "date": "2026-03-03",
    "strain": "EA/AM H5N1",
-   "lon": -76.09832,
-   "lat": 39.09118,
+   "lon": -76.11848,
+   "lat": 39.09703,
    "source": "USDA APHIS"
   },
   {
@@ -283,8 +504,8 @@
    "species": "Canada goose",
    "date": "2026-03-03",
    "strain": "EA/AM H5N1",
-   "lon": -76.08884,
-   "lat": 39.15293,
+   "lon": -76.03832,
+   "lat": 39.15023,
    "source": "USDA APHIS"
   },
   {
@@ -293,8 +514,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.36774,
-   "lat": 39.53409,
+   "lon": -76.28146,
+   "lat": 39.53544,
    "source": "USDA APHIS"
   },
   {
@@ -303,8 +524,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.31878,
-   "lat": 39.53256,
+   "lon": -76.30666,
+   "lat": 39.53562,
    "source": "USDA APHIS"
   },
   {
@@ -313,8 +534,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.30258,
-   "lat": 39.53238,
+   "lon": -76.31506,
+   "lat": 39.52032,
    "source": "USDA APHIS"
   },
   {
@@ -323,8 +544,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.28698,
-   "lat": 39.50997,
+   "lon": -76.36858,
+   "lat": 39.48522,
    "source": "USDA APHIS"
   },
   {
@@ -333,8 +554,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.62832,
-   "lat": 38.23239,
+   "lon": -76.55716,
+   "lat": 38.22942,
    "source": "USDA APHIS"
   },
   {
@@ -343,8 +564,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.97534,
-   "lat": 38.44024,
+   "lon": -77.0213,
+   "lat": 38.45716,
    "source": "USDA APHIS"
   },
   {
@@ -353,8 +574,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.30894,
-   "lat": 39.54012,
+   "lon": -76.2877,
+   "lat": 39.51879,
    "source": "USDA APHIS"
   },
   {
@@ -363,8 +584,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.55188,
-   "lat": 38.25948,
+   "lon": -76.63684,
+   "lat": 38.24391,
    "source": "USDA APHIS"
   },
   {
@@ -373,8 +594,8 @@
    "species": "Bald eagle",
    "date": "2026-02-03",
    "strain": "EA/AM H5N1",
-   "lon": -76.53868,
-   "lat": 38.30718,
+   "lon": -76.588,
+   "lat": 38.23851,
    "source": "USDA APHIS"
   },
   {
@@ -383,8 +604,8 @@
    "species": "Bald eagle",
    "date": "2026-02-03",
    "strain": "EA/AM H5N1",
-   "lon": -77.22026,
-   "lat": 39.18349,
+   "lon": -77.24006,
+   "lat": 39.13291,
    "source": "USDA APHIS"
   },
   {
@@ -393,8 +614,8 @@
    "species": "Canada goose",
    "date": "2026-02-03",
    "strain": "EA/AM H5N1",
-   "lon": -77.20574,
-   "lat": 39.11887,
+   "lon": -77.1767,
+   "lat": 39.12004,
    "source": "USDA APHIS"
   },
   {
@@ -403,8 +624,8 @@
    "species": "Wood duck",
    "date": "2026-01-26",
    "strain": "EA H5",
-   "lon": -76.01538,
-   "lat": 38.4202,
+   "lon": -75.98622,
+   "lat": 38.38663,
    "source": "USDA APHIS"
   },
   {
@@ -413,8 +634,8 @@
    "species": "Wood duck",
    "date": "2026-01-26",
    "strain": "EA H5",
-   "lon": -76.03758,
-   "lat": 38.38051,
+   "lon": -76.07274,
+   "lat": 38.37628,
    "source": "USDA APHIS"
   },
   {
@@ -423,8 +644,8 @@
    "species": "Canada goose",
    "date": "2026-01-16",
    "strain": "EA/AM H5N1",
-   "lon": -75.64708,
-   "lat": 38.43043,
+   "lon": -75.61264,
+   "lat": 38.35357,
    "source": "USDA APHIS"
   },
   {
@@ -433,8 +654,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA/AM H5N1",
-   "lon": -75.95946,
-   "lat": 38.42677,
+   "lon": -76.04262,
+   "lat": 38.40724,
    "source": "USDA APHIS"
   },
   {
@@ -443,8 +664,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA H5",
-   "lon": -75.99006,
-   "lat": 38.41741,
+   "lon": -76.04634,
+   "lat": 38.43964,
    "source": "USDA APHIS"
   },
   {
@@ -453,8 +674,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA H5",
-   "lon": -75.97242,
-   "lat": 38.37817,
+   "lon": -75.98766,
+   "lat": 38.36458,
    "source": "USDA APHIS"
   },
   {
@@ -463,8 +684,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA H5",
-   "lon": -76.0455,
-   "lat": 38.4355,
+   "lon": -76.01382,
+   "lat": 38.43091,
    "source": "USDA APHIS"
   },
   {
@@ -473,8 +694,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA H5",
-   "lon": -76.06446,
-   "lat": 38.37979,
+   "lon": -75.98958,
+   "lat": 38.40616,
    "source": "USDA APHIS"
   },
   {
@@ -483,8 +704,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA H5",
-   "lon": -76.00866,
-   "lat": 38.40139,
+   "lon": -76.00602,
+   "lat": 38.368,
    "source": "USDA APHIS"
   },
   {
@@ -493,8 +714,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA H5",
-   "lon": -76.02486,
-   "lat": 38.39374,
+   "lon": -75.96618,
+   "lat": 38.40697,
    "source": "USDA APHIS"
   },
   {
@@ -503,8 +724,8 @@
    "species": "Northern shoveler",
    "date": "2026-01-06",
    "strain": "EA/AM H5N1",
-   "lon": -75.5868,
-   "lat": 39.05326,
+   "lon": -75.56856,
+   "lat": 39.11284,
    "source": "USDA APHIS"
   },
   {
@@ -513,8 +734,8 @@
    "species": "American black duck",
    "date": "2026-01-06",
    "strain": "EA/AM H5N1",
-   "lon": -75.51912,
-   "lat": 39.10924,
+   "lon": -75.52488,
+   "lat": 39.09763,
    "source": "USDA APHIS"
   },
   {
@@ -523,8 +744,8 @@
    "species": "Gadwall",
    "date": "2026-01-06",
    "strain": "EA/AM H5N1",
-   "lon": -75.5934,
-   "lat": 39.05317,
+   "lon": -75.57048,
+   "lat": 39.13111,
    "source": "USDA APHIS"
   },
   {
@@ -533,8 +754,8 @@
    "species": "Bald eagle",
    "date": "2025-12-23",
    "strain": "EA H5",
-   "lon": -76.29994,
-   "lat": 39.47901,
+   "lon": -76.27486,
+   "lat": 39.47865,
    "source": "USDA APHIS"
   },
   {
@@ -543,8 +764,8 @@
    "species": "Bald eagle",
    "date": "2025-12-23",
    "strain": "EA H5N1",
-   "lon": -75.4204,
-   "lat": 38.69067,
+   "lon": -75.43,
+   "lat": 38.70714,
    "source": "USDA APHIS"
   },
   {
@@ -553,8 +774,8 @@
    "species": "Black vulture",
    "date": "2025-12-16",
    "strain": "EA/AM H5N1",
-   "lon": -76.67656,
-   "lat": 38.96055,
+   "lon": -76.67392,
+   "lat": 38.97126,
    "source": "USDA APHIS"
   },
   {
@@ -563,8 +784,8 @@
    "species": "Black vulture",
    "date": "2025-12-16",
    "strain": "EA/AM H5N1",
-   "lon": -76.54248,
-   "lat": 38.56877,
+   "lon": -76.59936,
+   "lat": 38.56157,
    "source": "USDA APHIS"
   },
   {
@@ -573,8 +794,8 @@
    "species": "Black vulture",
    "date": "2025-12-16",
    "strain": "EA/AM H5N1",
-   "lon": -76.62724,
-   "lat": 38.94876,
+   "lon": -76.657,
+   "lat": 38.94318,
    "source": "USDA APHIS"
   },
   {
@@ -583,8 +804,8 @@
    "species": "Black vulture",
    "date": "2025-12-16",
    "strain": "EA/AM H5N1",
-   "lon": -76.56076,
-   "lat": 38.9826,
+   "lon": -76.65424,
+   "lat": 39.01491,
    "source": "USDA APHIS"
   },
   {
@@ -593,14 +814,14 @@
    "species": "Snow goose",
    "date": "2025-12-15",
    "strain": "EA/AM H5N1",
-   "lon": -75.48216,
-   "lat": 39.12481,
+   "lon": -75.48156,
+   "lat": 39.09898,
    "source": "USDA APHIS"
   }
  ],
  "season": [
   1415,
-  1305,
+  1306,
   555,
   271,
   140,
@@ -609,18 +830,128 @@
   111,
   384,
   306,
-  659,
+  673,
   844
  ],
  "wild_all": [
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.56256,
+   "lat": 39.06991,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.53376,
+   "lat": 39.06163,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.51972,
+   "lat": 39.11239,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.5892,
+   "lat": 39.0781,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.561,
+   "lat": 39.05767,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.58776,
+   "lat": 39.06091,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.52764,
+   "lat": 39.09646,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.5478,
+   "lat": 39.07972,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.54012,
+   "lat": 39.07216,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.59556,
+   "lat": 39.08728,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Delaware",
+   "county": "Kent",
+   "species": "Green-winged teal",
+   "date": "2026-11-18",
+   "strain": "EA H5",
+   "lon": -75.55524,
+   "lat": 39.06388,
+   "source": "USDA APHIS"
+  },
   {
    "state": "Maryland",
    "county": "Anne Arundel",
    "species": "Turkey vulture",
    "date": "2026-08-10",
    "strain": "EA H5",
-   "lon": -76.5994,
-   "lat": 38.94219,
+   "lon": -76.62916,
+   "lat": 38.98341,
    "source": "USDA APHIS"
   },
   {
@@ -629,8 +960,8 @@
    "species": "Black vulture",
    "date": "2026-04-30",
    "strain": "EA/AM H5N1",
-   "lon": -76.35346,
-   "lat": 39.49035,
+   "lon": -76.26358,
+   "lat": 39.4881,
    "source": "USDA APHIS"
   },
   {
@@ -639,8 +970,8 @@
    "species": "Black vulture",
    "date": "2026-04-30",
    "strain": "EA/AM H5N1",
-   "lon": -76.34254,
-   "lat": 39.50529,
+   "lon": -76.3447,
+   "lat": 39.49764,
    "source": "USDA APHIS"
   },
   {
@@ -649,8 +980,8 @@
    "species": "Bald eagle",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -77.1959,
-   "lat": 39.13741,
+   "lon": -77.14694,
+   "lat": 39.17845,
    "source": "USDA APHIS"
   },
   {
@@ -659,8 +990,8 @@
    "species": "Bald eagle",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.49244,
-   "lat": 38.50604,
+   "lon": -76.56228,
+   "lat": 38.50973,
    "source": "USDA APHIS"
   },
   {
@@ -669,8 +1000,8 @@
    "species": "Great horned owl",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.1204,
-   "lat": 39.05329,
+   "lon": -76.06712,
+   "lat": 39.05446,
    "source": "USDA APHIS"
   },
   {
@@ -679,8 +1010,8 @@
    "species": "Red-shouldered hawk",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -77.2427,
-   "lat": 39.15505,
+   "lon": -77.24558,
+   "lat": 39.13669,
    "source": "USDA APHIS"
   },
   {
@@ -689,8 +1020,8 @@
    "species": "Red-tailed hawk",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.19304,
-   "lat": 38.75796,
+   "lon": -76.10472,
+   "lat": 38.78181,
    "source": "USDA APHIS"
   },
   {
@@ -699,8 +1030,8 @@
    "species": "Red-shouldered hawk",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.81964,
-   "lat": 38.82925,
+   "lon": -76.922,
+   "lat": 38.82412,
    "source": "USDA APHIS"
   },
   {
@@ -709,8 +1040,8 @@
    "species": "Red-shouldered hawk",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -77.07054,
-   "lat": 39.54244,
+   "lon": -77.09742,
+   "lat": 39.50707,
    "source": "USDA APHIS"
   },
   {
@@ -719,8 +1050,8 @@
    "species": "Turkey vulture",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.92672,
-   "lat": 39.27274,
+   "lon": -77.00004,
+   "lat": 39.21604,
    "source": "USDA APHIS"
   },
   {
@@ -729,8 +1060,8 @@
    "species": "Canada goose",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.64476,
-   "lat": 38.98107,
+   "lon": -76.62892,
+   "lat": 38.96973,
    "source": "USDA APHIS"
   },
   {
@@ -739,8 +1070,8 @@
    "species": "Fish crow",
    "date": "2026-04-06",
    "strain": "EA/AM H5N1",
-   "lon": -76.88576,
-   "lat": 38.86246,
+   "lon": -76.83068,
+   "lat": 38.83429,
    "source": "USDA APHIS"
   },
   {
@@ -749,8 +1080,8 @@
    "species": "Canada goose",
    "date": "2026-03-09",
    "strain": "EA/AM H5N1",
-   "lon": -76.19556,
-   "lat": 38.76975,
+   "lon": -76.12932,
+   "lat": 38.77569,
    "source": "USDA APHIS"
   },
   {
@@ -759,8 +1090,8 @@
    "species": "Canada goose",
    "date": "2026-03-09",
    "strain": "EA/AM H5N1",
-   "lon": -77.03142,
-   "lat": 39.54739,
+   "lon": -76.99506,
+   "lat": 39.54991,
    "source": "USDA APHIS"
   },
   {
@@ -769,8 +1100,8 @@
    "species": "Canada goose",
    "date": "2026-03-03",
    "strain": "EA/AM H5N1",
-   "lon": -76.10552,
-   "lat": 39.18443,
+   "lon": -76.0292,
+   "lat": 39.17381,
    "source": "USDA APHIS"
   },
   {
@@ -779,8 +1110,8 @@
    "species": "Canada goose",
    "date": "2026-03-03",
    "strain": "EA/AM H5N1",
-   "lon": -76.09832,
-   "lat": 39.09118,
+   "lon": -76.11848,
+   "lat": 39.09703,
    "source": "USDA APHIS"
   },
   {
@@ -789,8 +1120,8 @@
    "species": "Canada goose",
    "date": "2026-03-03",
    "strain": "EA/AM H5N1",
-   "lon": -76.08884,
-   "lat": 39.15293,
+   "lon": -76.03832,
+   "lat": 39.15023,
    "source": "USDA APHIS"
   },
   {
@@ -799,8 +1130,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.36774,
-   "lat": 39.53409,
+   "lon": -76.28146,
+   "lat": 39.53544,
    "source": "USDA APHIS"
   },
   {
@@ -809,8 +1140,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.31878,
-   "lat": 39.53256,
+   "lon": -76.30666,
+   "lat": 39.53562,
    "source": "USDA APHIS"
   },
   {
@@ -819,8 +1150,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.30258,
-   "lat": 39.53238,
+   "lon": -76.31506,
+   "lat": 39.52032,
    "source": "USDA APHIS"
   },
   {
@@ -829,8 +1160,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.28698,
-   "lat": 39.50997,
+   "lon": -76.36858,
+   "lat": 39.48522,
    "source": "USDA APHIS"
   },
   {
@@ -839,8 +1170,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.62832,
-   "lat": 38.23239,
+   "lon": -76.55716,
+   "lat": 38.22942,
    "source": "USDA APHIS"
   },
   {
@@ -849,8 +1180,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.97534,
-   "lat": 38.44024,
+   "lon": -77.0213,
+   "lat": 38.45716,
    "source": "USDA APHIS"
   },
   {
@@ -859,8 +1190,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.30894,
-   "lat": 39.54012,
+   "lon": -76.2877,
+   "lat": 39.51879,
    "source": "USDA APHIS"
   },
   {
@@ -869,8 +1200,8 @@
    "species": "Black vulture",
    "date": "2026-02-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.55188,
-   "lat": 38.25948,
+   "lon": -76.63684,
+   "lat": 38.24391,
    "source": "USDA APHIS"
   },
   {
@@ -879,8 +1210,8 @@
    "species": "Bald eagle",
    "date": "2026-02-03",
    "strain": "EA/AM H5N1",
-   "lon": -76.53868,
-   "lat": 38.30718,
+   "lon": -76.588,
+   "lat": 38.23851,
    "source": "USDA APHIS"
   },
   {
@@ -889,8 +1220,8 @@
    "species": "Bald eagle",
    "date": "2026-02-03",
    "strain": "EA/AM H5N1",
-   "lon": -77.22026,
-   "lat": 39.18349,
+   "lon": -77.24006,
+   "lat": 39.13291,
    "source": "USDA APHIS"
   },
   {
@@ -899,8 +1230,8 @@
    "species": "Canada goose",
    "date": "2026-02-03",
    "strain": "EA/AM H5N1",
-   "lon": -77.20574,
-   "lat": 39.11887,
+   "lon": -77.1767,
+   "lat": 39.12004,
    "source": "USDA APHIS"
   },
   {
@@ -909,8 +1240,8 @@
    "species": "Wood duck",
    "date": "2026-01-26",
    "strain": "EA H5",
-   "lon": -76.01538,
-   "lat": 38.4202,
+   "lon": -75.98622,
+   "lat": 38.38663,
    "source": "USDA APHIS"
   },
   {
@@ -919,8 +1250,8 @@
    "species": "Wood duck",
    "date": "2026-01-26",
    "strain": "EA H5",
-   "lon": -76.03758,
-   "lat": 38.38051,
+   "lon": -76.07274,
+   "lat": 38.37628,
    "source": "USDA APHIS"
   },
   {
@@ -929,8 +1260,8 @@
    "species": "Canada goose",
    "date": "2026-01-16",
    "strain": "EA/AM H5N1",
-   "lon": -75.64708,
-   "lat": 38.43043,
+   "lon": -75.61264,
+   "lat": 38.35357,
    "source": "USDA APHIS"
   },
   {
@@ -939,8 +1270,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA/AM H5N1",
-   "lon": -75.95946,
-   "lat": 38.42677,
+   "lon": -76.04262,
+   "lat": 38.40724,
    "source": "USDA APHIS"
   },
   {
@@ -949,8 +1280,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA H5",
-   "lon": -75.99006,
-   "lat": 38.41741,
+   "lon": -76.04634,
+   "lat": 38.43964,
    "source": "USDA APHIS"
   },
   {
@@ -959,8 +1290,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA H5",
-   "lon": -75.97242,
-   "lat": 38.37817,
+   "lon": -75.98766,
+   "lat": 38.36458,
    "source": "USDA APHIS"
   },
   {
@@ -969,8 +1300,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA H5",
-   "lon": -76.0455,
-   "lat": 38.4355,
+   "lon": -76.01382,
+   "lat": 38.43091,
    "source": "USDA APHIS"
   },
   {
@@ -979,8 +1310,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA H5",
-   "lon": -76.06446,
-   "lat": 38.37979,
+   "lon": -75.98958,
+   "lat": 38.40616,
    "source": "USDA APHIS"
   },
   {
@@ -989,8 +1320,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA H5",
-   "lon": -76.00866,
-   "lat": 38.40139,
+   "lon": -76.00602,
+   "lat": 38.368,
    "source": "USDA APHIS"
   },
   {
@@ -999,8 +1330,8 @@
    "species": "Wood duck",
    "date": "2026-01-16",
    "strain": "EA H5",
-   "lon": -76.02486,
-   "lat": 38.39374,
+   "lon": -75.96618,
+   "lat": 38.40697,
    "source": "USDA APHIS"
   },
   {
@@ -1009,8 +1340,8 @@
    "species": "Northern shoveler",
    "date": "2026-01-06",
    "strain": "EA/AM H5N1",
-   "lon": -75.5868,
-   "lat": 39.05326,
+   "lon": -75.56856,
+   "lat": 39.11284,
    "source": "USDA APHIS"
   },
   {
@@ -1019,8 +1350,8 @@
    "species": "American black duck",
    "date": "2026-01-06",
    "strain": "EA/AM H5N1",
-   "lon": -75.51912,
-   "lat": 39.10924,
+   "lon": -75.52488,
+   "lat": 39.09763,
    "source": "USDA APHIS"
   },
   {
@@ -1029,8 +1360,8 @@
    "species": "Gadwall",
    "date": "2026-01-06",
    "strain": "EA/AM H5N1",
-   "lon": -75.5934,
-   "lat": 39.05317,
+   "lon": -75.57048,
+   "lat": 39.13111,
    "source": "USDA APHIS"
   },
   {
@@ -1039,8 +1370,8 @@
    "species": "Bald eagle",
    "date": "2025-12-23",
    "strain": "EA H5",
-   "lon": -76.29994,
-   "lat": 39.47901,
+   "lon": -76.27486,
+   "lat": 39.47865,
    "source": "USDA APHIS"
   },
   {
@@ -1049,8 +1380,8 @@
    "species": "Bald eagle",
    "date": "2025-12-23",
    "strain": "EA H5N1",
-   "lon": -75.4204,
-   "lat": 38.69067,
+   "lon": -75.43,
+   "lat": 38.70714,
    "source": "USDA APHIS"
   },
   {
@@ -1059,8 +1390,8 @@
    "species": "Black vulture",
    "date": "2025-12-16",
    "strain": "EA/AM H5N1",
-   "lon": -76.67656,
-   "lat": 38.96055,
+   "lon": -76.67392,
+   "lat": 38.97126,
    "source": "USDA APHIS"
   },
   {
@@ -1069,8 +1400,8 @@
    "species": "Black vulture",
    "date": "2025-12-16",
    "strain": "EA/AM H5N1",
-   "lon": -76.54248,
-   "lat": 38.56877,
+   "lon": -76.59936,
+   "lat": 38.56157,
    "source": "USDA APHIS"
   },
   {
@@ -1079,8 +1410,8 @@
    "species": "Black vulture",
    "date": "2025-12-16",
    "strain": "EA/AM H5N1",
-   "lon": -76.62724,
-   "lat": 38.94876,
+   "lon": -76.657,
+   "lat": 38.94318,
    "source": "USDA APHIS"
   },
   {
@@ -1089,8 +1420,8 @@
    "species": "Black vulture",
    "date": "2025-12-16",
    "strain": "EA/AM H5N1",
-   "lon": -76.56076,
-   "lat": 38.9826,
+   "lon": -76.65424,
+   "lat": 39.01491,
    "source": "USDA APHIS"
   },
   {
@@ -1099,8 +1430,8 @@
    "species": "Snow goose",
    "date": "2025-12-15",
    "strain": "EA/AM H5N1",
-   "lon": -75.48216,
-   "lat": 39.12481,
+   "lon": -75.48156,
+   "lat": 39.09898,
    "source": "USDA APHIS"
   },
   {
@@ -1109,8 +1440,8 @@
    "species": "Canada goose",
    "date": "2025-11-21",
    "strain": "EA/AM H5N1",
-   "lon": -75.56208,
-   "lat": 39.08989,
+   "lon": -75.51396,
+   "lat": 39.12355,
    "source": "USDA APHIS"
   },
   {
@@ -1119,8 +1450,8 @@
    "species": "Green-winged teal",
    "date": "2025-11-18",
    "strain": "EA H5",
-   "lon": -75.50004,
-   "lat": 39.08719,
+   "lon": -75.59496,
+   "lat": 39.07666,
    "source": "USDA APHIS"
   },
   {
@@ -1129,8 +1460,8 @@
    "species": "Green-winged teal",
    "date": "2025-11-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.55836,
-   "lat": 39.10357,
+   "lon": -75.5814,
+   "lat": 39.05686,
    "source": "USDA APHIS"
   },
   {
@@ -1139,8 +1470,8 @@
    "species": "Peregrine falcon",
    "date": "2025-10-21",
    "strain": "EA/AM H5N1",
-   "lon": -75.48996,
-   "lat": 39.10078,
+   "lon": -75.54564,
+   "lat": 39.11266,
    "source": "USDA APHIS"
   },
   {
@@ -1149,8 +1480,8 @@
    "species": "Black vulture",
    "date": "2025-10-01",
    "strain": "EA/AM H5N1",
-   "lon": -77.85942,
-   "lat": 39.52112,
+   "lon": -77.8611,
+   "lat": 39.55775,
    "source": "USDA APHIS"
   },
   {
@@ -1159,8 +1490,8 @@
    "species": "Black vulture",
    "date": "2025-10-01",
    "strain": "EA/AM H5N1",
-   "lon": -77.9043,
-   "lat": 39.51896,
+   "lon": -77.83122,
+   "lat": 39.49061,
    "source": "USDA APHIS"
   },
   {
@@ -1169,8 +1500,8 @@
    "species": "Black vulture",
    "date": "2025-10-01",
    "strain": "EA/AM H5N1",
-   "lon": -77.87418,
-   "lat": 39.5231,
+   "lon": -77.86602,
+   "lat": 39.47351,
    "source": "USDA APHIS"
   },
   {
@@ -1179,8 +1510,8 @@
    "species": "Black vulture",
    "date": "2025-10-01",
    "strain": "EA/AM H5N1",
-   "lon": -77.83134,
-   "lat": 39.51428,
+   "lon": -77.85318,
+   "lat": 39.4907,
    "source": "USDA APHIS"
   },
   {
@@ -1189,8 +1520,8 @@
    "species": "Black vulture",
    "date": "2025-10-01",
    "strain": "EA/AM H5N1",
-   "lon": -77.89602,
-   "lat": 39.53651,
+   "lon": -77.89878,
+   "lat": 39.47702,
    "source": "USDA APHIS"
   },
   {
@@ -1199,8 +1530,8 @@
    "species": "Black vulture",
    "date": "2025-10-01",
    "strain": "EA/AM H5N1",
-   "lon": -77.82414,
-   "lat": 39.48998,
+   "lon": -77.87466,
+   "lat": 39.51158,
    "source": "USDA APHIS"
   },
   {
@@ -1209,8 +1540,8 @@
    "species": "Vulture (unidentified)",
    "date": "2025-09-16",
    "strain": "EA/AM H5N1",
-   "lon": -76.98626,
-   "lat": 38.51224,
+   "lon": -77.03114,
+   "lat": 38.43871,
    "source": "USDA APHIS"
   },
   {
@@ -1219,8 +1550,8 @@
    "species": "Vulture (unidentified)",
    "date": "2025-09-16",
    "strain": "EA/AM H5N1",
-   "lon": -76.93922,
-   "lat": 38.47363,
+   "lon": -76.97234,
+   "lat": 38.45725,
    "source": "USDA APHIS"
   },
   {
@@ -1229,8 +1560,8 @@
    "species": "Vulture (unidentified)",
    "date": "2025-09-12",
    "strain": "EA/AM H5N1",
-   "lon": -76.58128,
-   "lat": 38.94093,
+   "lon": -76.59976,
+   "lat": 38.97981,
    "source": "USDA APHIS"
   },
   {
@@ -1239,8 +1570,8 @@
    "species": "Turkey vulture",
    "date": "2025-07-24",
    "strain": "EA/AM H5N1",
-   "lon": -76.63588,
-   "lat": 38.25183,
+   "lon": -76.62208,
+   "lat": 38.26704,
    "source": "USDA APHIS"
   },
   {
@@ -1249,8 +1580,8 @@
    "species": "Black vulture",
    "date": "2025-07-24",
    "strain": "EA/AM H5N1",
-   "lon": -76.49136,
-   "lat": 38.50955,
+   "lon": -76.58772,
+   "lat": 38.51333,
    "source": "USDA APHIS"
   },
   {
@@ -1259,8 +1590,8 @@
    "species": "Great blue heron",
    "date": "2025-07-10",
    "strain": "EA/AM H5N1",
-   "lon": -75.98394,
-   "lat": 38.37853,
+   "lon": -76.05714,
+   "lat": 38.41849,
    "source": "USDA APHIS"
   },
   {
@@ -1269,8 +1600,8 @@
    "species": "Bald eagle",
    "date": "2025-07-07",
    "strain": "EA H5",
-   "lon": -75.86058,
-   "lat": 37.35151,
+   "lon": -75.89802,
+   "lat": 37.29661,
    "source": "USDA APHIS"
   },
   {
@@ -1279,8 +1610,8 @@
    "species": "Great horned owl",
    "date": "2025-07-03",
    "strain": "EA/AM H5N1",
-   "lon": -75.89478,
-   "lat": 37.29292,
+   "lon": -75.78918,
+   "lat": 37.31668,
    "source": "USDA APHIS"
   },
   {
@@ -1289,8 +1620,8 @@
    "species": "Peregrine falcon",
    "date": "2025-07-02",
    "strain": "EA/AM H5N1",
-   "lon": -75.88758,
-   "lat": 37.31038,
+   "lon": -75.83646,
+   "lat": 37.32019,
    "source": "USDA APHIS"
   },
   {
@@ -1299,8 +1630,8 @@
    "species": "Peregrine falcon",
    "date": "2025-07-02",
    "strain": "EA/AM H5N1",
-   "lon": -75.58914,
-   "lat": 37.70592,
+   "lon": -75.64926,
+   "lat": 37.76928,
    "source": "USDA APHIS"
   },
   {
@@ -1309,8 +1640,8 @@
    "species": "Turkey vulture",
    "date": "2025-06-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.7017,
-   "lat": 37.76631,
+   "lon": -75.67302,
+   "lat": 37.7682,
    "source": "USDA APHIS"
   },
   {
@@ -1319,8 +1650,8 @@
    "species": "Turkey vulture",
    "date": "2025-06-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.58542,
-   "lat": 37.70313,
+   "lon": -75.60858,
+   "lat": 37.73346,
    "source": "USDA APHIS"
   },
   {
@@ -1329,8 +1660,8 @@
    "species": "Turkey vulture",
    "date": "2025-06-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.68466,
-   "lat": 37.76001,
+   "lon": -75.6891,
+   "lat": 37.7574,
    "source": "USDA APHIS"
   },
   {
@@ -1339,8 +1670,8 @@
    "species": "Snow goose",
    "date": "2025-06-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.86082,
-   "lat": 37.32631,
+   "lon": -75.80154,
+   "lat": 37.35511,
    "source": "USDA APHIS"
   },
   {
@@ -1349,8 +1680,8 @@
    "species": "Red-tailed hawk",
    "date": "2025-06-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.61254,
-   "lat": 37.74795,
+   "lon": -75.6717,
+   "lat": 37.74678,
    "source": "USDA APHIS"
   },
   {
@@ -1359,8 +1690,8 @@
    "species": "Snow goose",
    "date": "2025-06-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.87054,
-   "lat": 37.32055,
+   "lon": -75.80646,
+   "lat": 37.35664,
    "source": "USDA APHIS"
   },
   {
@@ -1369,8 +1700,8 @@
    "species": "Double-crested cormorant",
    "date": "2025-06-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.8409,
-   "lat": 37.34341,
+   "lon": -75.86058,
+   "lat": 37.30336,
    "source": "USDA APHIS"
   },
   {
@@ -1379,8 +1710,8 @@
    "species": "American wigeon",
    "date": "2025-06-18",
    "strain": "EA H5N1 mixed",
-   "lon": -75.64818,
-   "lat": 37.77342,
+   "lon": -75.70158,
+   "lat": 37.70079,
    "source": "USDA APHIS"
   },
   {
@@ -1389,8 +1720,8 @@
    "species": "Tundra swan",
    "date": "2025-06-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.59766,
-   "lat": 37.75848,
+   "lon": -75.68022,
+   "lat": 37.76361,
    "source": "USDA APHIS"
   },
   {
@@ -1399,8 +1730,8 @@
    "species": "Snow goose",
    "date": "2025-06-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.86082,
-   "lat": 37.34584,
+   "lon": -75.81954,
+   "lat": 37.2976,
    "source": "USDA APHIS"
   },
   {
@@ -1409,8 +1740,8 @@
    "species": "Snow goose",
    "date": "2025-06-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.6987,
-   "lat": 37.72185,
+   "lon": -75.6465,
+   "lat": 37.77252,
    "source": "USDA APHIS"
   },
   {
@@ -1419,8 +1750,8 @@
    "species": "Canada goose",
    "date": "2025-06-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.59202,
-   "lat": 37.76406,
+   "lon": -75.66306,
+   "lat": 37.73931,
    "source": "USDA APHIS"
   },
   {
@@ -1429,8 +1760,8 @@
    "species": "Great blue heron",
    "date": "2025-06-18",
    "strain": "EA/AM H5N1",
-   "lon": -75.69786,
-   "lat": 37.7709,
+   "lon": -75.6321,
+   "lat": 37.72347,
    "source": "USDA APHIS"
   },
   {
@@ -1439,8 +1770,8 @@
    "species": "Bald eagle",
    "date": "2025-06-17",
    "strain": "EA/AM H5N1",
-   "lon": -76.0748,
-   "lat": 39.09703,
+   "lon": -76.06256,
+   "lat": 39.02566,
    "source": "USDA APHIS"
   },
   {
@@ -1449,8 +1780,8 @@
    "species": "Bald eagle",
    "date": "2025-06-17",
    "strain": "EA/AM H5N1",
-   "lon": -76.00526,
-   "lat": 39.51929,
+   "lon": -76.02482,
+   "lat": 39.5759,
    "source": "USDA APHIS"
   },
   {
@@ -1459,8 +1790,8 @@
    "species": "Bald eagle",
    "date": "2025-06-16",
    "strain": "EA/AM H5N1",
-   "lon": -75.79818,
-   "lat": 37.32397,
+   "lon": -75.84678,
+   "lat": 37.35268,
    "source": "USDA APHIS"
   },
   {
@@ -1469,8 +1800,8 @@
    "species": "Canada goose",
    "date": "2025-06-13",
    "strain": "EA/AM H5N1",
-   "lon": -75.95234,
-   "lat": 39.58508,
+   "lon": -75.97862,
+   "lat": 39.5363,
    "source": "USDA APHIS"
   },
   {
@@ -1479,8 +1810,8 @@
    "species": "Snow goose",
    "date": "2025-06-03",
    "strain": "EA H5",
-   "lon": -75.3862,
-   "lat": 38.68302,
+   "lon": -75.397,
+   "lat": 38.73954,
    "source": "USDA APHIS"
   },
   {
@@ -1489,8 +1820,8 @@
    "species": "Snow goose",
    "date": "2025-06-03",
    "strain": "EA H5",
-   "lon": -75.43348,
-   "lat": 38.70354,
+   "lon": -75.3826,
+   "lat": 38.74737,
    "source": "USDA APHIS"
   },
   {
@@ -1499,8 +1830,8 @@
    "species": "Snow goose",
    "date": "2025-06-03",
    "strain": "EA H5",
-   "lon": -75.41104,
-   "lat": 38.70894,
+   "lon": -75.43036,
+   "lat": 38.73117,
    "source": "USDA APHIS"
   },
   {
@@ -1509,8 +1840,8 @@
    "species": "Vulture (unidentified)",
    "date": "2025-05-15",
    "strain": "EA/AM H5N1",
-   "lon": -76.061,
-   "lat": 39.23096,
+   "lon": -76.04408,
+   "lat": 39.16625,
    "source": "USDA APHIS"
   },
   {
@@ -1519,8 +1850,8 @@
    "species": "Vulture (unidentified)",
    "date": "2025-05-15",
    "strain": "EA/AM H5N1",
-   "lon": -76.037,
-   "lat": 39.15122,
+   "lon": -76.12388,
+   "lat": 39.17525,
    "source": "USDA APHIS"
   },
   {
@@ -1529,8 +1860,8 @@
    "species": "Vulture (unidentified)",
    "date": "2025-05-15",
    "strain": "EA/AM H5N1",
-   "lon": -76.03484,
-   "lat": 39.23546,
+   "lon": -76.03568,
+   "lat": 39.22772,
    "source": "USDA APHIS"
   },
   {
@@ -1539,8 +1870,8 @@
    "species": "Mute swan",
    "date": "2025-03-07",
    "strain": "EA/AM H5N1",
-   "lon": -75.63124,
-   "lat": 39.57398,
+   "lon": -75.5446,
+   "lat": 39.55013,
    "source": "USDA APHIS"
   },
   {
@@ -1549,8 +1880,8 @@
    "species": "Mallard",
    "date": "2025-02-21",
    "strain": "EA/AM H5N1",
-   "lon": -75.99426,
-   "lat": 38.43811,
+   "lon": -75.96738,
+   "lat": 38.37439,
    "source": "USDA APHIS"
   },
   {
@@ -1559,8 +1890,8 @@
    "species": "Mallard",
    "date": "2025-02-21",
    "strain": "EA/AM H5N1",
-   "lon": -76.0191,
-   "lat": 38.45179,
+   "lon": -75.9909,
+   "lat": 38.40121,
    "source": "USDA APHIS"
   },
   {
@@ -1569,8 +1900,8 @@
    "species": "Mallard",
    "date": "2025-02-21",
    "strain": "EA/AM H5N1",
-   "lon": -76.05606,
-   "lat": 38.37448,
+   "lon": -76.00158,
+   "lat": 38.3788,
    "source": "USDA APHIS"
   },
   {
@@ -1579,8 +1910,8 @@
    "species": "Mallard",
    "date": "2025-02-21",
    "strain": "EA H5",
-   "lon": -76.04466,
-   "lat": 38.38537,
+   "lon": -75.9999,
+   "lat": 38.4355,
    "source": "USDA APHIS"
   },
   {
@@ -1589,8 +1920,8 @@
    "species": "Mallard",
    "date": "2025-02-21",
    "strain": "EA H5N1",
-   "lon": -76.06638,
-   "lat": 38.43379,
+   "lon": -75.99222,
+   "lat": 38.37538,
    "source": "USDA APHIS"
   },
   {
@@ -1599,8 +1930,8 @@
    "species": "Gadwall",
    "date": "2025-02-21",
    "strain": "EA/AM H5N1",
-   "lon": -76.04394,
-   "lat": 38.38519,
+   "lon": -76.06194,
+   "lat": 38.42965,
    "source": "USDA APHIS"
   },
   {
@@ -1609,8 +1940,8 @@
    "species": "Mallard",
    "date": "2025-02-21",
    "strain": "EA H5N1",
-   "lon": -75.96798,
-   "lat": 38.38285,
+   "lon": -76.02054,
+   "lat": 38.38888,
    "source": "USDA APHIS"
   },
   {
@@ -1619,8 +1950,8 @@
    "species": "Mallard",
    "date": "2025-02-21",
    "strain": "EA H5N1",
-   "lon": -76.02234,
-   "lat": 38.44459,
+   "lon": -76.00542,
+   "lat": 38.39122,
    "source": "USDA APHIS"
   },
   {
@@ -1629,8 +1960,8 @@
    "species": "Mallard",
    "date": "2025-02-21",
    "strain": "EA H5N1",
-   "lon": -75.9723,
-   "lat": 38.43388,
+   "lon": -75.99426,
+   "lat": 38.3671,
    "source": "USDA APHIS"
   },
   {
@@ -1639,8 +1970,8 @@
    "species": "American black duck",
    "date": "2025-02-21",
    "strain": "EA/AM H5N1",
-   "lon": -75.75244,
-   "lat": 38.10222,
+   "lon": -75.75604,
+   "lat": 38.08188,
    "source": "USDA APHIS"
   },
   {
@@ -1649,8 +1980,8 @@
    "species": "Mallard",
    "date": "2025-02-21",
    "strain": "EA/AM H5N1",
-   "lon": -75.79408,
-   "lat": 38.12391,
+   "lon": -75.83284,
+   "lat": 38.08872,
    "source": "USDA APHIS"
   },
   {
@@ -1659,8 +1990,8 @@
    "species": "Mallard",
    "date": "2025-01-30",
    "strain": "EA/AM H5N1",
-   "lon": -76.18404,
-   "lat": 38.71539,
+   "lon": -76.1772,
+   "lat": 38.75688,
    "source": "USDA APHIS"
   },
   {
@@ -1669,8 +2000,8 @@
    "species": "Mallard",
    "date": "2025-01-30",
    "strain": "EA H5N1",
-   "lon": -76.11444,
-   "lat": 38.73969,
+   "lon": -76.13784,
+   "lat": 38.73807,
    "source": "USDA APHIS"
   },
   {
@@ -1679,8 +2010,8 @@
    "species": "Mallard",
    "date": "2025-01-30",
    "strain": "EA/AM H5N1",
-   "lon": -76.194,
-   "lat": 38.781,
+   "lon": -76.17432,
+   "lat": 38.73411,
    "source": "USDA APHIS"
   },
   {
@@ -1689,8 +2020,8 @@
    "species": "Mallard",
    "date": "2025-01-30",
    "strain": "EA/AM H5N1",
-   "lon": -76.19196,
-   "lat": 38.75364,
+   "lon": -76.11564,
+   "lat": 38.76381,
    "source": "USDA APHIS"
   },
   {
@@ -1699,8 +2030,8 @@
    "species": "Mallard",
    "date": "2025-01-30",
    "strain": "EA/AM H5N1",
-   "lon": -76.10796,
-   "lat": 38.78721,
+   "lon": -76.188,
+   "lat": 38.71584,
    "source": "USDA APHIS"
   },
   {
@@ -1709,8 +2040,8 @@
    "species": "Mallard",
    "date": "2025-01-30",
    "strain": "EA H5N1",
-   "lon": -76.101,
-   "lat": 38.79027,
+   "lon": -76.11576,
+   "lat": 38.74599,
    "source": "USDA APHIS"
   },
   {
@@ -1719,8 +2050,8 @@
    "species": "Mallard",
    "date": "2025-01-30",
    "strain": "EA H5N1",
-   "lon": -76.20336,
-   "lat": 38.71449,
+   "lon": -76.17552,
+   "lat": 38.72196,
    "source": "USDA APHIS"
   },
   {
@@ -1729,8 +2060,8 @@
    "species": "Mallard",
    "date": "2025-01-30",
    "strain": "EA H5N1",
-   "lon": -76.17156,
-   "lat": 38.78784,
+   "lon": -76.11636,
+   "lat": 38.72727,
    "source": "USDA APHIS"
   },
   {
@@ -1739,8 +2070,8 @@
    "species": "American black duck",
    "date": "2025-01-30",
    "strain": "EA H5N1",
-   "lon": -76.17816,
-   "lat": 38.718,
+   "lon": -76.09488,
+   "lat": 38.73753,
    "source": "USDA APHIS"
   },
   {
@@ -1749,8 +2080,8 @@
    "species": "Mallard",
    "date": "2025-01-30",
    "strain": "EA H5N1",
-   "lon": -75.57132,
-   "lat": 39.12958,
+   "lon": -75.51108,
+   "lat": 39.13867,
    "source": "USDA APHIS"
   },
   {
@@ -1759,8 +2090,8 @@
    "species": "Green-winged teal",
    "date": "2025-01-27",
    "strain": "EA H5N1",
-   "lon": -75.52644,
-   "lat": 39.115,
+   "lon": -75.58056,
+   "lat": 39.142,
    "source": "USDA APHIS"
   },
   {
@@ -1769,8 +2100,8 @@
    "species": "Green-winged teal",
    "date": "2025-01-27",
    "strain": "EA H5N1",
-   "lon": -75.58236,
-   "lat": 39.05893,
+   "lon": -75.4848,
+   "lat": 39.12616,
    "source": "USDA APHIS"
   },
   {
@@ -1779,8 +2110,8 @@
    "species": "Green-winged teal",
    "date": "2025-01-27",
    "strain": "EA H5",
-   "lon": -75.55284,
-   "lat": 39.05371,
+   "lon": -75.51108,
+   "lat": 39.05902,
    "source": "USDA APHIS"
   },
   {
@@ -1789,8 +2120,8 @@
    "species": "Green-winged teal",
    "date": "2025-01-27",
    "strain": "EA H5N1",
-   "lon": -75.5214,
-   "lat": 39.10087,
+   "lon": -75.49896,
+   "lat": 39.05425,
    "source": "USDA APHIS"
   },
   {
@@ -1799,8 +2130,8 @@
    "species": "Green-winged teal",
    "date": "2025-01-27",
    "strain": "EA H5N1",
-   "lon": -75.49812,
-   "lat": 39.10438,
+   "lon": -75.56196,
+   "lat": 39.10348,
    "source": "USDA APHIS"
   },
   {
@@ -1809,8 +2140,8 @@
    "species": "Green-winged teal",
    "date": "2025-01-27",
    "strain": "EA H5N1",
-   "lon": -75.59136,
-   "lat": 39.088,
+   "lon": -75.57912,
+   "lat": 39.13858,
    "source": "USDA APHIS"
   },
   {
@@ -1819,8 +2150,8 @@
    "species": "Northern shoveler",
    "date": "2025-01-27",
    "strain": "EA/AM H5N1",
-   "lon": -75.53592,
-   "lat": 39.10654,
+   "lon": -75.49896,
+   "lat": 39.13354,
    "source": "USDA APHIS"
   },
   {
@@ -1829,8 +2160,8 @@
    "species": "Bald eagle",
    "date": "2024-11-27",
    "strain": "EA H5N1",
-   "lon": -76.10384,
-   "lat": 39.01855,
+   "lon": -76.03064,
+   "lat": 39.05869,
    "source": "USDA APHIS"
   },
   {
@@ -1839,8 +2170,8 @@
    "species": "Bald eagle",
    "date": "2024-11-27",
    "strain": "EA H5N1",
-   "lon": -75.5262,
-   "lat": 39.06514,
+   "lon": -75.57456,
+   "lat": 39.07666,
    "source": "USDA APHIS"
   },
   {
@@ -1849,8 +2180,8 @@
    "species": "Mallard",
    "date": "2024-09-06",
    "strain": "EA H5",
-   "lon": -75.96102,
-   "lat": 38.40481,
+   "lon": -76.0293,
+   "lat": 38.39347,
    "source": "USDA APHIS"
   },
   {
@@ -1859,7 +2190,27 @@
    "species": "Mallard",
    "date": "2024-09-06",
    "strain": "EA H5N1",
-   "lon": -76.00434,
+   "lon": -76.00278,
+   "lat": 38.42002,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Dorchester",
+   "species": "Mallard",
+   "date": "2024-09-06",
+   "strain": "EA H5N1",
+   "lon": -76.07574,
+   "lat": 38.4337,
+   "source": "USDA APHIS"
+  },
+  {
+   "state": "Maryland",
+   "county": "Dorchester",
+   "species": "Mallard",
+   "date": "2024-09-06",
+   "strain": "EA/AM H5N1",
+   "lon": -75.96258,
    "lat": 38.4094,
    "source": "USDA APHIS"
   },
@@ -1869,28 +2220,8 @@
    "species": "Mallard",
    "date": "2024-09-06",
    "strain": "EA H5N1",
-   "lon": -76.00314,
-   "lat": 38.43946,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Dorchester",
-   "species": "Mallard",
-   "date": "2024-09-06",
-   "strain": "EA/AM H5N1",
-   "lon": -75.96666,
-   "lat": 38.39302,
-   "source": "USDA APHIS"
-  },
-  {
-   "state": "Maryland",
-   "county": "Dorchester",
-   "species": "Mallard",
-   "date": "2024-09-06",
-   "strain": "EA H5N1",
-   "lon": -76.04886,
-   "lat": 38.37466,
+   "lon": -76.0383,
+   "lat": 38.38996,
    "source": "USDA APHIS"
   },
   {
@@ -1899,8 +2230,8 @@
    "species": "Green-winged teal",
    "date": "2024-08-28",
    "strain": "EA H5N1",
-   "lon": -76.01478,
-   "lat": 38.38636,
+   "lon": -76.00902,
+   "lat": 38.44504,
    "source": "USDA APHIS"
   },
   {
@@ -1909,8 +2240,8 @@
    "species": "Green-winged teal",
    "date": "2024-08-28",
    "strain": "EA/AM H5N1",
-   "lon": -76.03494,
-   "lat": 38.40526,
+   "lon": -76.04346,
+   "lat": 38.36584,
    "source": "USDA APHIS"
   },
   {
@@ -1919,8 +2250,8 @@
    "species": "Green-winged teal",
    "date": "2024-08-28",
    "strain": "EA H5N1",
-   "lon": -76.0107,
-   "lat": 38.40643,
+   "lon": -76.0431,
+   "lat": 38.38537,
    "source": "USDA APHIS"
   },
   {
@@ -1929,8 +2260,8 @@
    "species": "Green-winged teal",
    "date": "2024-08-28",
    "strain": "EA/AM H5N1",
-   "lon": -75.98274,
-   "lat": 38.4157,
+   "lon": -75.96954,
+   "lat": 38.43298,
    "source": "USDA APHIS"
   },
   {
@@ -1939,8 +2270,8 @@
    "species": "Green-winged teal",
    "date": "2024-08-28",
    "strain": "EA H5N1",
-   "lon": -76.03434,
-   "lat": 38.39077,
+   "lon": -76.01586,
+   "lat": 38.45026,
    "source": "USDA APHIS"
   },
   {
@@ -1949,8 +2280,8 @@
    "species": "Bald eagle",
    "date": "2024-06-13",
    "strain": "EA/AM H5N1",
-   "lon": -76.29766,
-   "lat": 39.50259,
+   "lon": -76.29514,
+   "lat": 39.5385,
    "source": "USDA APHIS"
   },
   {
@@ -1959,8 +2290,8 @@
    "species": "Bald eagle",
    "date": "2024-05-31",
    "strain": "EA/AM H5N1",
-   "lon": -75.55624,
-   "lat": 38.43556,
+   "lon": -75.62668,
+   "lat": 38.42332,
    "source": "USDA APHIS"
   },
   {
@@ -1969,8 +2300,8 @@
    "species": "Bald eagle",
    "date": "2024-05-31",
    "strain": "EA H5N1",
-   "lon": -75.6634,
-   "lat": 38.35258,
+   "lon": -75.65584,
+   "lat": 38.42683,
    "source": "USDA APHIS"
   },
   {
@@ -1979,8 +2310,8 @@
    "species": "Double-crested cormorant",
    "date": "2024-04-09",
    "strain": "EA H5N1",
-   "lon": -76.14276,
-   "lat": 38.73591,
+   "lon": -76.1148,
+   "lat": 38.75652,
    "source": "USDA APHIS"
   },
   {
@@ -1989,8 +2320,8 @@
    "species": "Northern shoveler",
    "date": "2024-03-04",
    "strain": "EA H5N1",
-   "lon": -75.56616,
-   "lat": 39.06784,
+   "lon": -75.53424,
+   "lat": 39.11914,
    "source": "USDA APHIS"
   },
   {
@@ -1999,8 +2330,8 @@
    "species": "Bald eagle",
    "date": "2024-02-29",
    "strain": "EA H5N1",
-   "lon": -75.32666,
-   "lat": 38.23338,
+   "lon": -75.32882,
+   "lat": 38.23815,
    "source": "USDA APHIS"
   },
   {
@@ -2009,8 +2340,8 @@
    "species": "Bald eagle",
    "date": "2024-02-29",
    "strain": "EA H5N1",
-   "lon": -75.56328,
-   "lat": 39.12022,
+   "lon": -75.5904,
+   "lat": 39.07144,
    "source": "USDA APHIS"
   },
   {
@@ -2019,8 +2350,8 @@
    "species": "Bald eagle",
    "date": "2024-01-05",
    "strain": "EA H5N1",
-   "lon": -76.54,
-   "lat": 38.24994,
+   "lon": -76.58716,
+   "lat": 38.26668,
    "source": "USDA APHIS"
   },
   {
@@ -2029,8 +2360,8 @@
    "species": "Bald eagle",
    "date": "2024-01-05",
    "strain": "EA H5N1",
-   "lon": -75.58324,
-   "lat": 39.54788,
+   "lon": -75.6118,
+   "lat": 39.59369,
    "source": "USDA APHIS"
   },
   {
@@ -2039,8 +2370,8 @@
    "species": "Bald eagle",
    "date": "2024-01-05",
    "strain": "EA H5N1",
-   "lon": -75.6112,
-   "lat": 39.58028,
+   "lon": -75.6208,
+   "lat": 39.58523,
    "source": "USDA APHIS"
   },
   {
@@ -2049,8 +2380,8 @@
    "species": "Green-winged teal",
    "date": "2023-12-04",
    "strain": "EA H5N1",
-   "lon": -75.54708,
-   "lat": 39.1168,
+   "lon": -75.59208,
+   "lat": 39.1123,
    "source": "USDA APHIS"
   },
   {
@@ -2059,8 +2390,8 @@
    "species": "Bald eagle",
    "date": "2023-12-02",
    "strain": "EA/AM H5N1",
-   "lon": -76.60096,
-   "lat": 39.42058,
+   "lon": -76.64488,
+   "lat": 39.44551,
    "source": "USDA APHIS"
   },
   {
@@ -2069,8 +2400,8 @@
    "species": "Canada goose",
    "date": "2023-11-20",
    "strain": "EA/AM H5N1",
-   "lon": -76.97174,
-   "lat": 38.46463,
+   "lon": -76.94414,
+   "lat": 38.45113,
    "source": "USDA APHIS"
   },
   {
@@ -2079,8 +2410,8 @@
    "species": "Canada goose",
    "date": "2023-11-20",
    "strain": "EA/AM H5N1",
-   "lon": -77.0297,
-   "lat": 38.455,
+   "lon": -76.9205,
+   "lat": 38.44285,
    "source": "USDA APHIS"
   },
   {
@@ -2089,8 +2420,8 @@
    "species": "Canada goose",
    "date": "2023-11-20",
    "strain": "EA/AM H5N1",
-   "lon": -76.94018,
-   "lat": 38.44303,
+   "lon": -76.92074,
+   "lat": 38.48164,
    "source": "USDA APHIS"
   },
   {
@@ -2099,8 +2430,8 @@
    "species": "Canada goose",
    "date": "2023-11-20",
    "strain": "EA/AM H5N1",
-   "lon": -77.0225,
-   "lat": 38.47462,
+   "lon": -76.95866,
+   "lat": 38.48218,
    "source": "USDA APHIS"
   },
   {
@@ -2109,8 +2440,8 @@
    "species": "Canada goose",
    "date": "2023-11-20",
    "strain": "EA/AM H5N1",
-   "lon": -76.96562,
-   "lat": 38.5036,
+   "lon": -77.01842,
+   "lat": 38.50594,
    "source": "USDA APHIS"
   },
   {
@@ -2119,8 +2450,8 @@
    "species": "Canada goose",
    "date": "2023-11-20",
    "strain": "EA/AM H5N1",
-   "lon": -77.02802,
-   "lat": 38.50783,
+   "lon": -76.98446,
+   "lat": 38.46382,
    "source": "USDA APHIS"
   },
   {
@@ -2129,8 +2460,8 @@
    "species": "Green-winged teal",
    "date": "2023-11-08",
    "strain": "EA H5N1",
-   "lon": -75.49764,
-   "lat": 39.08665,
+   "lon": -75.53676,
+   "lat": 39.07963,
    "source": "USDA APHIS"
   },
   {
@@ -2139,8 +2470,8 @@
    "species": "Green-winged teal",
    "date": "2023-11-08",
    "strain": "EA H5N1",
-   "lon": -75.57468,
-   "lat": 39.115,
+   "lon": -75.58656,
+   "lat": 39.06541,
    "source": "USDA APHIS"
   },
   {
@@ -2149,8 +2480,8 @@
    "species": "Bald eagle",
    "date": "2023-06-27",
    "strain": "EA H5N1",
-   "lon": -75.98034,
-   "lat": 38.4013,
+   "lon": -76.04646,
+   "lat": 38.42371,
    "source": "USDA APHIS"
   },
   {
@@ -2159,8 +2490,8 @@
    "species": "Bald eagle",
    "date": "2023-06-27",
    "strain": "EA H5N1",
-   "lon": -75.96714,
-   "lat": 38.43721,
+   "lon": -75.98982,
+   "lat": 38.37124,
    "source": "USDA APHIS"
   },
   {
@@ -2169,8 +2500,8 @@
    "species": "Brown pelican",
    "date": "2023-05-26",
    "strain": "EA H5N1",
-   "lon": -76.62496,
-   "lat": 38.25795,
+   "lon": -76.54192,
+   "lat": 38.28153,
    "source": "USDA APHIS"
   },
   {
@@ -2179,8 +2510,8 @@
    "species": "Bald eagle",
    "date": "2023-05-03",
    "strain": "EA H5N1",
-   "lon": -75.98814,
-   "lat": 38.43325,
+   "lon": -76.06746,
+   "lat": 38.44792,
    "source": "USDA APHIS"
   },
   {
@@ -2189,8 +2520,8 @@
    "species": "Bald eagle",
    "date": "2023-04-13",
    "strain": "EA H5N1",
-   "lon": -76.88576,
-   "lat": 38.86732,
+   "lon": -76.89656,
+   "lat": 38.83366,
    "source": "USDA APHIS"
   },
   {
@@ -2199,8 +2530,8 @@
    "species": "Bald eagle",
    "date": "2023-04-13",
    "strain": "EA H5N1",
-   "lon": -76.01852,
-   "lat": 39.01396,
+   "lon": -76.09856,
+   "lat": 39.01927,
    "source": "USDA APHIS"
   },
   {
@@ -2209,8 +2540,8 @@
    "species": "Black vulture",
    "date": "2023-03-31",
    "strain": "EA/AM H5N1",
-   "lon": -76.28854,
-   "lat": 39.48729,
+   "lon": -76.37278,
+   "lat": 39.51474,
    "source": "USDA APHIS"
   },
   {
@@ -2219,8 +2550,8 @@
    "species": "Bald eagle",
    "date": "2023-03-24",
    "strain": "EA/AM H5N1",
-   "lon": -75.86646,
-   "lat": 37.30372,
+   "lon": -75.79014,
+   "lat": 37.33909,
    "source": "USDA APHIS"
   },
   {
@@ -2229,8 +2560,8 @@
    "species": "Peregrine falcon",
    "date": "2023-03-08",
    "strain": "EA/AM H5N1",
-   "lon": -75.66006,
-   "lat": 37.78152,
+   "lon": -75.64326,
+   "lat": 37.76046,
    "source": "USDA APHIS"
   },
   {
@@ -2239,8 +2570,8 @@
    "species": "Bald eagle",
    "date": "2023-02-27",
    "strain": "EA/AM H5N1",
-   "lon": -77.0631,
-   "lat": 39.56998,
+   "lon": -77.05842,
+   "lat": 39.53866,
    "source": "USDA APHIS"
   },
   {
@@ -2249,8 +2580,8 @@
    "species": "Mallard",
    "date": "2023-01-31",
    "strain": "EA H5",
-   "lon": -75.9627,
-   "lat": 38.38249,
+   "lon": -75.97158,
+   "lat": 38.43721,
    "source": "USDA APHIS"
   },
   {
@@ -2259,8 +2590,8 @@
    "species": "American black duck",
    "date": "2023-01-31",
    "strain": "EA/AM H5N1",
-   "lon": -76.00242,
-   "lat": 38.3734,
+   "lon": -75.9783,
+   "lat": 38.368,
    "source": "USDA APHIS"
   },
   {
@@ -2269,8 +2600,8 @@
    "species": "American black duck",
    "date": "2023-01-31",
    "strain": "EA H5N1",
-   "lon": -76.0005,
-   "lat": 38.42263,
+   "lon": -76.05522,
+   "lat": 38.42524,
    "source": "USDA APHIS"
   },
   {
@@ -2279,8 +2610,8 @@
    "species": "Mallard",
    "date": "2023-01-31",
    "strain": "EA H5N1",
-   "lon": -76.0581,
-   "lat": 38.37619,
+   "lon": -76.01586,
+   "lat": 38.4472,
    "source": "USDA APHIS"
   },
   {
@@ -2289,8 +2620,8 @@
    "species": "Mallard",
    "date": "2023-01-31",
    "strain": "EA H5N1",
-   "lon": -76.01094,
-   "lat": 38.4229,
+   "lon": -76.01694,
+   "lat": 38.4274,
    "source": "USDA APHIS"
   },
   {
@@ -2299,8 +2630,8 @@
    "species": "Mallard",
    "date": "2023-01-31",
    "strain": "EA H5N1",
-   "lon": -76.00362,
-   "lat": 38.37286,
+   "lon": -76.02582,
+   "lat": 38.39869,
    "source": "USDA APHIS"
   },
   {
@@ -2309,8 +2640,8 @@
    "species": "Snow goose",
    "date": "2023-01-19",
    "strain": "EA/AM H5N1",
-   "lon": -75.50448,
-   "lat": 39.06298,
+   "lon": -75.48984,
+   "lat": 39.1204,
    "source": "USDA APHIS"
   },
   {
@@ -2319,8 +2650,8 @@
    "species": "Canada goose",
    "date": "2023-01-18",
    "strain": "EA/AM H5N1",
-   "lon": -77.0069,
-   "lat": 38.49703,
+   "lon": -77.02886,
+   "lat": 38.44168,
    "source": "USDA APHIS"
   },
   {
@@ -2329,8 +2660,8 @@
    "species": "Canada goose",
    "date": "2023-01-18",
    "strain": "EA H5N1",
-   "lon": -76.93778,
-   "lat": 38.46058,
+   "lon": -76.97474,
+   "lat": 38.49082,
    "source": "USDA APHIS"
   },
   {
@@ -2339,8 +2670,8 @@
    "species": "Mallard",
    "date": "2022-12-05",
    "strain": "EA H5",
-   "lon": -76.04958,
-   "lat": 38.39239,
+   "lon": -75.96366,
+   "lat": 38.42614,
    "source": "USDA APHIS"
   },
   {
@@ -2349,8 +2680,8 @@
    "species": "Black vulture",
    "date": "2022-10-31",
    "strain": "EA/AM H5N1",
-   "lon": -76.66192,
-   "lat": 38.9673,
+   "lon": -76.66948,
+   "lat": 38.95308,
    "source": "USDA APHIS"
   },
   {
@@ -2359,8 +2690,8 @@
    "species": "Swan (unidentified)",
    "date": "2022-09-30",
    "strain": "EA/AM H5N1",
-   "lon": -75.49068,
-   "lat": 39.09061,
+   "lon": -75.52464,
+   "lat": 39.12688,
    "source": "USDA APHIS"
   },
   {
@@ -2369,8 +2700,8 @@
    "species": "Black vulture",
    "date": "2022-08-18",
    "strain": "EA/AM H5N1",
-   "lon": -76.36078,
-   "lat": 39.52968,
+   "lon": -76.32346,
+   "lat": 39.52167,
    "source": "USDA APHIS"
   },
   {
@@ -2379,8 +2710,8 @@
    "species": "Black vulture",
    "date": "2022-05-27",
    "strain": "EA/AM H5N1",
-   "lon": -76.98072,
-   "lat": 39.26977,
+   "lon": -76.97472,
+   "lat": 39.23701,
    "source": "USDA APHIS"
   },
   {
@@ -2389,8 +2720,8 @@
    "species": "Black vulture",
    "date": "2022-05-27",
    "strain": "EA/AM H5N1",
-   "lon": -76.9398,
-   "lat": 39.20272,
+   "lon": -76.95528,
+   "lat": 39.28075,
    "source": "USDA APHIS"
   },
   {
@@ -2399,8 +2730,8 @@
    "species": "Black vulture",
    "date": "2022-05-24",
    "strain": "EA/AM H5N1",
-   "lon": -76.60696,
-   "lat": 38.99331,
+   "lon": -76.59628,
+   "lat": 38.93067,
    "source": "USDA APHIS"
   },
   {
@@ -2409,8 +2740,8 @@
    "species": "Black vulture",
    "date": "2022-05-02",
    "strain": "EA/AM H5N1",
-   "lon": -76.35802,
-   "lat": 39.47334,
+   "lon": -76.30558,
+   "lat": 39.50529,
    "source": "USDA APHIS"
   },
   {
@@ -2419,8 +2750,8 @@
    "species": "Black vulture",
    "date": "2022-04-26",
    "strain": "EA/AM H5N1",
-   "lon": -76.29298,
-   "lat": 39.53787,
+   "lon": -76.37386,
+   "lat": 39.5007,
    "source": "USDA APHIS"
   },
   {
@@ -2429,8 +2760,8 @@
    "species": "Canada goose",
    "date": "2022-02-17",
    "strain": "EA H5N1",
-   "lon": -75.49944,
-   "lat": 39.09034,
+   "lon": -75.53376,
+   "lat": 39.12877,
    "source": "USDA APHIS"
   },
   {
@@ -2439,8 +2770,8 @@
    "species": "Northern shoveler",
    "date": "2022-02-16",
    "strain": "EA H5N1",
-   "lon": -75.59292,
-   "lat": 39.12616,
+   "lon": -75.59388,
+   "lat": 39.13201,
    "source": "USDA APHIS"
   },
   {
@@ -2449,8 +2780,8 @@
    "species": "American black duck",
    "date": "2022-02-16",
    "strain": "EA H5",
-   "lon": -75.58872,
-   "lat": 39.06289,
+   "lon": -75.4782,
+   "lat": 39.09952,
    "source": "USDA APHIS"
   },
   {
@@ -2459,8 +2790,8 @@
    "species": "Gadwall",
    "date": "2022-02-16",
    "strain": "EA H5",
-   "lon": -75.49512,
-   "lat": 39.06217,
+   "lon": -75.48084,
+   "lat": 39.12157,
    "source": "USDA APHIS"
   },
   {
@@ -2469,8 +2800,8 @@
    "species": "Northern shoveler",
    "date": "2022-02-16",
    "strain": "EA H5",
-   "lon": -75.55116,
-   "lat": 39.13327,
+   "lon": -75.49128,
+   "lat": 39.14074,
    "source": "USDA APHIS"
   },
   {
@@ -2479,8 +2810,8 @@
    "species": "Northern shoveler",
    "date": "2022-02-16",
    "strain": "EA H5",
-   "lon": -75.52644,
-   "lat": 39.06505,
+   "lon": -75.47976,
+   "lat": 39.08746,
    "source": "USDA APHIS"
   },
   {
@@ -2489,8 +2820,8 @@
    "species": "Red-shouldered hawk",
    "date": "2022-02-16",
    "strain": "EA H5N1",
-   "lon": -75.52308,
-   "lat": 39.06748,
+   "lon": -75.56772,
+   "lat": 39.13633,
    "source": "USDA APHIS"
   },
   {
@@ -2499,8 +2830,8 @@
    "species": "American wigeon",
    "date": "2022-02-09",
    "strain": "EA H5N1",
-   "lon": -75.48156,
-   "lat": 39.13894,
+   "lon": -75.52524,
+   "lat": 39.12634,
    "source": "USDA APHIS"
   },
   {
@@ -2509,8 +2840,8 @@
    "species": "Northern shoveler",
    "date": "2022-02-09",
    "strain": "EA H5",
-   "lon": -75.56256,
-   "lat": 39.10582,
+   "lon": -75.55968,
+   "lat": 39.05335,
    "source": "USDA APHIS"
   },
   {
@@ -2519,8 +2850,8 @@
    "species": "Northern shoveler",
    "date": "2022-02-09",
    "strain": "EA H5",
-   "lon": -75.48288,
-   "lat": 39.05551,
+   "lon": -75.47988,
+   "lat": 39.08908,
    "source": "USDA APHIS"
   },
   {
@@ -2529,8 +2860,8 @@
    "species": "Lesser scaup",
    "date": "2022-02-02",
    "strain": "EA H5N1",
-   "lon": -76.0838,
-   "lat": 39.17597,
+   "lon": -76.12664,
+   "lat": 39.14762,
    "source": "USDA APHIS"
   }
  ],
@@ -2556,7 +2887,7 @@
    "flock": "Commercial poultry",
    "birds": null,
    "status": "preliminary",
-   "status_text": "Delaware announced a presumptive positive H5 HPAI case in a Sussex County commercial poultry flock, which is being depopulated.",
+   "status_text": "Delaware reported a presumptive positive H5 HPAI case in a Sussex County commercial poultry flock, which is being depopulated.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2026/11/20/delaware-announces-presumptive-positive-avian-influenza-case-in-sussex-county-commercial-flock/",
    "auto": true,
@@ -2570,7 +2901,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "State lab preliminarily detected H5N1 HPAI at a Worcester County commercial broiler operation; the property is quarantined and the flock is being depopulated.",
+   "status_text": "State lab testing preliminarily detected H5N1 avian influenza at a commercial broiler operation in Worcester County; the flock is being depopulated.",
    "source": "Maryland Department of Agriculture",
    "url": "https://mda.maryland.gov/news/press-releases/preliminary-testing-confirms-highly-pathogenic-avian-influenza-worcester-county?fbclid=IwY2xjawVi9GpleHRuA2FlbQIxMABwZG9mA2JyaWQRMTRaSndTUDdRN2h4WEZjeTRzcnRjBmFwcF9pZA81MTQ3NzE1NjkyMjgwNjEAAR8OstxQdzph0aKLygKbz7Edv-8IQ-LOUaqj4h_8ceOKpBvkOpMNnwCnbZ6Y1w_aem_zWSIvOWaoBl-NvzR_oDUng",
    "auto": true,
@@ -2584,7 +2915,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "Delaware reports a presumptive positive H5 avian influenza case in a Kent County commercial broiler flock; the birds are being depopulated.",
+   "status_text": "Delaware reported a presumptive positive H5 HPAI case in a Kent County commercial broiler flock, which is being depopulated under quarantine.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2026/01/10/delaware-announces-presumptive-positive-avian-influenza-case-in-kent-county-commercial-flock/",
    "auto": true,
@@ -2612,7 +2943,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "Preliminary testing found presumptive positive H5 avian influenza in a commercial broiler flock in Kent County; NVSL confirmation is pending.",
+   "status_text": "Presumptive positive H5 avian influenza found in a Kent County commercial broiler flock; samples sent to USDA NVSL for confirmation.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2025/01/03/delaware-announces-first-presumptive-positive-h5-avian-influenza-case-detected-on-kent-county-farm-in-2025/",
    "auto": true,
@@ -2626,7 +2957,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "preliminary",
-   "status_text": "A commercial broiler flock in Caroline County, Maryland, preliminarily tested positive for HPAI; USDA confirmation is pending.",
+   "status_text": "A commercial broiler flock in Caroline County, Maryland, preliminarily tested positive for HPAI; USDA NVSL confirmation is pending.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2023/11/21/delaware-poultry-owners-urged-to-take-precautions-due-to-hpai-on-delmarva/",
    "auto": true,
@@ -2640,7 +2971,7 @@
    "flock": "Commercial broiler",
    "birds": null,
    "status": "confirmed",
-   "status_text": "USDA's National Veterinary Services Laboratory confirmed HPAI H5N1 in a commercial broiler farm in Kent County, Delaware.",
+   "status_text": "USDA's National Veterinary Services Laboratory confirmed H5N1 avian influenza at a commercial broiler farm in Kent County, Delaware.",
    "source": "Delaware Department of Agriculture",
    "url": "https://news.delaware.gov/2022/03/17/first-case-of-avian-influenza-detected-on-kent-county-delaware-farm/",
    "auto": true,
